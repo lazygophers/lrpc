@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package core;
+
+import "google/protobuf/descriptor.proto";
+
+option cc_enable_arenas = true;
+option go_package = "github.com/lazygophers/lrpc/middleware/core";
+
+enum ErrCode {
+	Success = 0;
+}
+
+message Option {
+	int32 key = 1;
+	string value = 2;
+}
+
+message ListOption {
+	uint64 offset = 1;
+	uint64 limit = 2;
+	bool show_total = 3;
+
+	repeated Option options = 4;
+}
+
+message Paginate {
+	uint64 offset = 1;
+	uint64 limit = 2;
+	uint64 total = 3;
+}
+
+message Http {
+	optional string method = 1;
+	optional string path = 2;
+}
+
+message LazyGen {
+	string role = 1;
+	repeated string before_handlers = 2;
+	repeated string after_handlers = 3;
+}
+
+extend google.protobuf.MethodOptions {
+	optional Http http = 60000;
+	optional LazyGen lazygen = 60001;
+}
