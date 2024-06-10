@@ -206,6 +206,10 @@ func localize(lang string, key string, args ...interface{}) string {
 }
 
 func ParseLanguage(lang string) string {
+	if lang == "" {
+		return lang
+	}
+
 	if strings.Contains(lang, ",") {
 		lang = lang[:strings.Index(lang, ",")]
 	}

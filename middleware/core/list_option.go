@@ -40,18 +40,18 @@ func (p *ListOption) SetShowTotal(showTotal ...bool) *ListOption {
 	return p
 }
 
-func (p *ListOption) SetOptions(options ...*Option) *ListOption {
+func (p *ListOption) SetOptions(options ...*ListOption_Option) *ListOption {
 	p.Options = options
 	return p
 }
 
-func (p *ListOption) AddOptions(options ...*Option) *ListOption {
+func (p *ListOption) AddOptions(options ...*ListOption_Option) *ListOption {
 	p.Options = append(p.Options, options...)
 	return p
 }
 
 func (p *ListOption) AddOption(key int32, value string) *ListOption {
-	return p.AddOptions(&Option{
+	return p.AddOptions(&ListOption_Option{
 		Key:   key,
 		Value: value,
 	})
