@@ -7,6 +7,13 @@ import (
 	"reflect"
 )
 
+type BaseResponse struct {
+	Code int32  `json:"code,omitempty"`
+	Msg  string `json:"msg,omitempty"`
+	Data any    `json:"data,omitempty"`
+	Hint string `json:"hint,omitempty"`
+}
+
 type HandlerFunc func(ctx *Ctx) error
 
 func (p *App) onError(ctx *Ctx, err error) {
@@ -21,31 +28,38 @@ func (p *App) onError(ctx *Ctx, err error) {
 	p.c.OnError(ctx, err)
 }
 
-func (p *App) afterHandler(ctx *Ctx, data reflect.Value, err error) {
-	if p.c.AfterHandlerFunc == nil {
-		if err != nil {
-			p.onError(ctx, err)
-			return
-		}
-
-		err = ctx.SendJson(data.Interface())
-		if err != nil {
-			log.Errorf("err:%v", err)
-			p.onError(ctx, err)
-			return
-		}
-
+func (p *App) afterHandlerWithRef(ctx *Ctx, data reflect.Value, err error) {
+	if err != nil {
+		p.onError(ctx, err)
 		return
 	}
 
-	p.c.AfterHandlerFunc(ctx, data, err)
+	if p.c.AfterHandlerFuncWithRef != nil {
+		p.c.AfterHandlerFuncWithRef(ctx, data, err)
+		if err != nil {
+			p.onError(ctx, err)
+			return
+		}
+	}
+
+	if ctx.BodyEmpty() || ctx.IsBodyStream() {
+		return
+	}
+
+	err = ctx.SendJson(BaseResponse{
+		Data: data.Interface(),
+		Hint: log.GetTrace(),
+	})
+	if err != nil {
+		log.Errorf("err:%v", err)
+		p.onError(ctx, err)
+		return
+	}
+
+	return
 }
 
 func (p *App) ToHandlerFunc(logic any) HandlerFunc {
-	if x, ok := logic.(HandlerFunc); ok {
-		return x
-	}
-
 	lt := reflect.TypeOf(logic)
 	lv := reflect.ValueOf(logic)
 	if lt.Kind() != reflect.Func {
@@ -68,7 +82,6 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 
 	// 两个入参，一个出参，那就是需要解析请求参数的
 	if lt.NumIn() == 2 && lt.NumOut() == 1 {
-
 		// 先判断出参是否是error
 		x = lt.Out(0)
 		for x.Kind() == reflect.Ptr {
@@ -93,25 +106,25 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 			err := ctx.BodyParser(req.Interface())
 			if err != nil {
 				log.Errorf("err:%v", err)
-				p.afterHandler(ctx, req, err)
+				p.afterHandlerWithRef(ctx, req, err)
 				return err
 			}
 
 			err = utils.Validate(req.Interface())
 			if err != nil {
 				log.Errorf("err:%v", err)
-				p.afterHandler(ctx, req, err)
+				p.afterHandlerWithRef(ctx, req, err)
 				return err
 			}
 
 			out := lv.Call([]reflect.Value{reflect.ValueOf(ctx), req})
 			if !out[0].IsNil() {
 				log.Errorf("err:%v", out[0].Interface())
-				p.afterHandler(ctx, req, err)
+				p.afterHandlerWithRef(ctx, req, err)
 				return out[0].Interface().(error)
 			}
 
-			p.afterHandler(ctx, req, nil)
+			p.afterHandlerWithRef(ctx, req, nil)
 			return nil
 		}
 	}
@@ -140,11 +153,11 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 		return func(ctx *Ctx) error {
 			out := lv.Call([]reflect.Value{reflect.ValueOf(ctx)})
 			if out[1].IsNil() {
-				p.afterHandler(ctx, out[0], nil)
+				p.afterHandlerWithRef(ctx, out[0], nil)
 				return nil
 			}
 
-			p.afterHandler(ctx, out[0], out[1].Interface().(error))
+			p.afterHandlerWithRef(ctx, out[0], out[1].Interface().(error))
 
 			return nil
 		}
@@ -195,11 +208,11 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 
 			out := lv.Call([]reflect.Value{reflect.ValueOf(ctx), req})
 			if out[1].IsNil() {
-				p.afterHandler(ctx, out[0], nil)
+				p.afterHandlerWithRef(ctx, out[0], nil)
 				return nil
 			}
 
-			p.afterHandler(ctx, out[0], out[1].Interface().(error))
+			p.afterHandlerWithRef(ctx, out[0], out[1].Interface().(error))
 			return nil
 		}
 	}
@@ -219,11 +232,11 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 			out := lv.Call([]reflect.Value{reflect.ValueOf(ctx)})
 			if !out[0].IsNil() {
 				log.Errorf("err:%v", out[0].Interface())
-				p.afterHandler(ctx, reflect.Value{}, out[0].Interface().(error))
+				p.afterHandlerWithRef(ctx, reflect.Value{}, out[0].Interface().(error))
 				return nil
 			}
 
-			p.afterHandler(ctx, reflect.Value{}, nil)
+			p.afterHandlerWithRef(ctx, reflect.Value{}, nil)
 			return nil
 		}
 	}
@@ -231,7 +244,7 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 	panic("func is not support")
 }
 
-func (p *App) MergeHandler(handlers ...HandlerFunc) HandlerFunc {
+func MergeHandler(handlers ...HandlerFunc) HandlerFunc {
 	return func(ctx *Ctx) error {
 		for _, handler := range handlers {
 			err := handler(ctx)
@@ -267,10 +280,10 @@ func (p *App) AddRoute(r *Route, opts ...RouteOption) {
 	}
 
 	handlers = append(handlers, r.Before...)
-	handlers = append(handlers, p.ToHandlerFunc(r.Handler))
+	handlers = append(handlers, r.Handler)
 	handlers = append(handlers, r.After...)
 
-	p.routes[r.Method].Add(r.Path, p.MergeHandler(handlers...))
+	p.routes[r.Method].Add(r.Path, MergeHandler(handlers...))
 }
 
 func (p *App) AddRoutes(rs []*Route, opts ...RouteOption) {
@@ -279,7 +292,7 @@ func (p *App) AddRoutes(rs []*Route, opts ...RouteOption) {
 	}
 }
 
-func (p *App) Handle(method, path string, handler any, opts ...RouteOption) {
+func (p *App) Handle(method, path string, handler HandlerFunc, opts ...RouteOption) {
 	p.AddRoute(&Route{
 		Method:  method,
 		Path:    path,
@@ -287,38 +300,38 @@ func (p *App) Handle(method, path string, handler any, opts ...RouteOption) {
 	}, opts...)
 }
 
-func (p *App) Get(path string, handler any, opts ...RouteOption) {
+func (p *App) Get(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodGet, path, handler, opts...)
 }
 
-func (p *App) Head(path string, handler any, opts ...RouteOption) {
+func (p *App) Head(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodHead, path, handler, opts...)
 }
 
-func (p *App) Post(path string, handler any, opts ...RouteOption) {
+func (p *App) Post(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodPost, path, handler, opts...)
 }
 
-func (p *App) Put(path string, handler any, opts ...RouteOption) {
+func (p *App) Put(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodPut, path, handler, opts...)
 }
 
-func (p *App) Patch(path string, handler any, opts ...RouteOption) {
+func (p *App) Patch(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodPatch, path, handler, opts...)
 }
 
-func (p *App) Delete(path string, handler any, opts ...RouteOption) {
+func (p *App) Delete(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodDelete, path, handler, opts...)
 }
 
-func (p *App) Connect(path string, handler any, opts ...RouteOption) {
+func (p *App) Connect(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodConnect, path, handler, opts...)
 }
 
-func (p *App) Options(path string, handler any, opts ...RouteOption) {
+func (p *App) Options(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodOptions, path, handler, opts...)
 }
 
-func (p *App) Trace(path string, handler any, opts ...RouteOption) {
+func (p *App) Trace(path string, handler HandlerFunc, opts ...RouteOption) {
 	p.Handle(http.MethodTrace, path, handler, opts...)
 }

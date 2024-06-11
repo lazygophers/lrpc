@@ -4,7 +4,7 @@ type Route struct {
 	Method string
 	Path   string
 
-	Handler any
+	Handler HandlerFunc
 
 	Before, After []HandlerFunc
 

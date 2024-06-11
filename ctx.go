@@ -66,6 +66,10 @@ func (p *Ctx) Body() []byte {
 	return p.ctx.Request.Body()
 }
 
+func (p *Ctx) BodyEmpty() bool {
+	return len(p.ctx.Request.Body()) == 0
+}
+
 func (p *Ctx) Send(body []byte) {
 	p.ctx.SetBody(body)
 }

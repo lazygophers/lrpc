@@ -13,7 +13,8 @@ type Config struct {
 	OnError func(ctx *Ctx, err error)
 
 	// 用于统一的封包、权限等处理
-	AfterHandlerFunc func(ctx *Ctx, data reflect.Value, err error)
+	AfterHandlerFuncWithRef func(ctx *Ctx, data reflect.Value, err error)
+	AfterHandlerFunc        func(ctx *Ctx, err error)
 }
 
 var defaultOnError = func(ctx *Ctx, err error) {
@@ -26,10 +27,11 @@ var defaultOnError = func(ctx *Ctx, err error) {
 		}
 	}
 
-	err = ctx.SendJson(map[string]any{
-		"code": x.Code,
-		"msg":  x.Msg,
-		"hint": log.GetTrace(),
+	err = ctx.SendJson(BaseResponse{
+		Code: x.Code,
+		Msg:  x.Msg,
+		Data: nil,
+		Hint: string(log.GetTrace()),
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -37,7 +39,7 @@ var defaultOnError = func(ctx *Ctx, err error) {
 	}
 }
 
-var defaultAfterHandlerFunc = func(ctx *Ctx, data reflect.Value, err error) {
+var defaultAfterHandlerFuncWithDef = func(ctx *Ctx, data reflect.Value, err error) {
 	if err != nil {
 		defaultOnError(ctx, err)
 		return
@@ -64,8 +66,8 @@ var defaultAfterHandlerFunc = func(ctx *Ctx, data reflect.Value, err error) {
 }
 
 var defaultConfig = &Config{
-	OnError:          defaultOnError,
-	AfterHandlerFunc: defaultAfterHandlerFunc,
+	OnError:                 defaultOnError,
+	AfterHandlerFuncWithRef: defaultAfterHandlerFuncWithDef,
 }
 
 func (p *App) initConfig() {
@@ -77,7 +79,7 @@ func (p *App) initConfig() {
 		p.c.OnError = defaultOnError
 	}
 
-	if p.c.AfterHandlerFunc == nil {
-		p.c.AfterHandlerFunc = defaultAfterHandlerFunc
+	if p.c.AfterHandlerFuncWithRef == nil {
+		p.c.AfterHandlerFuncWithRef = defaultAfterHandlerFuncWithDef
 	}
 }
