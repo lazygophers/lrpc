@@ -1,7 +1,7 @@
 package db_test
 
 import (
-	"github.com/lazygophers/utils/db"
+	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"strconv"
 	"strings"
 	"testing"
