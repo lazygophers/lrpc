@@ -18,11 +18,7 @@ type Mutex struct {
 	cli *Client
 }
 
-func NewMutex(key string) *Mutex {
-	return NewMutexWithClient(cli, key)
-}
-
-func NewMutexWithClient(cli *Client, key string) *Mutex {
+func NewMutex(cli *Client, key string) *Mutex {
 	p := Mutex{
 		key: key,
 		cli: cli,

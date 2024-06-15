@@ -274,6 +274,14 @@ func (p *App) AddRoute(r *Route, opts ...RouteOption) {
 		p.routes[r.Method] = NewSearchTree[HandlerFunc]()
 	}
 
+	for _, logic := range p.hook.onRoute {
+		err := logic(r)
+		if err != nil {
+			log.Fatalf("err:%v", err)
+			return
+		}
+	}
+
 	var handlers []HandlerFunc
 	if len(r.Extra) > 0 {
 		handlers = append(handlers, p.handlerExtr(r.Extra))

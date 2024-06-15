@@ -13,6 +13,8 @@ type App struct {
 	routes map[string]*SearchTree[HandlerFunc]
 
 	ctxPool sync.Pool
+
+	hook *Hooks
 }
 
 func NewApp(c ...*Config) *App {
@@ -23,6 +25,7 @@ func NewApp(c ...*Config) *App {
 				return newCtx()
 			},
 		},
+		hook: new(Hooks),
 	}
 
 	if len(c) > 0 {

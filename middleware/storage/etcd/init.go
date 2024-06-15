@@ -3,40 +3,46 @@ package etcd
 import (
 	"errors"
 	"github.com/lazygophers/log"
-	"sync"
-	"time"
-)
-
-var (
-	cli *Client
-
-	once sync.Once
+	"github.com/lazygophers/utils/runtime"
+	"gopkg.in/yaml.v3"
+	"os"
 )
 
 var (
 	ErrNotFound = errors.New("key not found")
 )
 
-func Connect(c *Config) error {
-	if cli != nil {
-		return nil
+func Connect(c *Config) (*Client, error) {
+	cli, err := NewClient(c)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
 	}
 
-	var err error
-
-	once.Do(func() {
-		cli, err = NewClient(c)
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return
-		}
-	})
-
-	return err
+	return cli, nil
 }
 
-func DefaultCli() *Client {
-	return cli
+func ConnectWithLazy(lazypaths ...string) (*Client, error) {
+	lazypath := runtime.LazyConfigDir()
+	if len(lazypaths) > 0 {
+		lazypath = lazypaths[0]
+	}
+
+	file, err := os.Open(lazypath)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	defer file.Close()
+
+	var c Config
+	err = yaml.NewDecoder(file).Decode(&c)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	return Connect(&c)
 }
 
 type EventType uint8
@@ -60,42 +66,6 @@ func (e EventType) String() string {
 type Event struct {
 	Key     string
 	Type    EventType
-	Value   string
+	Value   []byte
 	Version int64
-}
-
-func Watch(key string, logic func(event *Event)) {
-	cli.Watch(key, logic)
-}
-
-func WatchPrefix(key string, logic func(event *Event)) {
-	cli.WatchPrefix(key, logic)
-}
-
-func Set(key string, val interface{}) error {
-	return cli.Set(key, val)
-}
-
-func SetWithLock(key string, val interface{}) error {
-	return cli.SetWithLock(key, val)
-}
-
-func WhenLocked(key string, logic func(client *Client, key string) (err error)) error {
-	return cli.WhenLocked(key, logic)
-}
-
-func SetEx(key string, val interface{}, timeout time.Duration) error {
-	return cli.SetEx(key, val, timeout)
-}
-
-func Get(key string) ([]byte, error) {
-	return cli.Get(key)
-}
-
-func Prefix(key string) (map[string][]byte, error) {
-	return cli.Prefix(key)
-}
-
-func GetJson(key string, j interface{}) error {
-	return cli.GetJson(key, j)
 }

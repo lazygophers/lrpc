@@ -16,6 +16,8 @@ type Client struct {
 	cli *clientv3.Client
 
 	eventPool *sync.Pool
+
+	watchOnce sync.Once
 }
 
 func NewClient(c *Config) (*Client, error) {
@@ -24,22 +26,25 @@ func NewClient(c *Config) (*Client, error) {
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:            c.Address,
-		AutoSyncInterval:     time.Second,
-		DialTimeout:          5 * time.Second,
-		DialKeepAliveTime:    time.Second,
-		DialKeepAliveTimeout: time.Second,
-		MaxCallSendMsgSize:   0,
-		MaxCallRecvMsgSize:   0,
-		TLS:                  nil,
-		Username:             "",
-		Password:             "",
-		RejectOldCluster:     true,
-		DialOptions:          nil,
-		Context:              nil,
-		Logger:               zap.NewNop(),
-		LogConfig:            nil,
-		PermitWithoutStream:  true,
+		Endpoints:             c.Address,
+		AutoSyncInterval:      time.Second,
+		DialTimeout:           5 * time.Second,
+		DialKeepAliveTime:     time.Second,
+		DialKeepAliveTimeout:  time.Second,
+		MaxCallSendMsgSize:    0,
+		MaxCallRecvMsgSize:    0,
+		TLS:                   nil,
+		Username:              c.Username,
+		Password:              c.Password,
+		RejectOldCluster:      true,
+		DialOptions:           nil,
+		Context:               nil,
+		Logger:                zap.NewNop(),
+		LogConfig:             nil,
+		PermitWithoutStream:   true,
+		MaxUnaryRetries:       0,
+		BackoffWaitBetween:    0,
+		BackoffJitterFraction: 0,
 	})
 	if err != nil {
 		return nil, err
@@ -75,7 +80,7 @@ func (p *Client) watch(wc clientv3.WatchChan, logic func(event *Event)) {
 				for _, event := range v.Events {
 					e := p.eventPool.Get().(*Event)
 					e.Key = string(event.Kv.Key)
-					e.Value = string(event.Kv.Value)
+					e.Value = event.Kv.Value
 
 					e.Version = event.Kv.Version
 
@@ -113,14 +118,14 @@ func (p *Client) Set(key string, val interface{}) error {
 }
 
 func (p *Client) SetWithLock(key string, val interface{}) error {
-	lock := NewMutexWithClient(cli, "lock/"+key)
+	lock := NewMutex(p, "lock/"+key)
 	return lock.WhenLocked(func() error {
 		return p.Set(key, val)
 	})
 }
 
 func (p *Client) WhenLocked(key string, logic func(client *Client, key string) error) error {
-	lock := NewMutexWithClient(cli, "lock/"+key)
+	lock := NewMutex(p, "lock/"+key)
 	return lock.WhenLocked(func() error {
 		return logic(p, key)
 	})
@@ -160,7 +165,7 @@ func (p *Client) Get(key string) ([]byte, error) {
 }
 
 func (p *Client) Prefix(key string) (map[string][]byte, error) {
-	resp, err := p.cli.Get(context.TODO(), key)
+	resp, err := p.cli.Get(context.TODO(), key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}

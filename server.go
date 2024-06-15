@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/network"
+	"github.com/lazygophers/utils/runtime"
 	"github.com/valyala/fasthttp"
+	"net"
 )
 
 func (p *App) Handler(c *fasthttp.RequestCtx) {
@@ -126,7 +128,7 @@ func ListenWithLan(prev6 ...bool) ListenHandler {
 	return EmptyListenHandler
 }
 
-func (p *App) ListenAndServe(port int, handlers ...ListenHandler) error {
+func (p *App) ListenAndServe(port int, handlers ...ListenHandler) (err error) {
 	c := &listenConfig{
 		port: port,
 	}
@@ -138,6 +140,53 @@ func (p *App) ListenAndServe(port int, handlers ...ListenHandler) error {
 	c.apply()
 
 	// TODO 服务发现和服务注册
+	conn, err := net.Listen("tcp", c.address)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	defer conn.Close()
 
-	return p.server.ListenAndServe(c.address)
+	err = p.server.Serve(conn)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	listen := ListenData{
+		Host: "",
+		Port: "",
+		TLS:  false,
+	}
+
+	listen.Host, listen.Port, err = net.SplitHostPort(conn.Addr().String())
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	if p.server.TLSConfig != nil {
+		listen.TLS = true
+	}
+
+	for _, logic := range p.hook.onListen {
+		err = logic(listen)
+		if err != nil {
+			_ = p.server.Shutdown()
+			log.Errorf("err:%v", err)
+			return err
+		}
+	}
+
+	runtime.WaitExit()
+
+	for _, logic := range p.hook.onShutdown {
+		err = logic(listen)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+	}
+
+	return nil
 }

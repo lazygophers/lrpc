@@ -7,6 +7,12 @@ import (
 	"reflect"
 )
 
+type ListenData struct {
+	Host string
+	Port string
+	TLS  bool
+}
+
 type Config struct {
 	Name string
 
