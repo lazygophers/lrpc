@@ -7,6 +7,7 @@ import (
 	"github.com/lazygophers/utils/runtime"
 	"github.com/valyala/fasthttp"
 	"net"
+	"time"
 )
 
 func (p *App) Handler(c *fasthttp.RequestCtx) {
@@ -147,11 +148,20 @@ func (p *App) ListenAndServe(port int, handlers ...ListenHandler) (err error) {
 	}
 	defer conn.Close()
 
-	err = p.server.Serve(conn)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return err
-	}
+	run := make(chan struct{}, 1)
+	go func() {
+		defer func() {
+			run <- struct{}{}
+		}()
+		err = p.server.Serve(conn)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	}()
+	defer p.server.Shutdown()
+
+	time.Sleep(time.Microsecond * 300)
 
 	listen := ListenData{
 		Host: "",
@@ -178,7 +188,12 @@ func (p *App) ListenAndServe(port int, handlers ...ListenHandler) (err error) {
 		}
 	}
 
-	runtime.WaitExit()
+	select {
+	case <-run:
+		log.Warnf("server shutdown")
+	case <-runtime.GetExitSign():
+		log.Warnf("process shutdown")
+	}
 
 	for _, logic := range p.hook.onShutdown {
 		err = logic(listen)

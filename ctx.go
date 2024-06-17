@@ -5,6 +5,8 @@ import (
 	"github.com/lazygophers/utils"
 	"github.com/lazygophers/utils/json"
 	"github.com/valyala/fasthttp"
+	"google.golang.org/protobuf/proto"
+	"strings"
 )
 
 type Ctx struct {
@@ -102,6 +104,25 @@ func (p *Ctx) BodyParser(o any) (err error) {
 	if len(body) == 0 {
 		// TODO: 先统一按照 json 的方式处理
 		return nil
+	}
+
+	contentType := p.Header("Content-Type")
+	if strings.Contains(contentType, "application/protobuf") {
+		if v, ok := o.(proto.Message); ok {
+			err = proto.Unmarshal(body, v)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+			err = utils.Validate(v)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+			return nil
+		}
 	}
 
 	err = json.Unmarshal(body, o)

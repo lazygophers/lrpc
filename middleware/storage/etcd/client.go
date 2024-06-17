@@ -2,12 +2,14 @@ package etcd
 
 import (
 	"context"
-	"github.com/bytedance/sonic"
+	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/routine"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 	"sync"
 	"time"
 )
@@ -25,6 +27,7 @@ func NewClient(c *Config) (*Client, error) {
 		c = &Config{}
 	}
 
+	log.Infof("connecting etcd...")
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:             c.Address,
 		AutoSyncInterval:      time.Second,
@@ -47,6 +50,7 @@ func NewClient(c *Config) (*Client, error) {
 		BackoffJitterFraction: 0,
 	})
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -117,6 +121,53 @@ func (p *Client) Set(key string, val interface{}) error {
 	return nil
 }
 
+func (p *Client) SetWithVersion(key string, val interface{}, version int64) (bool, error) {
+	res, err := p.cli.Txn(context.TODO()).
+		If(clientv3.Compare(clientv3.Version(key), "=", version)).
+		Then(clientv3.OpPut(key, anyx.ToString(val))).
+		Commit()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return false, err
+	}
+
+	return res.Succeeded, nil
+}
+
+func (p *Client) SetPb(key string, val proto.Message) error {
+	buffer, err := proto.Marshal(val)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	_, err = p.cli.Put(context.TODO(), key, string(buffer))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Client) SetPbVersion(key string, val proto.Message, version int64) (bool, error) {
+	buffer, err := proto.Marshal(val)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return false, err
+	}
+
+	res, err := p.cli.Txn(context.TODO()).
+		If(clientv3.Compare(clientv3.Version(key), "=", version)).
+		Then(clientv3.OpPut(key, string(buffer))).
+		Commit()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return false, err
+	}
+
+	return res.Succeeded, nil
+}
+
 func (p *Client) SetWithLock(key string, val interface{}) error {
 	lock := NewMutex(p, "lock/"+key)
 	return lock.WhenLocked(func() error {
@@ -164,6 +215,22 @@ func (p *Client) Get(key string) ([]byte, error) {
 	return nil, ErrNotFound
 }
 
+func (p *Client) GetWithVersion(key string) ([]byte, int64, error) {
+	resp, err := p.cli.Get(context.TODO(), key)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, kv := range resp.Kvs {
+		if string(kv.Key) != key {
+			continue
+		}
+		return kv.Value, kv.Version, nil
+	}
+
+	return nil, 0, ErrNotFound
+}
+
 func (p *Client) Prefix(key string) (map[string][]byte, error) {
 	resp, err := p.cli.Get(context.TODO(), key, clientv3.WithPrefix())
 	if err != nil {
@@ -175,7 +242,24 @@ func (p *Client) Prefix(key string) (map[string][]byte, error) {
 		m[string(kv.Key)] = kv.Value
 	}
 
-	return m, ErrNotFound
+	return m, nil
+}
+
+func (p *Client) ListPrefix(key string) ([]string, error) {
+	resp, err := p.cli.Get(context.TODO(), key,
+		clientv3.WithPrefix(),
+		clientv3.WithIgnoreValue(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, len(resp.Kvs))
+	for _, kv := range resp.Kvs {
+		keys = append(keys, string(kv.Key))
+	}
+
+	return keys, nil
 }
 
 func (p *Client) GetJson(key string, j interface{}) error {
@@ -184,7 +268,21 @@ func (p *Client) GetJson(key string, j interface{}) error {
 		return err
 	}
 
-	err = sonic.Unmarshal(val, j)
+	err = json.Unmarshal(val, j)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Client) GetPb(key string, j proto.Message) error {
+	val, err := p.Get(key)
+	if err != nil {
+		return err
+	}
+
+	err = proto.Unmarshal(val, j)
 	if err != nil {
 		return err
 	}

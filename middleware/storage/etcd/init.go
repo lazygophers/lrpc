@@ -6,6 +6,7 @@ import (
 	"github.com/lazygophers/utils/runtime"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -19,14 +20,18 @@ func Connect(c *Config) (*Client, error) {
 		return nil, err
 	}
 
+	log.Infof("connnect etcd successfully")
+
 	return cli, nil
 }
 
 func ConnectWithLazy(lazypaths ...string) (*Client, error) {
-	lazypath := runtime.LazyConfigDir()
+	lazypath := filepath.Join(runtime.LazyConfigDir(), "etcd.yaml")
 	if len(lazypaths) > 0 {
 		lazypath = lazypaths[0]
 	}
+
+	log.Infof("load etcd configuration from %s", lazypath)
 
 	file, err := os.Open(lazypath)
 	if err != nil {
