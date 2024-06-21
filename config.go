@@ -3,6 +3,7 @@ package lrpc
 import (
 	"errors"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/xerror"
 	"reflect"
 )
@@ -33,11 +34,10 @@ var defaultOnError = func(ctx *Ctx, err error) {
 		}
 	}
 
-	err = ctx.SendJson(BaseResponse{
-		Code: x.Code,
-		Msg:  x.Msg,
-		Data: nil,
-		Hint: string(log.GetTrace()),
+	err = ctx.SendJson(&core.BaseResponse{
+		Code:    x.Code,
+		Message: x.Msg,
+		Hint:    log.GetTrace(),
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -46,29 +46,6 @@ var defaultOnError = func(ctx *Ctx, err error) {
 }
 
 var defaultAfterHandlerFuncWithDef = func(ctx *Ctx, data reflect.Value, err error) {
-	if err != nil {
-		defaultOnError(ctx, err)
-		return
-	}
-
-	if ctx.IsBodyStream() {
-		return
-	}
-
-	//if len(ctx.Response().Body()) > 0 {
-	//	return nil
-	//}
-
-	err = ctx.SendJson(map[string]any{
-		"code": 0,
-		"data": data.Interface(),
-		"hint": log.GetTrace(),
-	})
-	if err != nil {
-		log.Errorf("err:%v", err)
-		defaultOnError(ctx, err)
-		return
-	}
 }
 
 var defaultConfig = &Config{

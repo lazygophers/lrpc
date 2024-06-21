@@ -9,7 +9,6 @@ import (
 	"github.com/lazygophers/utils/runtime"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 // 对于服务端来说，只需要支持服务注册
@@ -21,15 +20,13 @@ func OnListen(listen lrpc.ListenData) error {
 		host = listen.Host
 	}
 
-	port, _ := strconv.ParseInt(listen.Port, 10, 64)
-
 	err := defaultDiscovery.AddNode(&core.ServiceDiscoveryService{
 		ServiceName: app.Name,
 		NodeList: []*core.ServiceDiscoveryNode{
 			{
 				Type: core.ServiceType_Service,
 				Host: host,
-				Port: int32(port),
+				Port: listen.Port,
 			},
 		},
 	})
@@ -41,14 +38,12 @@ func OnListen(listen lrpc.ListenData) error {
 	return nil
 }
 
-func OnShutdown(listen lrpc.ListenData) error {
+func OnShutdown(listen lrpc.ListenData) {
 	host, _ := getHostByGlobalDefault()
 
 	if host == "" {
 		host = listen.Host
 	}
-
-	port, _ := strconv.ParseInt(listen.Port, 10, 64)
 
 	err := defaultDiscovery.RemoveNode(&core.ServiceDiscoveryService{
 		ServiceName: app.Name,
@@ -56,16 +51,16 @@ func OnShutdown(listen lrpc.ListenData) error {
 			{
 				Type: core.ServiceType_Service,
 				Host: host,
-				Port: int32(port),
+				Port: listen.Port,
 			},
 		},
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
-		return err
+		return
 	}
 
-	return nil
+	return
 }
 
 func getHostByGlobalDefault() (string, error) {

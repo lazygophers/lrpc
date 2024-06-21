@@ -3,7 +3,7 @@ package lrpc
 type Hooks struct {
 	onRoute    []func(*Route) error
 	onListen   []func(ListenData) error
-	onShutdown []func(ListenData) error
+	onShutdown []func(ListenData)
 }
 
 func (p *Hooks) OnRoute(route func(*Route) error) {
@@ -14,7 +14,7 @@ func (p *Hooks) OnListen(logic func(ListenData) error) {
 	p.onListen = append(p.onListen, logic)
 }
 
-func (p *Hooks) OnShutdown(logic func(ListenData) error) {
+func (p *Hooks) OnShutdown(logic func(ListenData)) {
 	p.onShutdown = append(p.onShutdown, logic)
 }
 
@@ -30,6 +30,6 @@ func (p *App) OnListen(logic func(ListenData) error) {
 	p.hook.OnListen(logic)
 }
 
-func (p *App) OnShutdown(logic func(ListenData) error) {
+func (p *App) OnShutdown(logic func(ListenData)) {
 	p.hook.OnShutdown(logic)
 }

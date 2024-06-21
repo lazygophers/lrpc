@@ -14,6 +14,17 @@ func (p *App) Handler(c *fasthttp.RequestCtx) {
 	ctx := p.AcquireCtx(c)
 	defer p.ReleaseCtx(ctx)
 
+	if ctx.TranceId() == "" {
+		ctx.SetTranceId()
+	}
+
+	log.SetTrace(ctx.TranceId())
+	defer log.DelTrace()
+
+	ctx.SetHeader(HeaderTrance, log.GetTrace())
+
+	log.Infof("%s %s", ctx.Method(), ctx.Path())
+
 	route := p.routes[ctx.Method()]
 	if route == nil {
 		log.Errorf("not found route, method:%s, path:%s", ctx.Method(), ctx.Path())
@@ -196,11 +207,7 @@ func (p *App) ListenAndServe(port int, handlers ...ListenHandler) (err error) {
 	}
 
 	for _, logic := range p.hook.onShutdown {
-		err = logic(listen)
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return err
-		}
+		logic(listen)
 	}
 
 	return nil

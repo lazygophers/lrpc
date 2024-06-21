@@ -77,35 +77,35 @@ type I18n struct {
 	defaultLang string
 }
 
-func (p *I18n) localize(lang string, key string) string {
+func (p *I18n) localize(lang string, key string) (string, bool) {
 	if lang != "" {
 		lang = strings.ToLower(lang)
 		if pack, ok := p.packMap[lang]; ok {
-			return pack.corpus[key]
+			return pack.corpus[key], true
 		}
 
 		if strings.Contains(lang, "-") {
 			if pack, ok := p.packMap[lang[:strings.Index(lang, "-")]]; ok {
-				return pack.corpus[key]
+				return pack.corpus[key], true
 			}
 		}
 	}
 
 	if pack, ok := p.packMap[p.defaultLang]; ok {
-		return pack.corpus[key]
+		return pack.corpus[key], true
 	}
 
 	if strings.Contains(p.defaultLang, "-") {
 		if pack, ok := p.packMap[p.defaultLang[:strings.Index(p.defaultLang, "-")]]; ok {
-			return pack.corpus[key]
+			return pack.corpus[key], true
 		}
 	}
 
-	return key
+	return key, false
 }
 
-func (p *I18n) LocalizeWithLanguage(lang string, key string, args ...interface{}) string {
-	value := p.localize(lang, key)
+func (p *I18n) LocalizeWithLang(lang string, key string, args ...interface{}) string {
+	value, _ := p.localize(lang, key)
 	if len(args) == 0 {
 		return value
 	}
@@ -123,7 +123,7 @@ func (p *I18n) LocalizeWithLanguage(lang string, key string, args ...interface{}
 }
 
 func (p *I18n) Localize(key string, args ...interface{}) string {
-	return p.LocalizeWithLanguage("", key, args...)
+	return p.LocalizeWithLang("", key, args...)
 }
 
 func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
@@ -202,7 +202,7 @@ func DefaultLanguage() string {
 }
 
 func localize(lang string, key string, args ...interface{}) string {
-	return DefaultI18n.LocalizeWithLanguage(lang, key, args...)
+	return DefaultI18n.LocalizeWithLang(lang, key, args...)
 }
 
 func ParseLanguage(lang string) string {

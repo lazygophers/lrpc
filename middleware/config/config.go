@@ -6,6 +6,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/storage/etcd"
+	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
@@ -56,7 +57,7 @@ func (p *Config) SetPb(key string, value proto.Message) error {
 		return err
 	}
 
-	return p.Set(key, buffer)
+	return p.Set(p.etcdKey(key), buffer)
 }
 
 func (p *Config) Get(key string) ([]byte, error) {
@@ -68,7 +69,7 @@ func (p *Config) Get(key string) ([]byte, error) {
 	item, err := p.getDisk(key)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, xerror.NewError(int32(core.ErrCode_ConfigNotFound))
 		}
 
 		log.Errorf("err:%v", err)
@@ -115,7 +116,7 @@ func (p *Config) etcdKey(key string) string {
 }
 
 func (p *Config) filePath(key string) string {
-	return filepath.Join(runtime.Pwd(), p.keyword, key)
+	return filepath.Join(runtime.LazyConfigDir(), p.keyword, key)
 }
 
 func (p *Config) getLocal(key string) (*core.ConfigItem, bool) {
@@ -137,10 +138,20 @@ func (p *Config) getDisk(key string) (*core.ConfigItem, error) {
 	p.cacheLock.Lock()
 	defer p.cacheLock.Unlock()
 
+	log.Infof("read file from %s", p.filePath(key))
+
 	buffer, err := os.ReadFile(p.filePath(key))
 	if err != nil {
-		log.Errorf("err:%v", err)
+		if !os.IsNotExist(err) {
+			log.Errorf("err:%v", err)
+		}
 		return nil, err
+	}
+
+	if len(buffer) == 0 {
+		return &core.ConfigItem{
+			Key: key,
+		}, nil
 	}
 
 	var item core.ConfigItem

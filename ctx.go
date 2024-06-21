@@ -12,6 +12,8 @@ import (
 type Ctx struct {
 	ctx *fasthttp.RequestCtx
 
+	tranceId string
+
 	params map[string]string
 }
 
@@ -56,6 +58,10 @@ func (p *Ctx) Header(key string) string {
 	return string(p.ctx.Request.Header.Peek(key))
 }
 
+func (p *Ctx) SetHeader(key string, value string) {
+	p.ctx.Response.Header.Set(key, value)
+}
+
 func (p *Ctx) Query(key string) string {
 	return string(p.ctx.QueryArgs().Peek(key))
 }
@@ -85,6 +91,22 @@ func (p *Ctx) SendStatus(status int) {
 }
 
 func (p *Ctx) SendJson(o any) error {
+	contentType := p.Header(HeaderContentType)
+	if strings.Contains(contentType, MIMEProtobuf) {
+		if v, ok := o.(proto.Message); ok {
+			p.SetHeader(HeaderContentType, MIMEProtobuf)
+			buffer, err := proto.Marshal(v)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+			p.ctx.SetBody(buffer)
+			return nil
+		}
+	}
+
+	p.SetHeader(HeaderContentType, MIMEJson)
 	buffer, err := json.Marshal(o)
 	if err != nil {
 		return err
@@ -106,8 +128,8 @@ func (p *Ctx) BodyParser(o any) (err error) {
 		return nil
 	}
 
-	contentType := p.Header("Content-Type")
-	if strings.Contains(contentType, "application/protobuf") {
+	contentType := p.Header(HeaderContentType)
+	if strings.Contains(contentType, MIMEProtobuf) {
 		if v, ok := o.(proto.Message); ok {
 			err = proto.Unmarshal(body, v)
 			if err != nil {
@@ -142,6 +164,28 @@ func (p *Ctx) BodyParser(o any) (err error) {
 	return nil
 }
 
+func (p *Ctx) TranceId() string {
+	return p.tranceId
+}
+
+func (p *Ctx) SetTranceId(tranceId ...string) {
+	if len(tranceId) > 0 {
+		p.tranceId = tranceId[0]
+	} else {
+		p.tranceId = log.GenTraceId()
+	}
+}
+
+func (p *Ctx) init() {
+	if p.Header(HeaderTrance) != "" {
+		p.tranceId = p.Header(HeaderTrance)
+	}
+
+	if p.tranceId == "" {
+		p.tranceId = log.GetTrace()
+	}
+}
+
 func (p *App) AcquireCtx(ctx *fasthttp.RequestCtx) *Ctx {
 	c := p.ctxPool.Get().(*Ctx)
 
@@ -151,10 +195,22 @@ func (p *App) AcquireCtx(ctx *fasthttp.RequestCtx) *Ctx {
 
 	c.ctx = ctx
 
+	c.init()
+
 	return c
 }
 
 func (p *App) ReleaseCtx(ctx *Ctx) {
 	ctx.Reset()
 	p.ctxPool.Put(ctx)
+}
+
+func NewCtxTools() *Ctx {
+	p := &Ctx{
+		ctx: &fasthttp.RequestCtx{},
+	}
+
+	p.init()
+
+	return p
 }

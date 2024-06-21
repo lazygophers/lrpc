@@ -38,6 +38,17 @@ var errMap = map[int32]*Error{
 	},
 }
 
+type I18n interface {
+	Localize(key int32, langs ...string) (string, bool)
+}
+
+// 对于想要多语言场景下，可以通过本方法按照 errode 自动返回对应语言的错误信息
+var i18n I18n
+
+func SetI18n(i I18n) {
+	i18n = i
+}
+
 func Register(errs ...*Error) {
 	for _, err := range errs {
 		errMap[err.Code] = err
@@ -88,10 +99,28 @@ func CheckCode(err1 error, code int32) bool {
 	return false
 }
 
-func NewError(code int32) *Error {
+func New(code int32) *Error {
 	if err, ok := errMap[code]; ok {
 		return err.Clone()
 	}
+
+	return &Error{
+		Code: code,
+	}
+}
+
+func NewError(code int32, lang ...string) *Error {
+	if err, ok := errMap[code]; ok {
+		return err.Clone()
+	}
+
+	if i18n != nil {
+		msg, ok := i18n.Localize(code, lang...)
+		if ok {
+			return NewErrorWithMsg(code, msg)
+		}
+	}
+
 	return &Error{
 		Code: code,
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/storage/etcd"
+	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
@@ -116,7 +117,7 @@ func (p *Discovery) GetServer(name string) (*core.ServiceDiscoveryService, error
 	if err == nil {
 		return service, nil
 	} else if os.IsNotExist(err) {
-		return nil, nil
+		return nil, xerror.NewError(int32(core.ErrCode_ServerNodeNotFound))
 	}
 
 	return nil, err
@@ -143,7 +144,7 @@ func (p *Discovery) getServerDisk(name string) (*core.ServiceDiscoveryService, e
 	p.cacheLock.Lock()
 	defer p.cacheLock.Unlock()
 
-	buffer, err := os.ReadFile(filepath.Join(runtime.Pwd(), "discovery", name))
+	buffer, err := os.ReadFile(filepath.Join(runtime.LazyConfigDir(), "discovery", name))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
@@ -176,7 +177,7 @@ func (p *Discovery) reloadCache(name string) error {
 }
 
 func (p *Discovery) watchServer(name string) error {
-	name = filepath.Join(runtime.Pwd(), "discovery", name)
+	name = filepath.Join(runtime.LazyConfigDir(), "discovery", name)
 
 	if candy.Contains(p.watcher.WatchList(), name) {
 		return nil
@@ -199,8 +200,10 @@ func NewDiscover(client *etcd.Client) *Discovery {
 	}
 
 	p := &Discovery{
-		watcher: watcher,
-		client:  client,
+		client:    client,
+		watcher:   watcher,
+		cacheLock: sync.RWMutex{},
+		cache:     map[string]*core.ServiceDiscoveryService{},
 	}
 
 	routine.Go(func() (err error) {
@@ -234,7 +237,7 @@ func NewDiscover(client *etcd.Client) *Discovery {
 }
 
 // 考虑全局适用的场景
-var defaultDiscovery *Discovery
+var defaultDiscovery = NewDiscover(nil)
 
 func SetEtcd(client *etcd.Client) {
 	if defaultDiscovery == nil {

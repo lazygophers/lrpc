@@ -2,16 +2,19 @@ package lrpc
 
 import (
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"net/http"
 	"reflect"
 )
 
 type BaseResponse struct {
-	Code int32  `json:"code,omitempty"`
-	Msg  string `json:"msg,omitempty"`
-	Data any    `json:"data,omitempty"`
-	Hint string `json:"hint,omitempty"`
+	Code    int32  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Data    any    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Hint    string `protobuf:"bytes,4,opt,name=hint,proto3" json:"hint,omitempty"`
 }
 
 type HandlerFunc func(ctx *Ctx) error
@@ -42,11 +45,34 @@ func (p *App) afterHandlerWithRef(ctx *Ctx, data reflect.Value, err error) {
 		}
 	}
 
-	if ctx.BodyEmpty() || ctx.IsBodyStream() {
+	if !ctx.BodyEmpty() || ctx.IsBodyStream() {
 		return
 	}
 
-	err = ctx.SendJson(BaseResponse{
+	di := data.Interface()
+	log.Infof("%s Response %s", ctx.Path(), di)
+	if x, ok := di.(proto.Message); ok {
+		a, err := anypb.New(x)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			p.onError(ctx, err)
+			return
+		}
+
+		err = ctx.SendJson(&core.BaseResponse{
+			Data: a,
+			Hint: log.GetTrace(),
+		})
+		if err != nil {
+			log.Errorf("err:%v", err)
+			p.onError(ctx, err)
+			return
+		}
+
+		return
+	}
+
+	err = ctx.SendJson(&BaseResponse{
 		Data: data.Interface(),
 		Hint: log.GetTrace(),
 	})
