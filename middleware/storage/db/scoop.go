@@ -40,7 +40,8 @@ func NewScoop(db *gorm.DB) *Scoop {
 	return &Scoop{
 		depth: 1,
 		_db: db.Session(&gorm.Session{
-			NewDB: true,
+			//NewDB: true,
+			Initialized: true,
 		}),
 	}
 }

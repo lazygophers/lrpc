@@ -181,6 +181,13 @@ func (p *Client) AutoMigrate(dst ...interface{}) error {
 	return nil
 }
 
+func (p *Client) Database() *gorm.DB {
+	return p.db.Session(&gorm.Session{
+		//NewDB:       true,
+		Initialized: true,
+	})
+}
+
 func (p *Client) NewScoop() *Scoop {
 	return NewScoop(p.db)
 }
