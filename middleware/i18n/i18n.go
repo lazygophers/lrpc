@@ -20,6 +20,7 @@ type LocalizeFs interface {
 // Pack 语言包
 type Pack struct {
 	lang string
+	code *LanguageCode
 
 	corpus map[string]string
 }
@@ -68,6 +69,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 func NewPack(lang string) *Pack {
 	return &Pack{
 		lang:   lang,
+		code:   MustParseLangCode(lang),
 		corpus: map[string]string{},
 	}
 }
@@ -180,6 +182,15 @@ func (p *I18n) SetDefaultLang(lang string) *I18n {
 	lang = strings.ToLower(lang)
 	p.defaultLang = lang
 	return p
+}
+
+func (p *I18n) AllSupportedLanguageCode() []*LanguageCode {
+	langs := make([]*LanguageCode, 0, len(p.packMap))
+	for _, pack := range p.packMap {
+		langs = append(langs, pack.code)
+	}
+
+	return nil
 }
 
 var DefaultI18n = NewI18n()
