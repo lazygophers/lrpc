@@ -3,6 +3,7 @@ package i18n
 import (
 	"fmt"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/anyx"
 	"golang.org/x/text/language"
 	"io/fs"
 	"net/http"
@@ -56,6 +57,14 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 			mm := make(map[string]interface{}, len(x))
 			for k, v := range x {
 				mm[strconv.FormatFloat(k, 'f', -1, 64)] = v
+			}
+
+			p.parse(keys, mm)
+
+		case map[any]any:
+			mm := make(map[string]interface{}, len(x))
+			for k, v := range x {
+				mm[anyx.ToString(k)] = v
 			}
 
 			p.parse(keys, mm)
