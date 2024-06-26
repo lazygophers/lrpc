@@ -160,6 +160,10 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 func (p *Client) AutoMigrate(dst ...interface{}) error {
 	for _, table := range dst {
+		if x, ok := table.(Tabler); ok {
+			log.Infof("auto migrate %s", x.TableName())
+		}
+
 		err := p.db.AutoMigrate(table)
 		if err != nil {
 			log.Errorf("err:%v", err)
