@@ -199,7 +199,7 @@ func (p *I18n) AllSupportedLanguageCode() []*LanguageCode {
 		langs = append(langs, pack.code)
 	}
 
-	return nil
+	return langs
 }
 
 var DefaultI18n = NewI18n()
