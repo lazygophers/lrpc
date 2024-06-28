@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
-	"gorm.io/gorm/logger"
 	"reflect"
 	"time"
 
@@ -27,7 +26,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	c.apply()
 
 	if c.Logger == nil {
-		c.Logger = logger.Discard
+		c.Logger = getDefaultLogger()
 	}
 
 	var d gorm.Dialector

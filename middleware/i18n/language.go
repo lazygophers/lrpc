@@ -32,10 +32,16 @@ func ParseLangCode(lang string) (*LanguageCode, error) {
 	lang = strings.ToLower(lang)
 
 	switch lang {
-	case "zh-cn", "zh-chs":
+	case "zh-cn":
 		return &LanguageCode{
 			Lang: lang,
 			Tag:  language.Chinese,
+		}, nil
+
+	case "zh-hans", "zh-chs":
+		return &LanguageCode{
+			Lang: lang,
+			Tag:  language.SimplifiedChinese,
 		}, nil
 
 	case "zh-hk", "zh-tw", "zh-mo", "zh-sg", "zh-cht":
