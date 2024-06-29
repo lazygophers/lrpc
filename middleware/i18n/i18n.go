@@ -4,13 +4,18 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/stringx"
 	"golang.org/x/text/language"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/fs"
+	"maps"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 )
 
 type LocalizeFs interface {
@@ -75,6 +80,45 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 	}
 }
 
+var defaultTemplateFunc = template.FuncMap{
+	"ToCamel":      stringx.ToCamel,
+	"ToSmallCamel": stringx.ToSmallCamel,
+	"ToSnake":      stringx.ToSnake,
+	"ToLower":      strings.ToLower,
+	"ToUpper":      strings.ToUpper,
+	"ToTitle":      strings.ToTitle,
+
+	"TrimPrefix": strings.TrimPrefix,
+	"TrimSuffix": strings.TrimSuffix,
+	"HasPrefix":  strings.HasPrefix,
+	"HasSuffix":  strings.HasSuffix,
+
+	"PluckString": anyx.PluckString,
+	"PluckInt":    anyx.PluckInt,
+	"PluckInt32":  anyx.PluckInt32,
+	"PluckUint32": anyx.PluckUint32,
+	"PluckInt64":  anyx.PluckInt64,
+	"PluckUint64": anyx.PluckUint64,
+
+	"StringSliceEmpty": func(ss []string) bool {
+		return len(ss) == 0
+	},
+
+	"UniqueString":   candy.Unique[string],
+	"SortString":     candy.Sort[string],
+	"ReverseString":  candy.Reverse[string],
+	"TopString":      candy.Top[string],
+	"FirstString":    candy.First[string],
+	"LastString":     candy.Last[string],
+	"ContainsString": candy.Contains[string],
+	"TimeFormat4Pb": func(t *timestamppb.Timestamp, layout string) string {
+		return t.AsTime().Format(layout)
+	},
+	"TimeFormat4Timestampp": func(t int64, layout string) string {
+		return time.Unix(t, 0).Format(layout)
+	},
+}
+
 func NewPack(lang string) *Pack {
 	return &Pack{
 		lang:   lang,
@@ -86,6 +130,12 @@ func NewPack(lang string) *Pack {
 type I18n struct {
 	packMap     map[string]*Pack
 	defaultLang string
+
+	templateFunc template.FuncMap
+}
+
+func (p *I18n) AddTemplateFunc(key string, a any) {
+	p.templateFunc[key] = a
 }
 
 func (p *I18n) localize(lang string, key string) (string, bool) {
@@ -208,6 +258,8 @@ func NewI18n() *I18n {
 	p := &I18n{
 		packMap:     map[string]*Pack{},
 		defaultLang: language.English.String(),
+
+		templateFunc: maps.Clone(defaultTemplateFunc),
 	}
 
 	return p
