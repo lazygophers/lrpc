@@ -114,7 +114,7 @@ var defaultTemplateFunc = template.FuncMap{
 	"TimeFormat4Pb": func(t *timestamppb.Timestamp, layout string) string {
 		return t.AsTime().Format(layout)
 	},
-	"TimeFormat4Timestampp": func(t int64, layout string) string {
+	"TimeFormat4Timestamp": func(t int64, layout string) string {
 		return time.Unix(t, 0).Format(layout)
 	},
 }
