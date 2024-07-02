@@ -438,6 +438,109 @@ func (x *BaseResponse) GetHint() string {
 	return ""
 }
 
+type RawReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Body []byte `protobuf:"bytes,1,opt,name=body,proto3" json:"body,omitempty"`
+}
+
+func (x *RawReq) Reset() {
+	*x = RawReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RawReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RawReq) ProtoMessage() {}
+
+func (x *RawReq) ProtoReflect() protoreflect.Message {
+	mi := &file_core_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RawReq.ProtoReflect.Descriptor instead.
+func (*RawReq) Descriptor() ([]byte, []int) {
+	return file_core_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RawReq) GetBody() []byte {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+type RawResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Body []byte `protobuf:"bytes,1,opt,name=body,proto3" json:"body,omitempty"`
+	// 不填会按照纯文本处理
+	ContentType string `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+}
+
+func (x *RawResp) Reset() {
+	*x = RawResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RawResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RawResp) ProtoMessage() {}
+
+func (x *RawResp) ProtoReflect() protoreflect.Message {
+	mi := &file_core_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RawResp.ProtoReflect.Descriptor instead.
+func (*RawResp) Descriptor() ([]byte, []int) {
+	return file_core_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RawResp) GetBody() []byte {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *RawResp) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
 type ServiceDiscoveryClient struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -455,7 +558,7 @@ type ServiceDiscoveryClient struct {
 func (x *ServiceDiscoveryClient) Reset() {
 	*x = ServiceDiscoveryClient{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[1]
+		mi := &file_core_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -468,7 +571,7 @@ func (x *ServiceDiscoveryClient) String() string {
 func (*ServiceDiscoveryClient) ProtoMessage() {}
 
 func (x *ServiceDiscoveryClient) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[1]
+	mi := &file_core_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +584,7 @@ func (x *ServiceDiscoveryClient) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDiscoveryClient.ProtoReflect.Descriptor instead.
 func (*ServiceDiscoveryClient) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{1}
+	return file_core_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ServiceDiscoveryClient) GetDiscoveryType() DiscoveryType {
@@ -538,7 +641,7 @@ type ServiceDiscoveryService struct {
 func (x *ServiceDiscoveryService) Reset() {
 	*x = ServiceDiscoveryService{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[2]
+		mi := &file_core_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -551,7 +654,7 @@ func (x *ServiceDiscoveryService) String() string {
 func (*ServiceDiscoveryService) ProtoMessage() {}
 
 func (x *ServiceDiscoveryService) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[2]
+	mi := &file_core_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -564,7 +667,7 @@ func (x *ServiceDiscoveryService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDiscoveryService.ProtoReflect.Descriptor instead.
 func (*ServiceDiscoveryService) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{2}
+	return file_core_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ServiceDiscoveryService) GetServiceName() string {
@@ -597,7 +700,7 @@ type ServiceDiscoveryNode struct {
 func (x *ServiceDiscoveryNode) Reset() {
 	*x = ServiceDiscoveryNode{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[3]
+		mi := &file_core_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -610,7 +713,7 @@ func (x *ServiceDiscoveryNode) String() string {
 func (*ServiceDiscoveryNode) ProtoMessage() {}
 
 func (x *ServiceDiscoveryNode) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[3]
+	mi := &file_core_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +726,7 @@ func (x *ServiceDiscoveryNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceDiscoveryNode.ProtoReflect.Descriptor instead.
 func (*ServiceDiscoveryNode) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{3}
+	return file_core_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ServiceDiscoveryNode) GetType() ServiceType {
@@ -682,7 +785,7 @@ type ConfigItem struct {
 func (x *ConfigItem) Reset() {
 	*x = ConfigItem{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[4]
+		mi := &file_core_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -695,7 +798,7 @@ func (x *ConfigItem) String() string {
 func (*ConfigItem) ProtoMessage() {}
 
 func (x *ConfigItem) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[4]
+	mi := &file_core_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -708,7 +811,7 @@ func (x *ConfigItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigItem.ProtoReflect.Descriptor instead.
 func (*ConfigItem) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{4}
+	return file_core_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ConfigItem) GetKey() string {
@@ -747,7 +850,7 @@ type ListOption struct {
 func (x *ListOption) Reset() {
 	*x = ListOption{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[5]
+		mi := &file_core_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -760,7 +863,7 @@ func (x *ListOption) String() string {
 func (*ListOption) ProtoMessage() {}
 
 func (x *ListOption) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[5]
+	mi := &file_core_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -773,7 +876,7 @@ func (x *ListOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOption.ProtoReflect.Descriptor instead.
 func (*ListOption) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{5}
+	return file_core_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListOption) GetOffset() uint64 {
@@ -817,7 +920,7 @@ type Paginate struct {
 func (x *Paginate) Reset() {
 	*x = Paginate{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[6]
+		mi := &file_core_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -830,7 +933,7 @@ func (x *Paginate) String() string {
 func (*Paginate) ProtoMessage() {}
 
 func (x *Paginate) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[6]
+	mi := &file_core_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +946,7 @@ func (x *Paginate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Paginate.ProtoReflect.Descriptor instead.
 func (*Paginate) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{6}
+	return file_core_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Paginate) GetOffset() uint64 {
@@ -880,7 +983,7 @@ type Http struct {
 func (x *Http) Reset() {
 	*x = Http{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[7]
+		mi := &file_core_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -893,7 +996,7 @@ func (x *Http) String() string {
 func (*Http) ProtoMessage() {}
 
 func (x *Http) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[7]
+	mi := &file_core_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -906,7 +1009,7 @@ func (x *Http) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Http.ProtoReflect.Descriptor instead.
 func (*Http) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{7}
+	return file_core_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Http) GetMethod() string {
@@ -937,7 +1040,7 @@ type LazyGen struct {
 func (x *LazyGen) Reset() {
 	*x = LazyGen{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[8]
+		mi := &file_core_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -950,7 +1053,7 @@ func (x *LazyGen) String() string {
 func (*LazyGen) ProtoMessage() {}
 
 func (x *LazyGen) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[8]
+	mi := &file_core_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -963,7 +1066,7 @@ func (x *LazyGen) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LazyGen.ProtoReflect.Descriptor instead.
 func (*LazyGen) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{8}
+	return file_core_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LazyGen) GetRole() string {
@@ -1006,7 +1109,7 @@ type ListOption_Option struct {
 func (x *ListOption_Option) Reset() {
 	*x = ListOption_Option{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_proto_msgTypes[9]
+		mi := &file_core_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1019,7 +1122,7 @@ func (x *ListOption_Option) String() string {
 func (*ListOption_Option) ProtoMessage() {}
 
 func (x *ListOption_Option) ProtoReflect() protoreflect.Message {
-	mi := &file_core_proto_msgTypes[9]
+	mi := &file_core_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1135,7 @@ func (x *ListOption_Option) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOption_Option.ProtoReflect.Descriptor instead.
 func (*ListOption_Option) Descriptor() ([]byte, []int) {
-	return file_core_proto_rawDescGZIP(), []int{5, 0}
+	return file_core_proto_rawDescGZIP(), []int{7, 0}
 }
 
 func (x *ListOption_Option) GetKey() int32 {
@@ -1123,7 +1226,13 @@ var file_core_proto_rawDesc = []byte{
 	0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67,
 	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41,
 	0x6e, 0x79, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x69, 0x6e, 0x74,
-	0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x69, 0x6e, 0x74, 0x22, 0x8a, 0x02, 0x0a,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x69, 0x6e, 0x74, 0x22, 0x1c, 0x0a, 0x06,
+	0x52, 0x61, 0x77, 0x52, 0x65, 0x71, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x22, 0x40, 0x0a, 0x07, 0x52, 0x61,
+	0x77, 0x52, 0x65, 0x73, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x12, 0x21, 0x0a, 0x0c, 0x63, 0x6f, 0x6e,
+	0x74, 0x65, 0x6e, 0x74, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0b, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x22, 0x8a, 0x02, 0x0a,
 	0x16, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x69, 0x73, 0x63, 0x6f, 0x76, 0x65, 0x72,
 	0x79, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x12, 0x4b, 0x0a, 0x0e, 0x64, 0x69, 0x73, 0x63, 0x6f,
 	0x76, 0x65, 0x72, 0x79, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32,
@@ -1354,39 +1463,41 @@ func file_core_proto_rawDescGZIP() []byte {
 }
 
 var file_core_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_core_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_core_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_core_proto_goTypes = []interface{}{
 	(ErrCode)(0),                       // 0: lazygophers.lrpc.core.ErrCode
 	(DiscoveryType)(0),                 // 1: lazygophers.lrpc.core.DiscoveryType
 	(ServiceType)(0),                   // 2: lazygophers.lrpc.core.ServiceType
 	(*BaseResponse)(nil),               // 3: lazygophers.lrpc.core.BaseResponse
-	(*ServiceDiscoveryClient)(nil),     // 4: lazygophers.lrpc.core.ServiceDiscoveryClient
-	(*ServiceDiscoveryService)(nil),    // 5: lazygophers.lrpc.core.ServiceDiscoveryService
-	(*ServiceDiscoveryNode)(nil),       // 6: lazygophers.lrpc.core.ServiceDiscoveryNode
-	(*ConfigItem)(nil),                 // 7: lazygophers.lrpc.core.ConfigItem
-	(*ListOption)(nil),                 // 8: lazygophers.lrpc.core.ListOption
-	(*Paginate)(nil),                   // 9: lazygophers.lrpc.core.Paginate
-	(*Http)(nil),                       // 10: lazygophers.lrpc.core.Http
-	(*LazyGen)(nil),                    // 11: lazygophers.lrpc.core.LazyGen
-	(*ListOption_Option)(nil),          // 12: lazygophers.lrpc.core.ListOption.Option
-	(*anypb.Any)(nil),                  // 13: google.protobuf.Any
-	(*durationpb.Duration)(nil),        // 14: google.protobuf.Duration
-	(*descriptorpb.MethodOptions)(nil), // 15: google.protobuf.MethodOptions
-	(*descriptorpb.FileOptions)(nil),   // 16: google.protobuf.FileOptions
+	(*RawReq)(nil),                     // 4: lazygophers.lrpc.core.RawReq
+	(*RawResp)(nil),                    // 5: lazygophers.lrpc.core.RawResp
+	(*ServiceDiscoveryClient)(nil),     // 6: lazygophers.lrpc.core.ServiceDiscoveryClient
+	(*ServiceDiscoveryService)(nil),    // 7: lazygophers.lrpc.core.ServiceDiscoveryService
+	(*ServiceDiscoveryNode)(nil),       // 8: lazygophers.lrpc.core.ServiceDiscoveryNode
+	(*ConfigItem)(nil),                 // 9: lazygophers.lrpc.core.ConfigItem
+	(*ListOption)(nil),                 // 10: lazygophers.lrpc.core.ListOption
+	(*Paginate)(nil),                   // 11: lazygophers.lrpc.core.Paginate
+	(*Http)(nil),                       // 12: lazygophers.lrpc.core.Http
+	(*LazyGen)(nil),                    // 13: lazygophers.lrpc.core.LazyGen
+	(*ListOption_Option)(nil),          // 14: lazygophers.lrpc.core.ListOption.Option
+	(*anypb.Any)(nil),                  // 15: google.protobuf.Any
+	(*durationpb.Duration)(nil),        // 16: google.protobuf.Duration
+	(*descriptorpb.MethodOptions)(nil), // 17: google.protobuf.MethodOptions
+	(*descriptorpb.FileOptions)(nil),   // 18: google.protobuf.FileOptions
 }
 var file_core_proto_depIdxs = []int32{
-	13, // 0: lazygophers.lrpc.core.BaseResponse.data:type_name -> google.protobuf.Any
+	15, // 0: lazygophers.lrpc.core.BaseResponse.data:type_name -> google.protobuf.Any
 	1,  // 1: lazygophers.lrpc.core.ServiceDiscoveryClient.discovery_type:type_name -> lazygophers.lrpc.core.DiscoveryType
-	14, // 2: lazygophers.lrpc.core.ServiceDiscoveryClient.timeout:type_name -> google.protobuf.Duration
-	6,  // 3: lazygophers.lrpc.core.ServiceDiscoveryService.node_list:type_name -> lazygophers.lrpc.core.ServiceDiscoveryNode
+	16, // 2: lazygophers.lrpc.core.ServiceDiscoveryClient.timeout:type_name -> google.protobuf.Duration
+	8,  // 3: lazygophers.lrpc.core.ServiceDiscoveryService.node_list:type_name -> lazygophers.lrpc.core.ServiceDiscoveryNode
 	2,  // 4: lazygophers.lrpc.core.ServiceDiscoveryNode.type:type_name -> lazygophers.lrpc.core.ServiceType
-	12, // 5: lazygophers.lrpc.core.ListOption.options:type_name -> lazygophers.lrpc.core.ListOption.Option
-	15, // 6: lazygophers.lrpc.core.http:extendee -> google.protobuf.MethodOptions
-	15, // 7: lazygophers.lrpc.core.lazygen:extendee -> google.protobuf.MethodOptions
-	16, // 8: lazygophers.lrpc.core.port:extendee -> google.protobuf.FileOptions
-	16, // 9: lazygophers.lrpc.core.host:extendee -> google.protobuf.FileOptions
-	10, // 10: lazygophers.lrpc.core.http:type_name -> lazygophers.lrpc.core.Http
-	11, // 11: lazygophers.lrpc.core.lazygen:type_name -> lazygophers.lrpc.core.LazyGen
+	14, // 5: lazygophers.lrpc.core.ListOption.options:type_name -> lazygophers.lrpc.core.ListOption.Option
+	17, // 6: lazygophers.lrpc.core.http:extendee -> google.protobuf.MethodOptions
+	17, // 7: lazygophers.lrpc.core.lazygen:extendee -> google.protobuf.MethodOptions
+	18, // 8: lazygophers.lrpc.core.port:extendee -> google.protobuf.FileOptions
+	18, // 9: lazygophers.lrpc.core.host:extendee -> google.protobuf.FileOptions
+	12, // 10: lazygophers.lrpc.core.http:type_name -> lazygophers.lrpc.core.Http
+	13, // 11: lazygophers.lrpc.core.lazygen:type_name -> lazygophers.lrpc.core.LazyGen
 	12, // [12:12] is the sub-list for method output_type
 	12, // [12:12] is the sub-list for method input_type
 	10, // [10:12] is the sub-list for extension type_name
@@ -1413,7 +1524,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServiceDiscoveryClient); i {
+			switch v := v.(*RawReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1425,7 +1536,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServiceDiscoveryService); i {
+			switch v := v.(*RawResp); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1437,7 +1548,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServiceDiscoveryNode); i {
+			switch v := v.(*ServiceDiscoveryClient); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1449,7 +1560,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigItem); i {
+			switch v := v.(*ServiceDiscoveryService); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1461,7 +1572,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListOption); i {
+			switch v := v.(*ServiceDiscoveryNode); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1473,7 +1584,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Paginate); i {
+			switch v := v.(*ConfigItem); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1485,7 +1596,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Http); i {
+			switch v := v.(*ListOption); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1497,7 +1608,7 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LazyGen); i {
+			switch v := v.(*Paginate); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1509,6 +1620,30 @@ func file_core_proto_init() {
 			}
 		}
 		file_core_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Http); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LazyGen); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListOption_Option); i {
 			case 0:
 				return &v.state
@@ -1521,14 +1656,14 @@ func file_core_proto_init() {
 			}
 		}
 	}
-	file_core_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_core_proto_msgTypes[9].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_core_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 4,
 			NumServices:   0,
 		},
