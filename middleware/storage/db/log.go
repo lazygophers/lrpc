@@ -22,7 +22,7 @@ var (
 	_logger  *Logger
 )
 
-func getDefaultLogger() *Logger {
+func GetDefaultLogger() *Logger {
 	syncOnce.Do(func() {
 		_logger = NewLogger()
 	})

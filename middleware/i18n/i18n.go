@@ -47,6 +47,33 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 				panic(fmt.Sprintf("%s: duplicate", key))
 			}
 
+		case int:
+			key := strings.Join(keys, ".")
+			if _, ok := p.corpus[key]; !ok {
+				p.corpus[key] = strconv.Itoa(x)
+			} else {
+				log.Panicf("%s duplicate", key)
+				panic(fmt.Sprintf("%s: duplicate", key))
+			}
+
+		case int64:
+			key := strings.Join(keys, ".")
+			if _, ok := p.corpus[key]; !ok {
+				p.corpus[key] = strconv.FormatInt(x, 10)
+			} else {
+				log.Panicf("%s duplicate", key)
+				panic(fmt.Sprintf("%s: duplicate", key))
+			}
+
+		case float64:
+			key := strings.Join(keys, ".")
+			if _, ok := p.corpus[key]; !ok {
+				p.corpus[key] = strconv.FormatFloat(x, 'f', -1, 64)
+			} else {
+				log.Panicf("%s duplicate", key)
+				panic(fmt.Sprintf("%s: duplicate", key))
+			}
+
 		case map[string]interface{}:
 			p.parse(keys, x)
 

@@ -2,6 +2,7 @@ package ldiscovery
 
 import (
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
@@ -55,7 +56,7 @@ func ChooseNode(name string) (*core.ServiceDiscoveryNode, error) {
 	return nil, xerror.NewError(int32(core.ErrCode_ServerAliveNodeNotFound))
 }
 
-func DiscoveryClient(c *core.ServiceDiscoveryClient) (*fasthttp.HostClient, *fasthttp.Request) {
+func DiscoveryClient(c *core.ServiceDiscoveryClient) (lrpc.Client, *fasthttp.Request) {
 	client := &fasthttp.HostClient{
 		Addr:                     c.ServiceName,
 		Name:                     app.Name,

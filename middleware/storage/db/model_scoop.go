@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils/anyx"
 	"gorm.io/gorm"
@@ -330,62 +329,45 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 	p.inc()
 	defer p.dec()
 
-	var old M
-	err := p.Scoop.First(&old).Error
+	var mm M
+	err := p.Scoop.First(&mm).Error
 	if err != nil {
-		if !p.IsNotFound(err) {
-			log.Errorf("err:%s", err)
-			return &CreateOrUpdateResult[M]{
-				Error: err,
+		if p.IsNotFound(err) {
+			err = p.Scoop.Create(m).Error
+			if err != nil {
+				return &CreateOrUpdateResult[M]{
+					Error: err,
+				}
 			}
-		}
-		// 创建
-
-		err = p.Scoop.Create(m).Error
-		if err != nil {
-			log.Errorf("err:%s", err)
 			return &CreateOrUpdateResult[M]{
-				Error: err,
+				Created: true,
+				Object:  m,
 			}
 		}
 
 		return &CreateOrUpdateResult[M]{
-			Object:  m,
-			Created: true,
+			Error: err,
 		}
-	} else if len(values) > 0 {
-		// 更新
-		err = p.Scoop.Updates(values).Error
-		if err != nil {
-			log.Errorf("err:%s", err)
-			return &CreateOrUpdateResult[M]{
-				Error: err,
-			}
-		}
+	}
 
-		err = p.Scoop.First(&old).Error
-		if err != nil {
-			if !p.Scoop.IsNotFound(err) {
-				log.Errorf("err:%s", err)
-			}
-			return &CreateOrUpdateResult[M]{
-				Error: err,
-			}
-		}
-
-		anyx.DeepCopy(&old, m)
-
+	err = p.Scoop.update(values).Error
+	if err != nil {
 		return &CreateOrUpdateResult[M]{
-			Object:  &old,
-			Updated: true,
+			Error: err,
 		}
-	} else {
+	}
 
-		anyx.DeepCopy(&old, m)
-
+	err = p.Scoop.First(&mm).Error
+	if err != nil {
 		return &CreateOrUpdateResult[M]{
-			Object: &old,
+			Error: err,
 		}
+	}
+
+	anyx.DeepCopy(&mm, m)
+
+	return &CreateOrUpdateResult[M]{
+		Object: &mm,
 	}
 }
 

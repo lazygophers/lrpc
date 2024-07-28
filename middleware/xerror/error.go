@@ -14,28 +14,29 @@ const (
 	ErrSystemError = -1
 
 	//	1～10000 框架错误
-	ErrInvalidParam = 1001
-	ErrNoAuth       = 1002
-	ErrNoData       = 1003
+	ErrInvalidParam = 1001 // 入参有问题
+	ErrNoAuth       = 1002 // 没有授权
+	ErrNoData       = 1003 // 没有数据
+	ErrConflict     = 1004 // 更新冲突
 )
 
 var errMap = map[int32]*Error{
-	ErrSystemError: {
-		Code: ErrSystemError,
-		Msg:  "System error",
-	},
-	ErrInvalidParam: {
-		Code: ErrInvalidParam,
-		Msg:  "Invalid param",
-	},
-	ErrNoAuth: {
-		Code: ErrNoAuth,
-		Msg:  "No auth",
-	},
-	ErrNoData: {
-		Code: ErrNoData,
-		Msg:  "No data",
-	},
+	//ErrSystemError: {
+	//	Code: ErrSystemError,
+	//	Msg:  "System error",
+	//},
+	//ErrInvalidParam: {
+	//	Code: ErrInvalidParam,
+	//	Msg:  "Invalid param",
+	//},
+	//ErrNoAuth: {
+	//	Code: ErrNoAuth,
+	//	Msg:  "No auth",
+	//},
+	//ErrNoData: {
+	//	Code: ErrNoData,
+	//	Msg:  "No data",
+	//},
 }
 
 type I18n interface {

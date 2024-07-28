@@ -215,10 +215,15 @@ func (p *Scoop) findSql() string {
 
 	b.WriteString("SELECT ")
 	if len(p.selects) > 0 {
+		b.WriteString("`")
 		b.WriteString(p.selects[0])
+		b.WriteString("`")
+
 		for _, s := range p.selects[1:] {
 			b.WriteString(", ")
+			b.WriteString("`")
 			b.WriteString(s)
+			b.WriteString("`")
 		}
 	} else {
 		b.WriteString("*")
@@ -316,7 +321,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 
 	cols, err := rows.Columns()
 	if err != nil {
-		getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, -1
 		}, err)
 		return &FindResult{
@@ -337,7 +342,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 				return sqlRaw, rawsAffected
 			}, err)
 			return &FindResult{
@@ -363,7 +368,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 
 			err = decode(field, col)
 			if err != nil {
-				getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 					return sqlRaw, rawsAffected
 				}, err)
 				return &FindResult{
@@ -375,7 +380,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		vv.Set(reflect.Append(vv, v))
 	}
 
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rawsAffected
 	}, nil)
 	return &FindResult{
@@ -476,7 +481,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	scope := p._db.Raw(sqlRaw)
 	rows, err := scope.Rows()
 	if err != nil {
-		getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, -1
 		}, err)
 		return &FirstResult{
@@ -487,7 +492,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 
 	cols, err := rows.Columns()
 	if err != nil {
-		getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, -1
 		}, err)
 		return &FirstResult{
@@ -507,7 +512,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		rowAffected++
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 				return sqlRaw, 1
 			}, err)
 			return &FirstResult{
@@ -530,7 +535,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 			}
 			err = decode(field, col)
 			if err != nil {
-				getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 					return sqlRaw, 1
 				}, err)
 				return &FirstResult{
@@ -541,7 +546,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	}
 
 	if rowAffected == 0 {
-		getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, 0
 		}, p.getNotFoundError())
 		return &FirstResult{
@@ -549,7 +554,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		}
 	}
 
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rowAffected
 	}, nil)
 	return &FirstResult{}
@@ -639,7 +644,7 @@ func (p *Scoop) Delete() *DeleteResult {
 
 	start := time.Now()
 	res := p._db.Exec(sqlRaw.String())
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), res.RowsAffected
 	}, res.Error)
 	return &DeleteResult{
@@ -705,7 +710,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 
 	start := time.Now()
 	res := p._db.Exec(sqlRaw.String(), values...)
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
 	}, res.Error)
 	return &UpdateResult{
@@ -858,7 +863,7 @@ func (p *Scoop) Count() (uint64, error) {
 	start := time.Now()
 	var count uint64
 	err := p._db.Raw(sqlRaw.String()).Scan(&count).Error
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), int64(count)
 	}, err)
 
@@ -891,7 +896,7 @@ func (p *Scoop) Exist() (bool, error) {
 	if p.hasId {
 		sqlRaw.WriteString("id")
 	} else {
-		sqlRaw.WriteString("1")
+		sqlRaw.WriteString("count(*)")
 	}
 
 	sqlRaw.WriteString(" FROM ")
@@ -909,12 +914,11 @@ func (p *Scoop) Exist() (bool, error) {
 	sqlRaw.WriteString(" LIMIT 1 OFFSET 0")
 
 	start := time.Now()
-	var count uint64
+	var count int64
 	err := p._db.Raw(sqlRaw.String()).Scan(&count).Error
-	getDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), 0
 	}, err)
-
 	return count > 0, err
 }
 

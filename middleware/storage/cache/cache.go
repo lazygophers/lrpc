@@ -13,6 +13,8 @@ import (
 var NotFound = errors.New("key not found")
 
 type BaseCache interface {
+	SetPrefix(prefix string)
+
 	Get(key string) (string, error)
 
 	Set(key string, value any) error
@@ -135,8 +137,8 @@ func New(c *Config) (Cache, error) {
 		return NewRedis(c.Address,
 			redis.DialDatabase(0),
 			redis.DialConnectTimeout(time.Second*3),
-			redis.DialReadTimeout(time.Second*3),
-			redis.DialWriteTimeout(time.Second*3),
+			redis.DialReadTimeout(time.Minute),
+			redis.DialWriteTimeout(time.Minute),
 			redis.DialKeepAlive(time.Minute),
 			redis.DialPassword(c.Password),
 		)

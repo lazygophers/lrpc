@@ -15,6 +15,12 @@ import (
 
 type Redis struct {
 	cli *xredis.Client
+
+	prefix string
+}
+
+func (p *Redis) SetPrefix(prefix string) {
+	p.prefix = prefix
 }
 
 func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
@@ -50,11 +56,11 @@ func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
 }
 
 func (p *Redis) Incr(key string) (int64, error) {
-	return p.cli.Incr(app.Name + ":" + key)
+	return p.cli.Incr(p.prefix + key)
 }
 
 func (p *Redis) Decr(key string) (int64, error) {
-	return p.cli.Decr(app.Name + ":" + key)
+	return p.cli.Decr(p.prefix + key)
 }
 
 func (p *Redis) IncrBy(key string, value int64) (int64, error) {
@@ -72,7 +78,7 @@ func (p *Redis) DecrBy(key string, value int64) (int64, error) {
 func (p *Redis) Get(key string) (string, error) {
 	log.Debugf("get %s", key)
 
-	val, ok, err := p.cli.Get(app.Name + ":" + key)
+	val, ok, err := p.cli.Get(p.prefix + key)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +91,7 @@ func (p *Redis) Get(key string) (string, error) {
 
 func (p *Redis) Exists(keys ...string) (bool, error) {
 	ok, err := p.cli.Exists(candy.Map(keys, func(key string) string {
-		return app.Name + ":" + key
+		return p.prefix + key
 	})...)
 	if err != nil {
 		if errors.Is(err, redis.ErrNil) {
@@ -173,7 +179,7 @@ func (p *Redis) SetNxWithTimeout(key string, value interface{}, timeout time.Dur
 
 func (p *Redis) Del(keys ...string) (err error) {
 	_, err = p.cli.Del(candy.Map(keys, func(key string) string {
-		return app.Name + ":" + key
+		return p.prefix + key
 	})...)
 	return
 }
@@ -195,11 +201,11 @@ func (p *Redis) HGet(key, field string) (string, error) {
 }
 
 func (p *Redis) HGetAll(key string) (map[string]string, error) {
-	return p.cli.HGetAll(app.Name + ":" + key)
+	return p.cli.HGetAll(p.prefix + key)
 }
 
 func (p *Redis) HKeys(key string) ([]string, error) {
-	return p.cli.HKeys(app.Name + ":" + key)
+	return p.cli.HKeys(p.prefix + key)
 }
 
 func (p *Redis) HVals(key string) ([]string, error) {

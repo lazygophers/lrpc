@@ -15,6 +15,11 @@ type Mem struct {
 	rt   *rate.RateLimiter
 }
 
+func (p *Mem) SetPrefix(prefix string) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Mem) IncrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")

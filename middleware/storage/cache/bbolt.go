@@ -19,6 +19,11 @@ type Bbolt struct {
 	rt   *rate.RateLimiter
 }
 
+func (p *Bbolt) SetPrefix(prefix string) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Bbolt) IncrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
