@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
-	"gorm.io/driver/clickhouse"
 	"reflect"
 	"time"
 
@@ -83,7 +82,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	case "sqlserver":
 		log.Infof("sqlserver://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
 		d = sqlserver.Open(fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", c.Username, c.Password, c.Address, c.Port, c.Name))
-
 
 	default:
 		return nil, errors.New("unknown database")

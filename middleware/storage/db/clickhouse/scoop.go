@@ -60,6 +60,16 @@ func (p *Scoop) dec() {
 	p.depth--
 }
 
+func (p *Scoop) Table(table string) *Scoop {
+	p.table = table
+	return p
+}
+
+func (p *Scoop) From(table string) *Scoop {
+	p.table = table
+	return p
+}
+
 //func (p *Scoop) Session(config ...*gorm.Session) *Scoop {
 //	if len(config) == 0 {
 //		return NewScoop(p._db.Session(&gorm.Session{
@@ -205,15 +215,11 @@ func (p *Scoop) findSql() string {
 
 	b.WriteString("SELECT ")
 	if len(p.selects) > 0 {
-		b.WriteString("`")
 		b.WriteString(p.selects[0])
-		b.WriteString("`")
 
 		for _, s := range p.selects[1:] {
 			b.WriteString(", ")
-			b.WriteString("`")
 			b.WriteString(s)
-			b.WriteString("`")
 		}
 	} else {
 		b.WriteString("*")
