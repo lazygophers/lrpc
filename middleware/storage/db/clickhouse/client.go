@@ -45,6 +45,7 @@ func NewClient(c *db.Config) (*Client, error) {
 	dbConn.SetMaxIdleConns(50)
 	dbConn.SetConnMaxIdleTime(time.Second * 90)
 	dbConn.SetConnMaxLifetime(time.Second * 90)
+
 	p.db = dbConn
 	return p, nil
 }
