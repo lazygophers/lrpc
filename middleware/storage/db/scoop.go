@@ -38,7 +38,7 @@ type Scoop struct {
 
 func NewScoop(db *gorm.DB) *Scoop {
 	return &Scoop{
-		depth: 1,
+		depth: 3,
 		_db: db.Session(&gorm.Session{
 			//NewDB: true,
 			Initialized: true,
@@ -130,7 +130,7 @@ func (p *Scoop) NotIn(column string, values interface{}) *Scoop {
 }
 
 func (p *Scoop) Like(column string, value string) *Scoop {
-	p.cond.where(column, "LIKE", "%"+value+"%")
+	p.cond.Like(column, value)
 	return p
 }
 
@@ -215,15 +215,11 @@ func (p *Scoop) findSql() string {
 
 	b.WriteString("SELECT ")
 	if len(p.selects) > 0 {
-		b.WriteString("`")
 		b.WriteString(p.selects[0])
-		b.WriteString("`")
 
 		for _, s := range p.selects[1:] {
 			b.WriteString(", ")
-			b.WriteString("`")
 			b.WriteString(s)
-			b.WriteString("`")
 		}
 	} else {
 		b.WriteString("*")

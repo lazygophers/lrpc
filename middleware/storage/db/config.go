@@ -12,45 +12,45 @@ type Config struct {
 	// mysql: mysql
 	// postgres: postgres|pg|postgresql|pgsql
 	// sqlserver: sqlserver|mssql
-	Type string `yaml:"type"`
+	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 
 	// Database debug, default false
-	Debug bool `yaml:"debug"`
+	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty"`
 
 	// Database address
 	// sqlite: full filepath, default exec path
 	// mysql: database address, default 127.0.0.1
 	// postgres: database address, default 127.0.0.1
 	// sqlserver: database address, default 127.0.0.1
-	Address string `yaml:"address"`
+	Address string `yaml:"address,omitempty" json:"address,omitempty"`
 
 	// Database port
 	// sqlite: empty
 	// mysql: database port, default 3306
 	// postgres: database port, default 5432
 	// sqlserver: database port, default 1433
-	Port int `yaml:"port"`
+	Port int `yaml:"port,omitempty" json:"port,omitempty"`
 
 	// Database name
 	// sqlite: database file name, default ice.db
 	// mysql: database name, default ice
 	// postgres: database name, default ice
 	// sqlserver: database name, default ice
-	Name string `yaml:"name"`
+	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 
 	// Database username
 	// sqlite: empty
 	// mysql: database username
 	// postgres: database username
 	// sqlserver: database username
-	Username string `yaml:"username"`
+	Username string `yaml:"username,omitempty" json:"username,omitempty"`
 
 	// Database password
 	// sqlite: empty
 	// mysql: database password
 	// postgres: database password
 	// sqlserver: database password
-	Password string `yaml:"password"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 
 	Logger logger.Interface `json:"-" yaml:"-"`
 }

@@ -90,19 +90,32 @@ type Cache interface {
 
 type Config struct {
 	// Cache type, support mem, redis, bbolt, default mem
-	Type string `yaml:"type"`
+	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 
 	// Cache address
 	// mem: empty
 	// redis: redis address, default 127.0.0.1:6379
 	// bbolt: bbolt file path, default ./ice.cache
-	Address string `yaml:"address"`
+	Address string `yaml:"address,omitempty" json:"address,omitempty"`
 
 	// Cache password
 	// mem: empty
 	// redis: redis password
 	// bbolt: empty
-	Password string `yaml:"password"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+
+	// Cache db
+	// mem: empty
+	// redis: redis db, default 0
+	// bbolt: empty
+	Db int `yaml:"db,omitempty" json:"db,omitempty"`
+
+	// Cache data dir
+	// mem: empty
+	// redis: empty
+	// bbolt: empty
+	// echo: DataDir, default .
+	DataDir string `yaml:"data_dir,omitempty" json:"data_dir,omitempty"`
 }
 
 func (c *Config) apply() {
@@ -135,7 +148,7 @@ func New(c *Config) (Cache, error) {
 
 	case "redis":
 		return NewRedis(c.Address,
-			redis.DialDatabase(0),
+			redis.DialDatabase(c.Db),
 			redis.DialConnectTimeout(time.Second*3),
 			redis.DialReadTimeout(time.Minute),
 			redis.DialWriteTimeout(time.Minute),
@@ -145,6 +158,9 @@ func New(c *Config) (Cache, error) {
 
 	case "mem":
 		return NewMem(), nil
+
+	case "echo":
+		return NewEcho(c)
 
 	default:
 		return nil, errors.New("cache type not support")

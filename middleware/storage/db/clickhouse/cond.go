@@ -29,7 +29,7 @@ func quoteFieldName(name string) string {
 
 func quoteStr(s string) string {
 	return strconv.Quote(s)
-	//return fmt.Sprintf("'%s'", s)
+	//return fmt.Sprintf("'%s'", s)lrpc/middleware/storage/db/scoop.go:310
 }
 
 func simpleTypeToStr(value interface{}, quoteSlice bool) string {

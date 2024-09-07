@@ -63,6 +63,10 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 	baseResp := &core.BaseResponse{}
 	err = proto.Unmarshal(response.Body(), baseResp)
 	if err != nil {
+		if response.StatusCode() != fasthttp.StatusOK {
+			log.Errorf("status %d", response.StatusCode())
+			return xerror.New(int32(response.StatusCode()))
+		}
 		log.Errorf("err:%v", err)
 		return err
 	}

@@ -2,33 +2,32 @@ package db_test
 
 import (
 	"github.com/lazygophers/lrpc/middleware/storage/db"
+	"gotest.tools/v3/assert"
 	"strconv"
 	"strings"
 	"testing"
 )
 
 func TestCond(t *testing.T) {
-	// t.Log(cond.Clean().Where("a", 1).ToString())
-
-	t.Log(db.OrWhere(map[string]any{
+	assert.Equal(t, db.OrWhere(map[string]any{
 		"a": 1,
 	}, map[string]any{
 		"a": 2,
 	}, map[string]any{
 		"a": 3,
-	}).ToString())
+	}).ToString(), "((`a` = 1) OR (`a` = 2) OR (`a` = 3))")
 
-}
+	assert.Equal(t, db.Where("a", 1).ToString(), "(`a` = 1)")
 
-// (a = 1 and b =2 ) or (a = 2 and b = 1)
-func TestSubCond(t *testing.T) {
-	t.Log(db.OrWhere(db.Where(map[string]any{
+	assert.Equal(t, db.Or(db.Where("a", 1), db.Where("a", 2)).ToString(), "((`a` = 1) OR (`a` = 2))")
+
+	assert.Equal(t, db.OrWhere(db.Where(map[string]any{
 		"a": 1,
 		"b": 2,
 	}), db.Where(map[string]any{
 		"a": 2,
 		"b": 3,
-	})).ToString())
+	})).ToString(), "(((`a` = 1) AND (`b` = 2)) OR ((`a` = 2) AND (`b` = 3)))")
 }
 
 func TestLike(t *testing.T) {

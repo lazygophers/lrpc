@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/utils/anyx"
 	"gorm.io/gorm"
 )
 
@@ -37,13 +36,18 @@ func (p *ModelScoop[M]) Where(args ...interface{}) *ModelScoop[M] {
 	return p
 }
 
+func (p *ModelScoop[M]) Or(args ...interface{}) *ModelScoop[M] {
+	p.cond.OrWhere(args...)
+	return p
+}
+
 func (p *ModelScoop[M]) Equal(column string, value interface{}) *ModelScoop[M] {
 	p.cond.where(column, value)
 	return p
 }
 
 func (p *ModelScoop[M]) NotEqual(column string, value interface{}) *ModelScoop[M] {
-	p.cond.where(column, "!= ", value)
+	p.cond.where(column, " != ", value)
 	return p
 }
 
@@ -262,7 +266,8 @@ func (p *ModelScoop[M]) UpdateOrCreate(values map[string]interface{}, m *M) *Upd
 		}
 	}
 
-	anyx.DeepCopy(&mm, m)
+	// TODO: anyx.DeepCopy
+	//anyx.DeepCopy(&mm, m)
 
 	return &UpdateOrCreateResult[M]{
 		Object: &mm,
@@ -300,7 +305,8 @@ func (p *ModelScoop[M]) CreateNotExist(m *M) *CreateNotExistResult[M] {
 		}
 	}
 
-	anyx.DeepCopy(&mm, m)
+	// TODO: anyx.DeepCopy
+	//anyx.DeepCopy(&mm, m)
 
 	return &CreateNotExistResult[M]{
 		Object: &mm,
@@ -364,7 +370,8 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 		}
 	}
 
-	anyx.DeepCopy(&mm, m)
+	// TODO: anyx.DeepCopy
+	//anyx.DeepCopy(&mm, m)
 
 	return &CreateOrUpdateResult[M]{
 		Object: &mm,

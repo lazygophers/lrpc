@@ -12,8 +12,6 @@ type Cond struct {
 	conds       []string
 	isOr        bool
 	isTopLevel  bool
-	corpId      uint32
-	appId       uint32
 	tablePrefix string
 
 	// 标记跳过请求，用于一些逻辑上就不需要进行请求的场景
@@ -100,7 +98,8 @@ func (p *Cond) whereRaw(cond string, values ...interface{}) {
 		res = strings.Join(out, "")
 	}
 	if res != "" {
-		p.conds = append(p.conds, fmt.Sprintf("(%s)", res))
+		//p.conds = append(p.conds, fmt.Sprintf("(%s)", res))
+		p.conds = append(p.conds, res)
 	}
 }
 
@@ -122,12 +121,29 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 func getFirstInvalidFieldNameCharIndex(s string) int {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if !((c >= 'a' && c <= 'z') ||
-			(c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') ||
-			c == '_') {
-			return i
+		if c == '_' {
+			continue
 		}
+		if c == ' ' {
+			continue
+		}
+		if c == '.' {
+			continue
+		}
+		if c == '`' {
+			continue
+		}
+		if c >= 'a' && c <= 'z' {
+			continue
+		}
+		if c >= 'A' && c <= 'Z' {
+			continue
+		}
+		if c >= '0' && c <= '9' {
+			continue
+		}
+
+		return i
 	}
 	return -1
 }
@@ -141,12 +157,6 @@ func (p *Cond) addSubWhere(isOr bool, args ...interface{}) {
 	c := subCond.ToString()
 	if c == "" {
 		return
-	}
-	if p.corpId == 0 && subCond.corpId != 0 {
-		p.corpId = subCond.corpId
-	}
-	if p.appId == 0 && subCond.appId != 0 {
-		p.appId = subCond.appId
 	}
 
 	p.conds = append(p.conds, c)
@@ -226,6 +236,13 @@ func (p *Cond) where(args ...interface{}) {
 	if len(args) == 0 {
 		return
 	}
+
+	if cond, ok := args[0].(*Cond); ok {
+		p.whereRaw(cond.ToString())
+		p.where(args[1:]...)
+		return
+	}
+
 	arg0 := reflect.ValueOf(args[0])
 	for arg0.Kind() == reflect.Interface || arg0.Kind() == reflect.Ptr {
 		arg0 = arg0.Elem()
@@ -348,17 +365,17 @@ func (p *Cond) where(args ...interface{}) {
 				p.where(list...)
 			}
 		}
-	case reflect.Struct:
-		switch arg0.Type().PkgPath() {
-		case "github.com/lazygophers/utils/db":
-			switch arg0.Type().Name() {
-			case "Cond":
-				p.whereRaw(args[0].(*Cond).ToString())
-				if len(args) > 1 {
-					p.where(args[1:]...)
-				}
-			}
-		}
+	//case reflect.Struct:
+	//	switch arg0.Type().PkgPath() {
+	//	case "github.com/lazygophers/utils/db":
+	//		switch arg0.Type().Name() {
+	//		case "Cond":
+	//			p.whereRaw(args[0].(*Cond).ToString())
+	//			if len(args) > 1 {
+	//				p.where(args[1:]...)
+	//			}
+	//		}
+	//	}
 	default:
 		panic("unhandled default case")
 	}
@@ -401,12 +418,40 @@ func (p *Cond) OrWhere(args ...interface{}) *Cond {
 	return p
 }
 
-func (p *Cond) Clean() *Cond {
+func (p *Cond) Or(args ...interface{}) *Cond {
+	p.addSubWhere(true, args...)
+	return p
+}
+
+func (p *Cond) Like(column string, value string) *Cond {
+	p.where(column, "LIKE", "%"+value+"%")
+	return p
+}
+
+func (p *Cond) LeftLike(column string, value string) *Cond {
+	p.where(column, "LIKE", "%"+value)
+	return p
+}
+
+func (p *Cond) RightLike(column string, value string) *Cond {
+	p.where(column, "LIKE", value+"%")
+	return p
+}
+
+func (p *Cond) NotLike(column string, value string) *Cond {
+	p.where(column, "NOT LIKE", "%"+value+"%")
+	return p
+}
+
+func (p *Cond) Between(column string, min, max interface{}) *Cond {
+	p.whereRaw(fmt.Sprintf(quoteFieldName(column))+" BETWEEN ? AND ?", min, max)
+	return p
+}
+
+func (p *Cond) Reset() *Cond {
 	p.conds = p.conds[:0]
 	p.isOr = false
 	p.isTopLevel = true
-	p.corpId = 0
-	p.appId = 0
 	p.tablePrefix = ""
 	p.skip = false
 	return p
