@@ -138,7 +138,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		return nil, err
 	}
 
-	routine.GoWithRecover(func() (err error) {
+	routine.GoWithMustSuccess(func() (err error) {
 		switch c.Type {
 		case "sqlite":
 			// 自动减少存储文件大小
@@ -147,18 +147,17 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			}).Exec("PRAGMA auto_vacuum = 1").Error
 			if err != nil {
 				log.Errorf("err:%v", err)
-				return err
 			}
+		}
+
+		err = p.AutoMigrate(tables...)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
 		}
 
 		return nil
 	})
-
-	err = p.AutoMigrate(tables...)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
 
 	return p, nil
 }

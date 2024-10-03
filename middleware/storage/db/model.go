@@ -13,7 +13,8 @@ type Model[M any] struct {
 	db *Client
 	m  M
 
-	notFoundError error
+	notFoundError      error
+	duplicatedKeyError error
 
 	hasDeletedAt bool
 	hasId        bool
@@ -22,8 +23,9 @@ type Model[M any] struct {
 
 func NewModel[M any](db *Client) *Model[M] {
 	p := &Model[M]{
-		db:            db,
-		notFoundError: gorm.ErrRecordNotFound,
+		db:                 db,
+		notFoundError:      gorm.ErrRecordNotFound,
+		duplicatedKeyError: gorm.ErrDuplicatedKey,
 	}
 
 	rt := reflect.TypeOf(new(M))
@@ -40,12 +42,20 @@ func NewModel[M any](db *Client) *Model[M] {
 
 func (p *Model[M]) SetNotFound(err error) *Model[M] {
 	p.notFoundError = err
+	return p
+}
 
+func (p *Model[M]) SetDuplicatedKeyError(err error) *Model[M] {
+	p.duplicatedKeyError = err
 	return p
 }
 
 func (p *Model[M]) IsNotFound(err error) bool {
 	return err == p.notFoundError || gorm.ErrRecordNotFound == err
+}
+
+func (p *Model[M]) IsDuplicatedKeyError(err error) bool {
+	return err == p.duplicatedKeyError || gorm.ErrDuplicatedKey == err
 }
 
 func (p *Model[M]) NewScoop(tx ...*Scoop) *ModelScoop[M] {
@@ -61,6 +71,7 @@ func (p *Model[M]) NewScoop(tx ...*Scoop) *ModelScoop[M] {
 	scoop.hasId = p.hasId
 	scoop.table = p.table
 	scoop.notFoundError = p.notFoundError
+	scoop.duplicatedKeyError = p.duplicatedKeyError
 
 	return scoop
 }

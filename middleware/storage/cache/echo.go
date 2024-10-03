@@ -10,16 +10,13 @@ import (
 
 type Echo struct {
 	cli *echovault.EchoVault
-
-	prefix string
 }
 
 func (p *Echo) SetPrefix(prefix string) {
-	p.prefix = prefix
 }
 
 func (p *Echo) Get(key string) (string, error) {
-	value, err := p.cli.Get(p.prefix + key)
+	value, err := p.cli.Get(key)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return "", err
@@ -32,7 +29,7 @@ func (p *Echo) Get(key string) (string, error) {
 }
 
 func (p *Echo) Set(key string, value any) error {
-	_, _, err := p.cli.Set(p.prefix+key, anyx.ToString(value), echovault.SetOptions{})
+	_, _, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{})
 	if err != nil {
 		return err
 	}
@@ -40,7 +37,7 @@ func (p *Echo) Set(key string, value any) error {
 }
 
 func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
-	_, _, err := p.cli.Set(p.prefix+key, anyx.ToString(value), echovault.SetOptions{
+	_, _, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{
 		EXAT: int(time.Now().Add(timeout).Unix()),
 	})
 	if err != nil {
@@ -50,7 +47,7 @@ func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
 }
 
 func (p *Echo) SetNx(key string, value interface{}) (bool, error) {
-	_, ok, err := p.cli.Set(p.prefix+key, anyx.ToString(value), echovault.SetOptions{
+	_, ok, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{
 		NX: true,
 	})
 	if err != nil {
@@ -79,7 +76,7 @@ func (p *Echo) SetNxWithTimeout(key string, value interface{}, timeout time.Dura
 }
 
 func (p *Echo) Ttl(key string) (time.Duration, error) {
-	ttl, err := p.cli.TTL(p.prefix + key)
+	ttl, err := p.cli.TTL(key)
 	if err != nil {
 		return -1, err
 	}
@@ -95,11 +92,11 @@ func (p *Echo) Ttl(key string) (time.Duration, error) {
 }
 
 func (p *Echo) Expire(key string, timeout time.Duration) (bool, error) {
-	return p.cli.Expire(p.prefix+key, int(timeout.Seconds()), echovault.ExpireOptions{})
+	return p.cli.Expire(key, int(timeout.Seconds()), echovault.ExpireOptions{})
 }
 
 func (p *Echo) Incr(key string) (int64, error) {
-	value, err := p.cli.Incr(p.prefix + key)
+	value, err := p.cli.Incr(key)
 	if err != nil {
 		return -1, err
 	}
@@ -107,7 +104,7 @@ func (p *Echo) Incr(key string) (int64, error) {
 }
 
 func (p *Echo) Decr(key string) (int64, error) {
-	value, err := p.cli.Decr(p.prefix + key)
+	value, err := p.cli.Decr(key)
 	if err != nil {
 		return -1, err
 	}
@@ -115,7 +112,7 @@ func (p *Echo) Decr(key string) (int64, error) {
 }
 
 func (p *Echo) IncrBy(key string, val int64) (int64, error) {
-	value, err := p.cli.IncrBy(p.prefix+key, strconv.FormatInt(val, 10))
+	value, err := p.cli.IncrBy(key, strconv.FormatInt(val, 10))
 	if err != nil {
 		return -1, err
 	}
@@ -123,7 +120,7 @@ func (p *Echo) IncrBy(key string, val int64) (int64, error) {
 }
 
 func (p *Echo) DecrBy(key string, val int64) (int64, error) {
-	value, err := p.cli.DecrBy(p.prefix+key, strconv.FormatInt(val, 10))
+	value, err := p.cli.DecrBy(key, strconv.FormatInt(val, 10))
 	if err != nil {
 		return -1, err
 	}
@@ -136,7 +133,7 @@ func (p *Echo) Exists(keys ...string) (bool, error) {
 }
 
 func (p *Echo) HSet(key string, field string, value interface{}) (bool, error) {
-	val, err := p.cli.HSet(p.prefix+key, map[string]string{
+	val, err := p.cli.HSet(key, map[string]string{
 		field: anyx.ToString(value),
 	})
 	if err != nil {
@@ -148,7 +145,7 @@ func (p *Echo) HSet(key string, field string, value interface{}) (bool, error) {
 }
 
 func (p *Echo) HGet(key, field string) (string, error) {
-	values, err := p.cli.HGet(p.prefix+key, field)
+	values, err := p.cli.HGet(key, field)
 	if err != nil {
 		return "", err
 	}
@@ -160,7 +157,7 @@ func (p *Echo) HGet(key, field string) (string, error) {
 }
 
 func (p *Echo) HDel(key string, fields ...string) (int64, error) {
-	value, err := p.cli.HDel(p.prefix+key, fields...)
+	value, err := p.cli.HDel(key, fields...)
 	if err != nil {
 		return -1, err
 	}
@@ -168,7 +165,7 @@ func (p *Echo) HDel(key string, fields ...string) (int64, error) {
 }
 
 func (p *Echo) HKeys(key string) ([]string, error) {
-	values, err := p.cli.HKeys(p.prefix + key)
+	values, err := p.cli.HKeys(key)
 	if err != nil {
 		return nil, err
 	}
@@ -182,11 +179,11 @@ func (p *Echo) HGetAll(key string) (map[string]string, error) {
 }
 
 func (p *Echo) HExists(key string, field string) (bool, error) {
-	return p.cli.HExists(p.prefix+key, field)
+	return p.cli.HExists(key, field)
 }
 
 func (p *Echo) HIncr(key string, subKey string) (int64, error) {
-	value, err := p.cli.HIncrBy(p.prefix+key, subKey, 1)
+	value, err := p.cli.HIncrBy(key, subKey, 1)
 	if err != nil {
 		return -1, err
 	}
@@ -194,7 +191,7 @@ func (p *Echo) HIncr(key string, subKey string) (int64, error) {
 }
 
 func (p *Echo) HIncrBy(key string, field string, increment int64) (int64, error) {
-	value, err := p.cli.HIncrBy(p.prefix+key, field, int(increment))
+	value, err := p.cli.HIncrBy(key, field, int(increment))
 	if err != nil {
 		return -1, err
 	}
@@ -260,13 +257,13 @@ func NewEcho(c *Config) (Cache, error) {
 		ec.DataDir = c.DataDir
 	}
 
-	ec.EvictionPolicy = "volatile-lfu"
-	ec.EvictionInterval = time.Second
-	ec.EvictionSample = 50
+	ec.RestoreSnapshot = true
+	ec.RestoreAOF = true
 
-	ec.AOFSyncStrategy = "no"
+	ec.SnapShotThreshold = 100
+	ec.SnapshotInterval = time.Minute
 
-	cli, err := echovault.NewEchoVault()
+	cli, err := echovault.NewEchoVault(echovault.WithConfig(ec))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err

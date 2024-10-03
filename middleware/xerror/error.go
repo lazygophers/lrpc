@@ -100,6 +100,14 @@ func CheckCode(err1 error, code int32) bool {
 	return false
 }
 
+func GetCode(err error) int32 {
+	if x, ok := err.(*Error); ok {
+		return x.Code
+	}
+
+	return -1
+}
+
 func New(code int32) *Error {
 	if err, ok := errMap[code]; ok {
 		return err.Clone()

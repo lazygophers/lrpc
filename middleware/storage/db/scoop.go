@@ -18,7 +18,8 @@ import (
 type Scoop struct {
 	_db *gorm.DB
 
-	notFoundError error
+	notFoundError      error
+	duplicatedKeyError error
 
 	hasDeletedAt bool
 	hasId        bool
@@ -54,8 +55,20 @@ func (p *Scoop) getNotFoundError() error {
 	return gorm.ErrRecordNotFound
 }
 
+func (p *Scoop) getDuplicatedKeyError() error {
+	if p.duplicatedKeyError != nil {
+		return p.duplicatedKeyError
+	}
+
+	return gorm.ErrDuplicatedKey
+}
+
 func (p *Scoop) IsNotFound(err error) bool {
 	return err == p.getNotFoundError() || err == gorm.ErrRecordNotFound
+}
+
+func (p *Scoop) IsDuplicatedKeyError(err error) bool {
+	return err == p.getDuplicatedKeyError() || err == gorm.ErrDuplicatedKey
 }
 
 func (p *Scoop) AutoMigrate(dst ...interface{}) error {
@@ -566,6 +579,14 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	defer p.dec()
 
 	res := p._db.Create(value)
+
+	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		return &CreateResult{
+			RowsAffected: res.RowsAffected,
+			Error:        p.getDuplicatedKeyError(),
+		}
+	}
+
 	return &CreateResult{
 		RowsAffected: res.RowsAffected,
 		Error:        res.Error,
@@ -586,6 +607,13 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 	}
 
 	res := p._db.CreateInBatches(value, batchSize)
+	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		return &CreateInBatchesResult{
+			RowsAffected: res.RowsAffected,
+			Error:        p.getDuplicatedKeyError(),
+		}
+	}
+
 	return &CreateInBatchesResult{
 		Error:        res.Error,
 		RowsAffected: res.RowsAffected,
@@ -709,6 +737,13 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
 	}, res.Error)
+	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		return &UpdateResult{
+			RowsAffected: res.RowsAffected,
+			Error:        p.getDuplicatedKeyError(),
+		}
+	}
+
 	return &UpdateResult{
 		RowsAffected: res.RowsAffected,
 		Error:        res.Error,

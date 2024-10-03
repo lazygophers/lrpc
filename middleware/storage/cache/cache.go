@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"github.com/garyburd/redigo/redis"
+	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
 	"os"
@@ -127,7 +128,17 @@ func (c *Config) apply() {
 	case "bbolt":
 		if c.Address == "" {
 			c.Address, _ = os.Executable()
-			c.Address = filepath.Join(c.Address, "ice.cache")
+			c.Address = filepath.Join(c.Address, app.Name+".cache")
+		}
+	case "echo":
+		if c.DataDir == "" {
+			c.DataDir, _ = os.Executable()
+			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
+		}
+	case "bitcask":
+		if c.DataDir == "" {
+			c.DataDir, _ = os.Executable()
+			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
 		}
 	case "redis":
 		if c.Address == "" {
@@ -161,6 +172,9 @@ func New(c *Config) (Cache, error) {
 
 	case "echo":
 		return NewEcho(c)
+
+	case "bitcask":
+		return NewBitcask(c)
 
 	default:
 		return nil, errors.New("cache type not support")
