@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/routine"
 	"reflect"
 	"time"
 
@@ -110,6 +111,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		QueryFields:                              false,
 		CreateBatchSize:                          100,
 		TranslateError:                           true,
+		PropagateUnscoped:                        false,
 		ClauseBuilders:                           nil,
 		ConnPool:                                 nil,
 		Dialector:                                nil,
@@ -136,17 +138,21 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		return nil, err
 	}
 
-	switch c.Type {
-	case "sqlite":
-		// 自动减少存储文件大小
-		err = p.db.Session(&gorm.Session{
-			NewDB: true,
-		}).Exec("PRAGMA auto_vacuum = 1").Error
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return nil, err
+	routine.GoWithRecover(func() (err error) {
+		switch c.Type {
+		case "sqlite":
+			// 自动减少存储文件大小
+			err = p.db.Session(&gorm.Session{
+				NewDB: true,
+			}).Exec("PRAGMA auto_vacuum = 1").Error
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
 		}
-	}
+
+		return nil
+	})
 
 	err = p.AutoMigrate(tables...)
 	if err != nil {
