@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/utils/anyx"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -581,6 +582,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	res := p._db.Create(value)
 
 	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		log.Errorf("err:%v", res.Error)
 		return &CreateResult{
 			RowsAffected: res.RowsAffected,
 			Error:        p.getDuplicatedKeyError(),
@@ -608,6 +610,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 	res := p._db.CreateInBatches(value, batchSize)
 	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		log.Errorf("err:%v", res.Error)
 		return &CreateInBatchesResult{
 			RowsAffected: res.RowsAffected,
 			Error:        p.getDuplicatedKeyError(),
@@ -719,7 +722,12 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		sqlRaw.WriteString(quoteFieldName(k))
 		sqlRaw.WriteString("=")
 		sqlRaw.WriteString("?")
-		values = append(values, v)
+		switch x := v.(type) {
+		case clause.Expr:
+			values = append(values, x)
+		default:
+			values = append(values, anyx.ToString(x))
+		}
 		i++
 	}
 
@@ -738,6 +746,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
 	}, res.Error)
 	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
+		log.Errorf("err:%v", res.Error)
 		return &UpdateResult{
 			RowsAffected: res.RowsAffected,
 			Error:        p.getDuplicatedKeyError(),

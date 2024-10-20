@@ -93,11 +93,7 @@ func Is(err1, err2 error) bool {
 }
 
 func CheckCode(err1 error, code int32) bool {
-	if x, ok := err1.(*Error); ok {
-		return x.Code == code
-	}
-
-	return false
+	return GetCode(err1) == code
 }
 
 func GetCode(err error) int32 {

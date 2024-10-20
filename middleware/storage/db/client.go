@@ -19,10 +19,14 @@ import (
 
 type Client struct {
 	db *gorm.DB
+
+	clientType string
 }
 
 func New(c *Config, tables ...interface{}) (*Client, error) {
-	p := &Client{}
+	p := &Client{
+		clientType: c.Type,
+	}
 
 	c.apply()
 
@@ -153,7 +157,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		err = p.AutoMigrate(tables...)
 		if err != nil {
 			log.Errorf("err:%v", err)
-			return err
 		}
 
 		return nil
@@ -182,7 +185,6 @@ func (p *Client) AutoMigrate(dst ...interface{}) error {
 			if t, ok := table.(Tabler); ok {
 				log.Errorf("table: %s", t.TableName())
 			}
-			return err
 		}
 	}
 
