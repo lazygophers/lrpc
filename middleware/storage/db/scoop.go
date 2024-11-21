@@ -102,6 +102,11 @@ func (p *Scoop) Model(m any) *Scoop {
 	return p
 }
 
+func (p *Scoop) Table(m string) *Scoop {
+	p.table = m
+	return p
+}
+
 // ——————————条件——————————
 
 func (p *Scoop) Select(fields ...string) *Scoop {
