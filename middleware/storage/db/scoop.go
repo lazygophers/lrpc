@@ -860,7 +860,7 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 		}
 
 		switch fieldName {
-		case "created_at", "updated_at", "deleted_at":
+		case "created_at", "updated_at":
 			continue
 		}
 
