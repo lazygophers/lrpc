@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
@@ -154,7 +155,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			}
 		}
 
-		err = p.AutoMigrate(tables...)
+		err = p.AutoMigrates(tables...)
 		if err != nil {
 			log.Errorf("err:%v", err)
 		}
@@ -165,27 +166,47 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	return p, nil
 }
 
-func (p *Client) AutoMigrate(dst ...interface{}) error {
+func (p *Client) AutoMigrates(dst ...interface{}) (err error) {
 	for _, table := range dst {
-		if x, ok := table.(Tabler); ok {
-			log.Infof("auto migrate %s", x.TableName())
-		}
-
-		err := p.db.AutoMigrate(table)
+		err = p.AutoMigrate(table)
 		if err != nil {
 			log.Errorf("err:%v", err)
-
-			switch x := err.(type) {
-			case *mysqlC.MySQLError:
-				// do something here
-			default:
-				log.Errorf("err:%v", reflect.TypeOf(x))
-			}
-
-			if t, ok := table.(Tabler); ok {
-				log.Errorf("table: %s", t.TableName())
-			}
 		}
+	}
+
+	return nil
+}
+
+func (p *Client) AutoMigrate(table interface{}) (err error) {
+	if x, ok := table.(Tabler); ok {
+		log.Infof("auto migrate %s", x.TableName())
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	session := p.db.
+		Session(&gorm.Session{
+			NewDB:   true,
+			Context: ctx,
+		}).Migrator()
+
+	err = session.AutoMigrate(table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+
+		switch x := err.(type) {
+		case *mysqlC.MySQLError:
+			// do something here
+		default:
+			log.Errorf("err:%v", reflect.TypeOf(x))
+		}
+
+		if t, ok := table.(Tabler); ok {
+			log.Errorf("table: %s", t.TableName())
+		}
+
+		return err
 	}
 
 	return nil

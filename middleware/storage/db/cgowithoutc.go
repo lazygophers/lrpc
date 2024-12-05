@@ -1,11 +1,11 @@
-//go:build cgo && !withoutc
+//go:build cgo && withoutc
 
 package db
 
 import (
 	"fmt"
+	"github.com/glebarez/sqlite"
 	"github.com/lazygophers/log"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"path/filepath"
 )
