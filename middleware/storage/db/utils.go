@@ -189,12 +189,30 @@ func getTableName(elem reflect.Type) string {
 	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elem.Elem().Name(), "Model"))
 }
 
-func hasDeleted(elem reflect.Type) bool {
+func hasDeletedAt(elem reflect.Type) bool {
 	for elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
 	}
 
 	_, ok := elem.FieldByName("DeletedAt")
+	return ok
+}
+
+func hasCreatedAt(elem reflect.Type) bool {
+	for elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
+	}
+
+	_, ok := elem.FieldByName("CreatedAt")
+	return ok
+}
+
+func hasUpdatedAt(elem reflect.Type) bool {
+	for elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
+	}
+
+	_, ok := elem.FieldByName("UpdatedAt")
 	return ok
 }
 

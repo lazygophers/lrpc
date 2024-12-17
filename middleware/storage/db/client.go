@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
@@ -43,9 +42,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	case "mysql":
 		log.Infof("mysql://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
 		d = mysql.New(mysql.Config{
-			DriverName:    "",
-			ServerVersion: "",
-			DSN:           fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", c.Username, c.Password, c.Address, c.Port, c.Name),
+			DSN: fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", c.Username, c.Password, c.Address, c.Port, c.Name),
 			DSNConfig: &mysqlC.Config{
 				Timeout:                 time.Second * 5,
 				ReadTimeout:             time.Second * 30,
@@ -61,8 +58,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 				MultiStatements:         true,
 				ParseTime:               true,
 			},
-			Conn:                          nil,
-			SkipInitializeWithVersion:     true,
+			SkipInitializeWithVersion:     false,
 			DefaultStringSize:             500,
 			DefaultDatetimePrecision:      nil,
 			DisableWithReturning:          false,
@@ -70,7 +66,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			DontSupportRenameIndex:        false,
 			DontSupportRenameColumn:       false,
 			DontSupportForShareClause:     false,
-			DontSupportNullAsDefaultValue: true,
+			DontSupportNullAsDefaultValue: false,
 			DontSupportRenameColumnUnique: false,
 		})
 
@@ -97,30 +93,28 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	p.db, err = gorm.Open(d, &gorm.Config{
 		SkipDefaultTransaction: true,
 		NamingStrategy: &schema.NamingStrategy{
-			TablePrefix:         "",
-			SingularTable:       true,
-			NameReplacer:        nil,
-			NoLowerCase:         false,
-			IdentifierMaxLength: 0,
+			SingularTable: true,
 		},
-		FullSaveAssociations:                     false,
-		Logger:                                   c.Logger,
-		NowFunc:                                  nil,
-		DryRun:                                   false,
-		PrepareStmt:                              true,
-		DisableAutomaticPing:                     false,
+		FullSaveAssociations: true,
+		Logger:               c.Logger,
+
+		PrepareStmt: true,
+
 		DisableForeignKeyConstraintWhenMigrating: true,
 		IgnoreRelationshipsWhenMigrating:         true,
-		DisableNestedTransaction:                 false,
-		AllowGlobalUpdate:                        true,
-		QueryFields:                              false,
-		CreateBatchSize:                          100,
-		TranslateError:                           true,
-		PropagateUnscoped:                        false,
-		ClauseBuilders:                           nil,
-		ConnPool:                                 nil,
-		Dialector:                                nil,
-		Plugins:                                  nil,
+
+		DisableNestedTransaction: false,
+
+		AllowGlobalUpdate: true,
+		CreateBatchSize:   100,
+		TranslateError:    true,
+
+		PropagateUnscoped: true,
+
+		ClauseBuilders: nil,
+		ConnPool:       nil,
+		Dialector:      nil,
+		Plugins:        nil,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -131,24 +125,24 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		p.db = p.db.Debug()
 	}
 
-	conn, err := p.db.DB()
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
-
-	err = conn.Ping()
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	//conn, err := p.db.DB()
+	//if err != nil {
+	//	log.Errorf("err:%v", err)
+	//	return nil, err
+	//}
+	//
+	//err = conn.Ping()
+	//if err != nil {
+	//	log.Errorf("err:%v", err)
+	//	return nil, err
+	//}
 
 	routine.GoWithMustSuccess(func() (err error) {
 		switch c.Type {
 		case "sqlite":
 			// 自动减少存储文件大小
 			err = p.db.Session(&gorm.Session{
-				NewDB: true,
+				Initialized: true,
 			}).Exec("PRAGMA auto_vacuum = 1").Error
 			if err != nil {
 				log.Errorf("err:%v", err)
@@ -182,13 +176,14 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		log.Infof("auto migrate %s", x.TableName())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	//defer cancel()
 
 	session := p.db.
 		Session(&gorm.Session{
-			NewDB:   true,
-			Context: ctx,
+			//NewDB: true,
+			Initialized: true,
+			//Context: ctx,
 		}).Migrator()
 
 	err = session.AutoMigrate(table)

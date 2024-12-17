@@ -22,9 +22,10 @@ type Scoop struct {
 	notFoundError      error
 	duplicatedKeyError error
 
-	hasDeletedAt bool
-	hasId        bool
-	table        string
+	hasCreatedAt, hasUpdatedAt, hasDeletedAt bool
+
+	hasId bool
+	table string
 
 	cond          Cond
 	limit, offset uint64
@@ -96,7 +97,11 @@ func (p *Scoop) dec() {
 func (p *Scoop) Model(m any) *Scoop {
 	rt := reflect.ValueOf(m).Type()
 	p.table = getTableName(rt)
-	p.hasDeletedAt = hasDeleted(rt)
+
+	p.hasCreatedAt = hasCreatedAt(rt)
+	p.hasUpdatedAt = hasUpdatedAt(rt)
+	p.hasDeletedAt = hasDeletedAt(rt)
+
 	p.hasId = hasId(rt)
 
 	return p
@@ -312,7 +317,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		p.table = getTableName(elem.Elem())
 	}
 
-	if !p.unscoped && (p.hasDeletedAt || hasDeleted(elem)) {
+	if !p.unscoped && (p.hasDeletedAt || hasDeletedAt(elem)) {
 		p.cond.whereRaw("deleted_at = 0")
 	}
 
@@ -427,7 +432,7 @@ func (p *Scoop) Chunk(dest interface{}, size uint64, fc func(tx *Scoop, offset u
 		p.table = getTableName(elem)
 	}
 
-	p.hasDeletedAt = hasDeleted(elem)
+	p.hasDeletedAt = hasDeletedAt(elem)
 
 	p.inc()
 	defer p.dec()
@@ -480,7 +485,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		p.table = getTableName(vv.Type())
 	}
 
-	if !p.unscoped && (p.hasDeletedAt || hasDeleted(vv.Type())) {
+	if !p.unscoped && (p.hasDeletedAt || hasDeletedAt(vv.Type())) {
 		p.cond.whereRaw("deleted_at = 0")
 	}
 
@@ -706,6 +711,14 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 
 	if !p.unscoped && p.hasDeletedAt {
 		p.cond.whereRaw("deleted_at = 0")
+	}
+
+	if p.hasUpdatedAt {
+		updateMap["updated_at"] = time.Now().Unix()
+	}
+
+	if p.hasCreatedAt {
+		updateMap["created_at"] = gorm.Expr("if(created_at > 0,created_at,?)", time.Now().Unix())
 	}
 
 	p.inc()

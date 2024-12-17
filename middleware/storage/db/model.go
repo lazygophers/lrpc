@@ -16,9 +16,10 @@ type Model[M any] struct {
 	notFoundError      error
 	duplicatedKeyError error
 
-	hasDeletedAt bool
-	hasId        bool
-	table        string
+	hasCreatedAt, hasUpdatedAt, hasDeletedAt bool
+
+	hasId bool
+	table string
 }
 
 func NewModel[M any](db *Client) *Model[M] {
@@ -34,7 +35,9 @@ func NewModel[M any](db *Client) *Model[M] {
 	}
 
 	p.hasId = hasId(rt)
-	p.hasDeletedAt = hasDeleted(rt)
+	p.hasCreatedAt = hasCreatedAt(rt)
+	p.hasUpdatedAt = hasUpdatedAt(rt)
+	p.hasDeletedAt = hasDeletedAt(rt)
 	p.table = getTableName(rt)
 
 	return p
@@ -67,7 +70,11 @@ func (p *Model[M]) NewScoop(tx ...*Scoop) *ModelScoop[M] {
 	}
 
 	scoop := NewModelScoop[M](db)
+
+	scoop.hasCreatedAt = p.hasCreatedAt
+	scoop.hasUpdatedAt = p.hasUpdatedAt
 	scoop.hasDeletedAt = p.hasDeletedAt
+
 	scoop.hasId = p.hasId
 	scoop.table = p.table
 	scoop.notFoundError = p.notFoundError

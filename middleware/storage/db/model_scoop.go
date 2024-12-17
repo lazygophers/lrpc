@@ -15,7 +15,9 @@ type ModelScoop[M any] struct {
 func NewModelScoop[M any](db *gorm.DB) *ModelScoop[M] {
 	scoop := &ModelScoop[M]{
 		Scoop: Scoop{
-			_db: db.Session(&gorm.Session{}),
+			_db: db.Session(&gorm.Session{
+				Initialized: true,
+			}),
 		},
 	}
 
