@@ -14,17 +14,17 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gookit/color v1.5.5-0.20240610061437-fedc17449eaf
 	github.com/lazygophers/log v0.0.0-20241030030827-ca71ac40248e
-	github.com/lazygophers/utils v0.0.0-20241121071802-7b420eb2c741
-	github.com/pelletier/go-toml/v2 v2.2.2
+	github.com/lazygophers/utils v0.0.0-20241217153358-df3d303dba84
+	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
-	github.com/valyala/fasthttp v1.55.1-0.20240723191557-a7d488a91c29
+	github.com/valyala/fasthttp v1.58.0
 	go.etcd.io/bbolt v1.3.7-0.20231211160616-a7a791ca815e
 	go.etcd.io/etcd/api/v3 v3.5.14
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.mills.io/bitcask/v2 v2.1.0
 	go.uber.org/zap v1.27.1-0.20240725153609-f95879bd02b8
 	golang.org/x/text v0.21.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/protobuf v1.36.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/clickhouse v0.6.2-0.20240712033123-f363ecfefd66
 	gorm.io/driver/mysql v1.5.7
@@ -48,14 +48,14 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/bytedance/sonic v1.12.4 // indirect
+	github.com/bytedance/sonic v1.12.6 // indirect
 	github.com/bytedance/sonic/loader v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/elliotchance/pie/v2 v2.9.0 // indirect
+	github.com/elliotchance/pie/v2 v2.9.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
@@ -114,7 +114,7 @@ require (
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
-	github.com/petermattis/goid v0.0.0-20241025130422-66cb2e6d7274 // indirect
+	github.com/petermattis/goid v0.0.0-20241211131331-93ee7e083c43 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -135,9 +135,9 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.12.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
-	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
+	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
