@@ -246,6 +246,24 @@ func (p *baseCache) Limit(key string, limit int64, timeout time.Duration) (bool,
 	return true, nil
 }
 
+func (p *baseCache) LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error) {
+	cnt, err := p.Incr(key)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = p.Expire(key, timeout)
+	if err != nil {
+		return false, err
+	}
+
+	if cnt > limit {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (p *baseCache) GetSlice(key string) ([]string, error) {
 	buf, err := p.Get(key)
 	if err != nil {

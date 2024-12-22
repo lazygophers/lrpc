@@ -4,15 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
-	"reflect"
 	"time"
 
-	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
+	//_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	mysqlC "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -72,18 +70,18 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		_ = mysqlC.SetLogger(&mysqlLogger{})
 
-	case "postgres":
-		log.Infof("postgres://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
-		d = postgres.New(postgres.Config{
-			DSN:                  fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", c.Address, c.Port, c.Username, c.Password, c.Name),
-			PreferSimpleProtocol: true,
-			WithoutReturning:     false,
-			Conn:                 nil,
-		})
-
-	case "sqlserver":
-		log.Infof("sqlserver://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
-		d = sqlserver.Open(fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", c.Username, c.Password, c.Address, c.Port, c.Name))
+	//case "postgres":
+	//	log.Infof("postgres://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+	//	d = postgres.New(postgres.Config{
+	//		DSN:                  fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", c.Address, c.Port, c.Username, c.Password, c.Name),
+	//		PreferSimpleProtocol: true,
+	//		WithoutReturning:     false,
+	//		Conn:                 nil,
+	//	})
+	//
+	//case "sqlserver":
+	//	log.Infof("sqlserver://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+	//	d = sqlserver.Open(fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", c.Username, c.Password, c.Address, c.Port, c.Name))
 
 	default:
 		return nil, errors.New("unknown database")
@@ -137,6 +135,12 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	//	return nil, err
 	//}
 
+	err = p.AutoMigrates(tables...)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return p, err
+	}
+
 	routine.GoWithMustSuccess(func() (err error) {
 		switch c.Type {
 		case "sqlite":
@@ -149,10 +153,11 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			}
 		}
 
-		err = p.AutoMigrates(tables...)
-		if err != nil {
-			log.Errorf("err:%v", err)
-		}
+		//err = p.AutoMigrates(tables...)
+		//if err != nil {
+		//	log.Errorf("err:%v", err)
+		//	return err
+		//}
 
 		return nil
 	})
@@ -165,6 +170,7 @@ func (p *Client) AutoMigrates(dst ...interface{}) (err error) {
 		err = p.AutoMigrate(table)
 		if err != nil {
 			log.Errorf("err:%v", err)
+			return err
 		}
 	}
 
@@ -184,24 +190,142 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 			//NewDB: true,
 			Initialized: true,
 			//Context: ctx,
-		}).Migrator()
+		})
 
-	err = session.AutoMigrate(table)
+	migrator := session.Migrator()
+
+	tabler, ok := table.(Tabler)
+	if !ok {
+		log.Panicf("table is not Tabler")
+		return errors.New("table is not Tabler")
+	}
+
+	if !migrator.HasTable(tabler.TableName()) {
+		// 找不到，就创建表
+		err = migrator.CreateTable(tabler)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+
+		return nil
+	}
+
+	// 找到了，
+	stmt := &gorm.Statement{
+		DB:    session,
+		Table: tabler.TableName(),
+		Model: table,
+	}
+	if session.Statement != nil {
+		stmt.TableExpr = session.Statement.TableExpr
+	}
+
+	err = stmt.ParseWithSpecialTableName(table, stmt.Table)
 	if err != nil {
 		log.Errorf("err:%v", err)
-
-		switch x := err.(type) {
-		case *mysqlC.MySQLError:
-			// do something here
-		default:
-			log.Errorf("err:%v", reflect.TypeOf(x))
-		}
-
-		if t, ok := table.(Tabler); ok {
-			log.Errorf("table: %s", t.TableName())
-		}
-
 		return err
+	}
+
+	// 对齐一下字段
+	columnTypeList, err := migrator.ColumnTypes(tabler)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	columnTypeMap := make(map[string]gorm.ColumnType, len(columnTypeList))
+	for _, columnType := range columnTypeList {
+		columnTypeMap[columnType.Name()] = columnType
+	}
+
+	for _, dbName := range stmt.Schema.DBNames {
+		if columnType, ok := columnTypeMap[dbName]; ok {
+			// TODO: 找到了，对比一下类型
+			err = migrator.MigrateColumn(table, stmt.Schema.FieldsByDBName[dbName], columnType)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+		} else {
+			// 找不到，所以要新建字段
+			log.Infof("try add column %s to %s", dbName, tabler.TableName())
+			err = migrator.AddColumn(table, dbName)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+		}
+	}
+
+	// 对齐一下索引
+	indexList, err := migrator.GetIndexes(table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	indexMap := make(map[string]gorm.Index, len(indexList))
+	for _, index := range indexList {
+		indexMap[index.Name()] = index
+	}
+
+	for _, dbIndex := range stmt.Schema.ParseIndexes() {
+		if index, ok := indexMap[dbIndex.Name]; ok {
+			var needChange bool
+			// 对齐一下字段是否相同
+			if !candy.SliceEqual(index.Columns(), candy.Map(dbIndex.Fields, func(t schema.IndexOption) string {
+				return t.DBName
+			})) {
+				needChange = true
+			}
+
+			if !needChange {
+				continue
+			}
+
+			//// 判断一下，如果不是唯一索引且不是主键，就删除索引再重建，否则就输出 warn 日志
+			//if value, ok := index.PrimaryKey(); value && ok {
+			//	log.Warnf("skip change index %s of table %s, because it is a primary key", dbIndex.Name, tabler.TableName())
+			//	continue
+			//}
+			//
+			//if value, ok := index.Unique(); value && ok {
+			//	log.Warnf("skip change unique index %s of table %s", dbIndex.Name, tabler.TableName())
+			//	continue
+			//}
+
+			// 通过事务创建
+			tx := session.Begin()
+			err = tx.Migrator().DropIndex(table, index.Name())
+			if err != nil {
+				tx.Rollback()
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+			err = tx.Migrator().CreateIndex(table, dbIndex.Name)
+			if err != nil {
+				tx.Rollback()
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+			err = tx.Commit().Error
+			if err != nil {
+				tx.Rollback()
+				log.Errorf("err:%v", err)
+				return err
+			}
+
+		} else {
+			log.Infof("try add index %s to %s", tabler.TableName(), dbIndex.Name)
+			err = migrator.CreateIndex(table, dbIndex.Name)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+		}
 	}
 
 	return nil

@@ -204,6 +204,26 @@ func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 		if p.IsNotFound(err) {
 			err = p.Scoop.Create(m).Error
 			if err != nil {
+				if p.IsDuplicatedKeyError(err) {
+					err = p.Scoop.First(&mm).Error
+					if err != nil {
+						if p.IsNotFound(err) {
+							return &FirstOrCreateResult[M]{
+								Error: p.getDuplicatedKeyError(),
+							}
+						}
+
+						return &FirstOrCreateResult[M]{
+							Error: err,
+						}
+					}
+
+					return &FirstOrCreateResult[M]{
+						IsCreated: true,
+						Object:    &mm,
+					}
+				}
+
 				return &FirstOrCreateResult[M]{
 					Error: err,
 				}

@@ -87,6 +87,7 @@ type Cache interface {
 	HGetJson(key, field string, j interface{}) error
 
 	Limit(key string, limit int64, timeout time.Duration) (bool, error)
+	LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error)
 }
 
 type Config struct {

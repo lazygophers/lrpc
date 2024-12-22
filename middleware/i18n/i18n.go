@@ -5,7 +5,9 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/anyx"
 	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/stringx"
+	"github.com/petermattis/goid"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/fs"
@@ -107,45 +109,6 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 	}
 }
 
-var defaultTemplateFunc = template.FuncMap{
-	"ToCamel":      stringx.ToCamel,
-	"ToSmallCamel": stringx.ToSmallCamel,
-	"ToSnake":      stringx.ToSnake,
-	"ToLower":      strings.ToLower,
-	"ToUpper":      strings.ToUpper,
-	"ToTitle":      strings.ToTitle,
-
-	"TrimPrefix": strings.TrimPrefix,
-	"TrimSuffix": strings.TrimSuffix,
-	"HasPrefix":  strings.HasPrefix,
-	"HasSuffix":  strings.HasSuffix,
-
-	"PluckString": anyx.PluckString,
-	"PluckInt":    anyx.PluckInt,
-	"PluckInt32":  anyx.PluckInt32,
-	"PluckUint32": anyx.PluckUint32,
-	"PluckInt64":  anyx.PluckInt64,
-	"PluckUint64": anyx.PluckUint64,
-
-	"StringSliceEmpty": func(ss []string) bool {
-		return len(ss) == 0
-	},
-
-	"UniqueString":   candy.Unique[string],
-	"SortString":     candy.Sort[string],
-	"ReverseString":  candy.Reverse[string],
-	"TopString":      candy.Top[string],
-	"FirstString":    candy.First[string],
-	"LastString":     candy.Last[string],
-	"ContainsString": candy.Contains[string],
-	"TimeFormat4Pb": func(t *timestamppb.Timestamp, layout string) string {
-		return t.AsTime().Format(layout)
-	},
-	"TimeFormat4Timestamp": func(t int64, layout string) string {
-		return time.Unix(t, 0).Format(layout)
-	},
-}
-
 func NewPack(lang string) *Pack {
 	return &Pack{
 		lang:   lang,
@@ -211,7 +174,7 @@ func (p *I18n) LocalizeWithLang(lang string, key string, args ...interface{}) st
 }
 
 func (p *I18n) Localize(key string, args ...interface{}) string {
-	return p.LocalizeWithLang("", key, args...)
+	return p.LocalizeWithLang(cache.Get(goid.Get()), key, args...)
 }
 
 func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
@@ -279,7 +242,67 @@ func (p *I18n) AllSupportedLanguageCode() []*LanguageCode {
 	return langs
 }
 
-var DefaultI18n = NewI18n()
+var (
+	DefaultI18n = NewI18n()
+
+	defaultTemplateFunc = template.FuncMap{
+		"ToCamel":      stringx.ToCamel,
+		"ToSmallCamel": stringx.ToSmallCamel,
+		"ToSnake":      stringx.ToSnake,
+		"ToLower":      strings.ToLower,
+		"ToUpper":      strings.ToUpper,
+		"ToTitle":      strings.ToTitle,
+
+		"TrimPrefix": strings.TrimPrefix,
+		"TrimSuffix": strings.TrimSuffix,
+		"HasPrefix":  strings.HasPrefix,
+		"HasSuffix":  strings.HasSuffix,
+
+		"PluckString": anyx.PluckString,
+		"PluckInt":    anyx.PluckInt,
+		"PluckInt32":  anyx.PluckInt32,
+		"PluckUint32": anyx.PluckUint32,
+		"PluckInt64":  anyx.PluckInt64,
+		"PluckUint64": anyx.PluckUint64,
+
+		"StringSliceEmpty": func(ss []string) bool {
+			return len(ss) == 0
+		},
+
+		"UniqueString":   candy.Unique[string],
+		"SortString":     candy.Sort[string],
+		"ReverseString":  candy.Reverse[string],
+		"TopString":      candy.Top[string],
+		"FirstString":    candy.First[string],
+		"LastString":     candy.Last[string],
+		"ContainsString": candy.Contains[string],
+		"TimeFormat4Pb": func(t *timestamppb.Timestamp, layout string) string {
+			return t.AsTime().Format(layout)
+		},
+		"TimeFormat4Timestamp": func(t int64, layout string) string {
+			return time.Unix(t, 0).Format(layout)
+		},
+	}
+	cache = routine.NewCache[int64, string]()
+)
+
+func SetLanguage(language string, gid ...int64) {
+	language = ParseLanguage(language)
+
+	if len(gid) > 0 {
+		cache.Set(gid[0], language)
+	} else {
+		cache.Set(goid.Get(), language)
+	}
+}
+
+func DelLanguage(gid ...int64) {
+	if len(gid) > 0 {
+		cache.Delete(gid[0])
+	} else {
+		cache.Delete(goid.Get())
+	}
+}
 
 func NewI18n() *I18n {
 	p := &I18n{
