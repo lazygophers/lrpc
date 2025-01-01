@@ -13,8 +13,9 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gookit/color v1.5.5-0.20240610061437-fedc17449eaf
 	github.com/lazygophers/log v0.0.0-20241229160530-2bac6f5670ab
-	github.com/lazygophers/utils v0.0.0-20241229170920-7e77b2260416
+	github.com/lazygophers/utils v0.0.0-20241229172109-a6994867d596
 	github.com/pelletier/go-toml/v2 v2.2.3
+	github.com/petermattis/goid v0.0.0-20241211131331-93ee7e083c43
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
 	github.com/valyala/fasthttp v1.58.0
 	go.etcd.io/bbolt v1.3.7-0.20231211160616-a7a791ca815e
@@ -93,7 +94,6 @@ require (
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
-	github.com/petermattis/goid v0.0.0-20241211131331-93ee7e083c43 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect

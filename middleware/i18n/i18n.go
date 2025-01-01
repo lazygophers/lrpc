@@ -174,7 +174,7 @@ func (p *I18n) LocalizeWithLang(lang string, key string, args ...interface{}) st
 }
 
 func (p *I18n) Localize(key string, args ...interface{}) string {
-	return p.LocalizeWithLang(cache.Get(goid.Get()), key, args...)
+	return p.LocalizeWithLang(GetLanguage(), key, args...)
 }
 
 func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
@@ -301,6 +301,14 @@ func DelLanguage(gid ...int64) {
 		cache.Delete(gid[0])
 	} else {
 		cache.Delete(goid.Get())
+	}
+}
+
+func GetLanguage(gid ...int64) string {
+	if len(gid) > 0 {
+		return cache.GetWithDef(gid[0], "")
+	} else {
+		return cache.GetWithDef(goid.Get(), "")
 	}
 }
 
