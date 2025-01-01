@@ -589,6 +589,23 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	p.inc()
 	defer p.dec()
 
+	vv := reflect.ValueOf(value)
+	for vv.Kind() == reflect.Ptr {
+		vv = vv.Elem()
+	}
+
+	if vv.Kind() != reflect.Struct {
+		panic("value is not struct")
+	}
+
+	if field := vv.FieldByName("CreatedAt"); field.IsValid() && field.IsZero() {
+		field.SetInt(time.Now().Unix())
+	}
+
+	if field := vv.FieldByName("UpdatedAt"); field.IsValid() && field.IsZero() {
+		field.SetInt(time.Now().Unix())
+	}
+
 	res := p._db.Create(value)
 
 	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
