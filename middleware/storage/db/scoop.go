@@ -681,6 +681,7 @@ func (p *Scoop) Delete() *DeleteResult {
 		sqlRaw.WriteString(p.table)
 		sqlRaw.WriteString(" SET deleted_at = ")
 		sqlRaw.WriteString(strconv.FormatInt(time.Now().Unix(), 10))
+		p.cond.addCond("deleted_at", "=", 0)
 	} else {
 		sqlRaw.WriteString("DELETE FROM")
 		sqlRaw.WriteString(" ")

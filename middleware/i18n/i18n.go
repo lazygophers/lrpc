@@ -289,10 +289,14 @@ var (
 func SetLanguage(language string, gid ...int64) {
 	language = ParseLanguage(language)
 
-	if len(gid) > 0 {
-		cache.Set(gid[0], language)
+	if language == "" {
+		DelLanguage(gid...)
 	} else {
-		cache.Set(goid.Get(), language)
+		if len(gid) > 0 {
+			cache.Set(gid[0], language)
+		} else {
+			cache.Set(goid.Get(), language)
+		}
 	}
 }
 

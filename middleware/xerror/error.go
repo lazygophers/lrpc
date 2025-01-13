@@ -62,7 +62,7 @@ type Error struct {
 }
 
 func (p *Error) Error() string {
-	return fmt.Sprintf("code:%d,msg:%s", p.Code, p.Msg)
+	return p.Msg
 }
 
 func (p *Error) Clone() *Error {
