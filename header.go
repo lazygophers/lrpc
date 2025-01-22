@@ -3,6 +3,7 @@ package lrpc
 const (
 	HeaderContentType = "Content-Type"
 	HeaderTrance      = "X-Trance"
+	HeaderToken      = "X-Token"
 )
 
 const (
