@@ -109,6 +109,8 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		PropagateUnscoped: true,
 
+		NowFunc: now,
+
 		ClauseBuilders: nil,
 		ConnPool:       nil,
 		Dialector:      nil,

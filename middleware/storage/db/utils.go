@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func EnsureIsSliceOrArray(obj interface{}) (res reflect.Value) {
@@ -294,3 +295,11 @@ func IsUniqueIndexConflictErr(err error) bool {
 }
 
 var ErrBatchesStop = errors.New("batches stop")
+
+var now = func() time.Time {
+	return Now()
+}
+
+var Now = func() time.Time {
+	return time.Now()
+}

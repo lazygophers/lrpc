@@ -304,7 +304,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	defer log.PutBuffer(logBuf)
 
 	sqlRaw := p.findSql()
-	start := time.Now()
+	start := Now()
 
 	rows, err := p._db.Query(sqlRaw)
 	if err != nil {
@@ -471,7 +471,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 //	defer p.dec()
 //
 //	sqlRaw := p.findSql()
-//	start := time.Now()
+//	start := Now()
 //
 //	scope := p._db.Raw(sqlRaw)
 //	rows, err := scope.Rows()
@@ -585,7 +585,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 //		sqlRaw.WriteString(" ")
 //		sqlRaw.WriteString(p.table)
 //		sqlRaw.WriteString(" SET deleted_at = ")
-//		sqlRaw.WriteString(strconv.FormatInt(time.Now().Unix(), 10))
+//		sqlRaw.WriteString(strconv.FormatInt(Now().Unix(), 10))
 //	} else {
 //		sqlRaw.WriteString("DELETE FROM")
 //		sqlRaw.WriteString(" ")
@@ -601,7 +601,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 //		}
 //	}
 //
-//	start := time.Now()
+//	start := Now()
 //	res, err := p._db.Exec(sqlRaw.String())
 //	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 //		return sqlRaw.String(), res.RowsAffected
@@ -643,7 +643,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 //		}
 //	}
 //
-//	start := time.Now()
+//	start := Now()
 //	var count uint64
 //	err := p._db.Raw(sqlRaw.String()).Scan(&count).Error
 //	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
@@ -696,7 +696,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 //
 //	sqlRaw.WriteString(" LIMIT 1 OFFSET 0")
 //
-//	start := time.Now()
+//	start := Now()
 //	var count int64
 //	err := p._db.QueryRow(sqlRaw.String()).Scan(&count).Error
 //	db.GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
