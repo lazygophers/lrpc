@@ -38,7 +38,7 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 		request.Header.SetCookieBytesKV(key, value)
 	})
 
-	request.Header.Set(HeaderContentType, MIMEProtobuf)
+	request.Header.Set(HeaderContentType, MIMEApplicationProtobuf)
 	request.Header.Set(HeaderTrance, tranceId)
 
 	if req != nil {

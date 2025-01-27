@@ -92,9 +92,9 @@ func (p *Ctx) SendStatus(status int) {
 
 func (p *Ctx) SendJson(o any) error {
 	contentType := p.Header(HeaderContentType)
-	if strings.Contains(contentType, MIMEProtobuf) {
+	if strings.Contains(contentType, MIMEApplicationProtobuf) {
 		if v, ok := o.(proto.Message); ok {
-			p.SetHeader(HeaderContentType, MIMEProtobuf)
+			p.SetHeader(HeaderContentType, MIMEApplicationProtobuf)
 			buffer, err := proto.Marshal(v)
 			if err != nil {
 				log.Errorf("err:%v", err)
@@ -106,7 +106,7 @@ func (p *Ctx) SendJson(o any) error {
 		}
 	}
 
-	p.SetHeader(HeaderContentType, MIMEJson)
+	p.SetHeader(HeaderContentType, MIMEApplicationJSON)
 	buffer, err := json.Marshal(o)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (p *Ctx) BodyParser(o any) (err error) {
 	}
 
 	contentType := p.Header(HeaderContentType)
-	if strings.Contains(contentType, MIMEProtobuf) {
+	if strings.Contains(contentType, MIMEApplicationProtobuf) {
 		if v, ok := o.(proto.Message); ok {
 			err = proto.Unmarshal(body, v)
 			if err != nil {
