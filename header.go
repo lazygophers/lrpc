@@ -128,6 +128,7 @@ const (
 
 	HeaderTrance = "X-Trance"
 	HeaderToken  = "X-Token"
+	HeaderTime   = "X-Time"
 )
 
 const (

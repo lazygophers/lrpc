@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"gorm.io/gorm"
 )
@@ -239,6 +240,58 @@ func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 	}
 	return &FirstOrCreateResult[M]{
 		Object: &mm,
+	}
+}
+
+type CreateIfNotExistsResult struct {
+	IsCreated bool
+	Error     error
+}
+
+func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
+	p.inc()
+	defer p.dec()
+
+	exist, err := p.Exist()
+	if err != nil {
+		return &CreateIfNotExistsResult{
+			Error: err,
+		}
+	}
+
+	if exist {
+		return &CreateIfNotExistsResult{
+			IsCreated: false,
+		}
+	}
+
+	err = p.Scoop.Create(m).Error
+	if err != nil {
+		if p.IsDuplicatedKeyError(err) {
+			exist, err = p.Exist()
+			if err != nil {
+				return &CreateIfNotExistsResult{
+					Error: err,
+				}
+			}
+
+			if exist {
+				return &CreateIfNotExistsResult{}
+			}
+
+			return &CreateIfNotExistsResult{
+				Error: p.getDuplicatedKeyError(),
+			}
+		}
+
+		log.Errorf("err:%v", err)
+		return &CreateIfNotExistsResult{
+			Error: err,
+		}
+	}
+
+	return &CreateIfNotExistsResult{
+		IsCreated: true,
 	}
 }
 

@@ -8,14 +8,19 @@ import (
 
 var DefaultDriver = "mysql"
 
-func Expr(expression string, args ...interface{}) map[string]any {
-	return map[string]any{
-		"expr": expression,
-		"args": args,
-	}
+func Expr(expression string, args ...interface{}) clause.Expr {
+	return gorm.Expr(expression, args...)
 }
 
-func If(expr string, ok, nok interface{}) clause.Expr {
+func ExprInc(field string) clause.Expr {
+	return ExprIncBy(field, 1)
+}
+
+func ExprIncBy(field string, cnt int64) clause.Expr {
+	return gorm.Expr(fmt.Sprintf("%s + ?", field), cnt)
+}
+
+func ExprIf(expr string, ok, nok interface{}) clause.Expr {
 	switch DefaultDriver {
 	case "sqlite", "sqlite3":
 		return gorm.Expr(fmt.Sprintf("IIF(%s, ?, ?)", expr), ok, nok)

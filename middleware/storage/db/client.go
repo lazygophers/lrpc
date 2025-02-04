@@ -34,10 +34,10 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 	var d gorm.Dialector
 	switch c.Type {
-	case "sqlite":
+	case Sqlite:
 		d = newSqlite(c)
 
-	case "mysql":
+	case MySQL:
 		log.Infof("mysql://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
 		d = mysql.New(mysql.Config{
 			DSN: fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", c.Username, c.Password, c.Address, c.Port, c.Name),
@@ -209,8 +209,6 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 			log.Errorf("err:%v", err)
 			return err
 		}
-
-		return nil
 	}
 
 	// 找到了，

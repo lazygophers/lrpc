@@ -6,6 +6,11 @@ import (
 	"os"
 )
 
+const (
+	Sqlite = "sqlite"
+	MySQL  = "mysql"
+)
+
 type Config struct {
 	// Database type, support sqlite, mysql, postgres, sqlserver, default sqlite
 	// sqlite: sqlite|sqlite3
@@ -51,6 +56,8 @@ type Config struct {
 	// postgres: database password
 	// sqlserver: database password
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+
+	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
 	Logger logger.Interface `json:"-" yaml:"-"`
 }
