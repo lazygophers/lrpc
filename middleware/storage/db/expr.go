@@ -17,7 +17,7 @@ func ExprInc(field string) clause.Expr {
 }
 
 func ExprIncBy(field string, cnt int64) clause.Expr {
-	return gorm.Expr(fmt.Sprintf("%s + ?", field), cnt)
+	return gorm.Expr(fmt.Sprintf("%s + %d", field, cnt))
 }
 
 func ExprIf(expr string, ok, nok interface{}) clause.Expr {

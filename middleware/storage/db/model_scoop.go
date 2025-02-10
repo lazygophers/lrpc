@@ -327,7 +327,7 @@ func (p *ModelScoop[M]) UpdateOrCreate(values map[string]interface{}, m *M) *Upd
 		}
 	}
 
-	err = p.Scoop.update(values).Error
+	err = p.Scoop.Updates(values).Error
 	if err != nil {
 		return &UpdateOrCreateResult[M]{
 			Error: err,
@@ -431,7 +431,7 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 		}
 	}
 
-	err = p.Scoop.update(values).Error
+	err = p.Scoop.Updates(values).Error
 	if err != nil {
 		return &CreateOrUpdateResult[M]{
 			Error: err,

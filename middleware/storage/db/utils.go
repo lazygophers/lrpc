@@ -93,6 +93,7 @@ func decode(field reflect.Value, col []byte) error {
 		reflect.Int64:
 		val, err := strconv.ParseInt(string(col), 10, 64)
 		if err != nil {
+			log.Errorf("parse %s err:%s", col, err)
 			return err
 		}
 		field.SetInt(val)
@@ -103,6 +104,7 @@ func decode(field reflect.Value, col []byte) error {
 		reflect.Uint64:
 		val, err := strconv.ParseUint(string(col), 10, 64)
 		if err != nil {
+			log.Errorf("err:%s", err)
 			return err
 		}
 		field.SetUint(val)
@@ -110,6 +112,7 @@ func decode(field reflect.Value, col []byte) error {
 		reflect.Float64:
 		val, err := strconv.ParseFloat(string(col), 64)
 		if err != nil {
+			log.Errorf("err:%s", err)
 			return err
 		}
 		field.SetFloat(val)
@@ -157,7 +160,7 @@ func decode(field reflect.Value, col []byte) error {
 		}
 		field.Set(val)
 	default:
-		log.Info(string(col))
+		log.Errorf(string(col))
 		return fmt.Errorf("invalid type: %s", field.Kind().String())
 	}
 

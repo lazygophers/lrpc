@@ -8,6 +8,7 @@ import (
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/stringx"
 	"github.com/petermattis/goid"
+	"go.uber.org/atomic"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/fs"
@@ -118,10 +119,10 @@ func NewPack(lang string) *Pack {
 }
 
 type I18n struct {
-	packMap     map[string]*Pack
-	defaultLang string
+	packMap map[string]*Pack
 
 	templateFunc template.FuncMap
+	defaultLang  *atomic.String
 }
 
 func (p *I18n) AddTemplateFunc(key string, a any) {
@@ -142,12 +143,14 @@ func (p *I18n) localize(lang string, key string) (string, bool) {
 		}
 	}
 
-	if pack, ok := p.packMap[p.defaultLang]; ok {
+	defaultLang := p.defaultLang.Load()
+
+	if pack, ok := p.packMap[defaultLang]; ok {
 		return pack.corpus[key], true
 	}
 
-	if strings.Contains(p.defaultLang, "-") {
-		if pack, ok := p.packMap[p.defaultLang[:strings.Index(p.defaultLang, "-")]]; ok {
+	if strings.Contains(defaultLang, "-") {
+		if pack, ok := p.packMap[defaultLang[:strings.Index(defaultLang, "-")]]; ok {
 			return pack.corpus[key], true
 		}
 	}
@@ -224,12 +227,12 @@ func (p *I18n) LoadLocalizes(embedFs LocalizeFs) error {
 }
 
 func (p *I18n) DefaultLang() string {
-	return p.defaultLang
+	return p.defaultLang.Load()
 }
 
 func (p *I18n) SetDefaultLang(lang string) *I18n {
 	lang = strings.ToLower(lang)
-	p.defaultLang = lang
+	p.defaultLang.Store(lang)
 	return p
 }
 
@@ -319,7 +322,7 @@ func GetLanguage(gid ...int64) string {
 func NewI18n() *I18n {
 	p := &I18n{
 		packMap:     map[string]*Pack{},
-		defaultLang: language.English.String(),
+		defaultLang: atomic.NewString(language.English.String()),
 
 		templateFunc: maps.Clone(defaultTemplateFunc),
 	}

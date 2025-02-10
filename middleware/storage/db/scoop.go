@@ -16,7 +16,8 @@ import (
 )
 
 type Scoop struct {
-	_db *gorm.DB
+	clientType string
+	_db        *gorm.DB
 
 	notFoundError      error
 	duplicatedKeyError error
@@ -38,9 +39,10 @@ type Scoop struct {
 	depth int
 }
 
-func NewScoop(db *gorm.DB) *Scoop {
+func NewScoop(db *gorm.DB, clientType string) *Scoop {
 	return &Scoop{
-		depth: 3,
+		depth:      3,
+		clientType: clientType,
 		_db: db.Session(&gorm.Session{
 			//NewDB: true,
 			Initialized: true,
@@ -735,7 +737,12 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 
 	if p.hasCreatedAt {
-		updateMap["created_at"] = gorm.Expr("if(created_at > 0,created_at,?)", now().Unix())
+		switch p.clientType {
+		case Sqlite:
+			updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", now().Unix())
+		default:
+			updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", now().Unix())
+		}
 	}
 
 	p.inc()
@@ -1028,7 +1035,7 @@ func (p *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, er
 // ——————————事务——————————
 
 func (p *Scoop) Begin() *Scoop {
-	return NewScoop(p._db.Begin())
+	return NewScoop(p._db.Begin(), p.clientType)
 }
 
 func (p *Scoop) Rollback() *Scoop {

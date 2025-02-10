@@ -339,5 +339,5 @@ func (p *Client) Database() *gorm.DB {
 }
 
 func (p *Client) NewScoop() *Scoop {
-	return NewScoop(p.db)
+	return NewScoop(p.db, p.clientType)
 }
