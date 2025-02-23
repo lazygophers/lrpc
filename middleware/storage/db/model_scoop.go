@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/utils/candy"
 	"gorm.io/gorm"
 )
 
@@ -139,6 +140,13 @@ func (p *ModelScoop[M]) Group(fields ...string) *ModelScoop[M] {
 
 func (p *ModelScoop[M]) Order(fields ...string) *ModelScoop[M] {
 	p.orders = append(p.orders, fields...)
+	return p
+}
+
+func (p *ModelScoop[M]) Desc(fields ...string) *ModelScoop[M] {
+	p.orders = append(p.orders, candy.Map(fields, func(s string) string {
+		return s + " DESC"
+	})...)
 	return p
 }
 

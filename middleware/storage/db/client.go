@@ -68,7 +68,9 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			DontSupportRenameColumnUnique: false,
 		})
 
-		_ = mysqlC.SetLogger(&mysqlLogger{})
+		if c.Debug {
+			_ = mysqlC.SetLogger(&mysqlLogger{})
+		}
 
 	//case "postgres":
 	//	log.Infof("postgres://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
@@ -94,7 +96,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			SingularTable: true,
 		},
 		FullSaveAssociations: true,
-		Logger:               c.Logger,
 
 		PrepareStmt: true,
 
@@ -119,6 +120,10 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
+	}
+
+	if c.Debug {
+		p.db.Logger = c.Logger
 	}
 
 	if c.Debug {
@@ -336,6 +341,10 @@ func (p *Client) Database() *gorm.DB {
 		//NewDB:       true,
 		Initialized: true,
 	})
+}
+
+func (p *Client) DriverType() string {
+	return p.clientType
 }
 
 func (p *Client) NewScoop() *Scoop {

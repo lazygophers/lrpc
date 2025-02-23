@@ -232,6 +232,7 @@ func (p *I18n) DefaultLang() string {
 
 func (p *I18n) SetDefaultLang(lang string) *I18n {
 	lang = strings.ToLower(lang)
+	log.Infof("set default language: %s", lang)
 	p.defaultLang.Store(lang)
 	return p
 }

@@ -736,14 +736,14 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		updateMap["updated_at"] = now().Unix()
 	}
 
-	if p.hasCreatedAt {
-		switch p.clientType {
-		case Sqlite:
-			updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", now().Unix())
-		default:
-			updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", now().Unix())
-		}
-	}
+	//if p.hasCreatedAt {
+	//	switch p.clientType {
+	//	case Sqlite:
+	//		updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", now().Unix())
+	//	default:
+	//		updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", now().Unix())
+	//	}
+	//}
 
 	p.inc()
 	defer p.dec()
