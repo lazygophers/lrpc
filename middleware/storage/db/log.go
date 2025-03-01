@@ -82,7 +82,7 @@ func (l *Logger) Log(skip int, begin time.Time, fc func() (sql string, rowsAffec
 	b.WriteString(color.Yellow.Sprintf("%s:%d %s", path.Join(callerDir, path.Base(file)), callerLine, callerFunc))
 	b.WriteString(" ")
 
-	b.WriteString(color.Blue.Sprintf("[%s]", time.Since(begin)))
+	b.WriteString(color.Blue.Sprintf("[%s]", begin.Sub(now())))
 	b.WriteString(" ")
 
 	sql, rowsAffected := fc()
