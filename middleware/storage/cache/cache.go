@@ -6,6 +6,7 @@ import (
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
+	"google.golang.org/protobuf/proto"
 	"os"
 	"path/filepath"
 	"time"
@@ -55,6 +56,7 @@ type BaseCache interface {
 
 	//Reset() error
 
+	Clean() error
 	Close() error
 }
 
@@ -83,6 +85,10 @@ type Cache interface {
 	GetFloat64Slice(key string) ([]float64, error)
 
 	GetJson(key string, j interface{}) error
+
+	SetPb(key string, j proto.Message) error
+	SetPbEx(key string, j proto.Message, timeout time.Duration) error
+	GetPb(key string, j proto.Message) error
 
 	HGetJson(key, field string, j interface{}) error
 

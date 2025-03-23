@@ -14,6 +14,11 @@ type Bitcask struct {
 	cli *bitcask.Bitcask
 }
 
+func (p *Bitcask) Clean() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Bitcask) Get(key string) (string, error) {
 	value, err := p.cli.Get(bitcask.Key(key))
 	if err != nil {

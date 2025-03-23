@@ -3,11 +3,40 @@ package cache
 import (
 	"github.com/lazygophers/utils/anyx"
 	"github.com/lazygophers/utils/json"
+	"github.com/lazygophers/utils/stringx"
+	"google.golang.org/protobuf/proto"
 	"time"
 )
 
 type baseCache struct {
 	BaseCache
+}
+
+func (p *baseCache) SetPb(key string, j proto.Message) error {
+	buffer, err := proto.Marshal(j)
+	if err != nil {
+		return err
+	}
+
+	return p.Set(key, stringx.ToString(buffer))
+}
+
+func (p *baseCache) SetPbEx(key string, j proto.Message, timeout time.Duration) error {
+	buffer, err := proto.Marshal(j)
+	if err != nil {
+		return err
+	}
+
+	return p.SetEx(key, stringx.ToString(buffer), timeout)
+}
+
+func (p *baseCache) GetPb(key string, j proto.Message) error {
+	buffer, err := p.Get(key)
+	if err != nil {
+		return err
+	}
+
+	return proto.Unmarshal(stringx.ToBytes(buffer), j)
 }
 
 func (p *baseCache) GetBool(key string) (bool, error) {

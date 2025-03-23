@@ -12,6 +12,11 @@ type Echo struct {
 	cli *echovault.EchoVault
 }
 
+func (p *Echo) Clean() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Echo) SetPrefix(prefix string) {
 }
 

@@ -15,6 +15,11 @@ type Mem struct {
 	rt   *rate.RateLimiter
 }
 
+func (p *Mem) Clean() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Mem) SetPrefix(prefix string) {
 	//TODO implement me
 	panic("implement me")

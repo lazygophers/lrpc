@@ -18,6 +18,11 @@ type Redis struct {
 	prefix string
 }
 
+func (p *Redis) Clean() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *Redis) SetPrefix(prefix string) {
 	p.prefix = prefix
 }

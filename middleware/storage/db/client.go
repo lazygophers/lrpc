@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/lazygophers/log"
@@ -341,6 +342,10 @@ func (p *Client) Database() *gorm.DB {
 		//NewDB:       true,
 		Initialized: true,
 	})
+}
+
+func (p *Client) SqlDB() (*sql.DB, error) {
+	return p.db.DB()
 }
 
 func (p *Client) DriverType() string {
