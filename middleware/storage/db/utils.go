@@ -137,17 +137,17 @@ func decode(field reflect.Value, col []byte) error {
 		field.Set(val.Elem())
 	case reflect.Slice:
 		// []byte 类型
-		if field.Type().Elem().Name() == "uint8" {
-			field.Set(reflect.ValueOf(col))
-		} else {
-			val := reflect.New(field.Type())
-			err := utils.Scan(col, val.Interface())
-			if err != nil {
-				log.Errorf("err:%v", err)
-				return err
-			}
-			field.Set(val.Elem())
+		//if field.Type().Elem().Name() == "uint8" {
+		//	field.Set(reflect.ValueOf(col))
+		//} else {
+		val := reflect.New(field.Type())
+		err := utils.Scan(col, val.Interface())
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
 		}
+		field.Set(val.Elem())
+		//}
 
 	case reflect.Map:
 		val := reflect.New(field.Type())
