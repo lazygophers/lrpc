@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/echovault/echovault/echovault"
+	"github.com/echovault/sugardb/sugardb"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/anyx"
 	"strconv"
@@ -9,7 +9,7 @@ import (
 )
 
 type Echo struct {
-	cli *echovault.EchoVault
+	cli *sugardb.SugarDB
 }
 
 func (p *Echo) Clean() error {
@@ -34,7 +34,7 @@ func (p *Echo) Get(key string) (string, error) {
 }
 
 func (p *Echo) Set(key string, value any) error {
-	_, _, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{})
+	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{})
 	if err != nil {
 		return err
 	}
@@ -42,8 +42,9 @@ func (p *Echo) Set(key string, value any) error {
 }
 
 func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
-	_, _, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{
-		EXAT: int(time.Now().Add(timeout).Unix()),
+	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
+		ExpireOpt:  sugardb.SETEX,
+		ExpireTime: int(time.Now().Add(timeout).Unix()),
 	})
 	if err != nil {
 		return err
@@ -52,8 +53,8 @@ func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
 }
 
 func (p *Echo) SetNx(key string, value interface{}) (bool, error) {
-	_, ok, err := p.cli.Set(key, anyx.ToString(value), echovault.SetOptions{
-		NX: true,
+	_, ok, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
+		WriteOpt: sugardb.SETNX,
 	})
 	if err != nil {
 		return ok, err
@@ -97,7 +98,7 @@ func (p *Echo) Ttl(key string) (time.Duration, error) {
 }
 
 func (p *Echo) Expire(key string, timeout time.Duration) (bool, error) {
-	return p.cli.Expire(key, int(timeout.Seconds()), echovault.ExpireOptions{})
+	return p.cli.Expire(key, int(timeout.Seconds()))
 }
 
 func (p *Echo) Incr(key string) (int64, error) {
@@ -257,9 +258,13 @@ func (p *Echo) Close() error {
 }
 
 func NewEcho(c *Config) (Cache, error) {
-	ec := echovault.DefaultConfig()
+	ec := sugardb.DefaultConfig()
 	if c.DataDir != "" {
 		ec.DataDir = c.DataDir
+	}
+
+	if c.Password != "" {
+		ec.Password = c.Password
 	}
 
 	ec.RestoreSnapshot = true
@@ -268,7 +273,7 @@ func NewEcho(c *Config) (Cache, error) {
 	ec.SnapShotThreshold = 100
 	ec.SnapshotInterval = time.Minute
 
-	cli, err := echovault.NewEchoVault(echovault.WithConfig(ec))
+	cli, err := sugardb.NewSugarDB(sugardb.WithConfig(ec))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err

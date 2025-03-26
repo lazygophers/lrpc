@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Scoop struct {
@@ -329,7 +330,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	defer log.PutBuffer(logBuf)
 
 	sqlRaw := p.findSql()
-	start := now()
+	start := time.Now()
 
 	scope := p._db.Raw(sqlRaw)
 	rows, err := scope.Rows()
@@ -497,7 +498,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	defer p.dec()
 
 	sqlRaw := p.findSql()
-	start := now()
+	start := time.Now()
 
 	scope := p._db.Raw(sqlRaw)
 	rows, err := scope.Rows()
@@ -600,11 +601,11 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	if field := vv.FieldByName("CreatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(now().Unix())
+		field.SetInt(time.Now().Unix())
 	}
 
 	if field := vv.FieldByName("UpdatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(now().Unix())
+		field.SetInt(time.Now().Unix())
 	}
 
 	res := p._db.Create(value)
@@ -681,7 +682,7 @@ func (p *Scoop) Delete() *DeleteResult {
 		sqlRaw.WriteString(" ")
 		sqlRaw.WriteString(p.table)
 		sqlRaw.WriteString(" SET deleted_at = ")
-		sqlRaw.WriteString(strconv.FormatInt(now().Unix(), 10))
+		sqlRaw.WriteString(strconv.FormatInt(time.Now().Unix(), 10))
 		p.cond.addCond("deleted_at", "=", 0)
 	} else {
 		sqlRaw.WriteString("DELETE FROM")
@@ -698,7 +699,7 @@ func (p *Scoop) Delete() *DeleteResult {
 		}
 	}
 
-	start := now()
+	start := time.Now()
 	res := p._db.Exec(sqlRaw.String())
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), res.RowsAffected
@@ -733,15 +734,15 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 
 	if p.hasUpdatedAt {
-		updateMap["updated_at"] = now().Unix()
+		updateMap["updated_at"] = time.Now().Unix()
 	}
 
 	//if p.hasCreatedAt {
 	//	switch p.clientType {
 	//	case Sqlite:
-	//		updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", now().Unix())
+	//		updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	default:
-	//		updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", now().Unix())
+	//		updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	}
 	//}
 
@@ -782,7 +783,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		}
 	}
 
-	start := now()
+	start := time.Now()
 	res := p._db.Exec(sqlRaw.String(), values...)
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
@@ -942,7 +943,7 @@ func (p *Scoop) Count() (uint64, error) {
 		}
 	}
 
-	start := now()
+	start := time.Now()
 	var count uint64
 	err := p._db.Raw(sqlRaw.String()).Scan(&count).Error
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
@@ -995,7 +996,7 @@ func (p *Scoop) Exist() (bool, error) {
 
 	sqlRaw.WriteString(" LIMIT 1 OFFSET 0")
 
-	start := now()
+	start := time.Now()
 	var count int64
 	err := p._db.Raw(sqlRaw.String()).Scan(&count).Error
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {

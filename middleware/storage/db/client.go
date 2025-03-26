@@ -111,8 +111,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		PropagateUnscoped: true,
 
-		NowFunc: now,
-
 		ClauseBuilders: nil,
 		ConnPool:       nil,
 		Dialector:      nil,
@@ -248,6 +246,10 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 	for _, dbName := range stmt.Schema.DBNames {
 		if columnType, ok := columnTypeMap[dbName]; ok {
 			// TODO: 找到了，对比一下类型
+			log.Info(stmt.Schema.FieldsByDBName[dbName].GORMDataType)
+			log.Info(stmt.Schema.FieldsByDBName[dbName].DataType)
+			log.Info(columnType.ColumnType())
+
 			err = migrator.MigrateColumn(table, stmt.Schema.FieldsByDBName[dbName], columnType)
 			if err != nil {
 				log.Errorf("err:%v", err)
