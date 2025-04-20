@@ -3,12 +3,9 @@ package cache
 import (
 	"errors"
 	"github.com/garyburd/redigo/redis"
-	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
 	"google.golang.org/protobuf/proto"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -96,75 +93,18 @@ type Cache interface {
 	LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error)
 }
 
-type Config struct {
-	// Cache type, support mem, redis, bbolt, default mem
-	Type string `yaml:"type,omitempty" json:"type,omitempty"`
-
-	// Cache address
-	// mem: empty
-	// redis: redis address, default 127.0.0.1:6379
-	// bbolt: bbolt file path, default ./ice.cache
-	Address string `yaml:"address,omitempty" json:"address,omitempty"`
-
-	// Cache password
-	// mem: empty
-	// redis: redis password
-	// bbolt: empty
-	Password string `yaml:"password,omitempty" json:"password,omitempty"`
-
-	// Cache db
-	// mem: empty
-	// redis: redis db, default 0
-	// bbolt: empty
-	Db int `yaml:"db,omitempty" json:"db,omitempty"`
-
-	// Cache data dir
-	// mem: empty
-	// redis: empty
-	// bbolt: empty
-	// echo: DataDir, default .
-	DataDir string `yaml:"data_dir,omitempty" json:"data_dir,omitempty"`
-}
-
-func (c *Config) apply() {
-	if c.Type == "" {
-		c.Type = "mem"
-	}
-
-	switch c.Type {
-	case "bbolt":
-		if c.Address == "" {
-			c.Address, _ = os.Executable()
-			c.Address = filepath.Join(c.Address, app.Name+".cache")
-		}
-	case "echo":
-		if c.DataDir == "" {
-			c.DataDir, _ = os.Executable()
-			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
-		}
-	case "bitcask":
-		if c.DataDir == "" {
-			c.DataDir, _ = os.Executable()
-			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
-		}
-	case "redis":
-		if c.Address == "" {
-			c.Address = "127.0.0.1:6379"
-		}
-	}
-}
-
 func New(c *Config) (Cache, error) {
 	c.apply()
 
 	switch c.Type {
-	case "bbolt":
+	case Bbolt:
 		return NewBbolt(c.Address, &bbolt.Options{
-			Timeout:  time.Second * 5,
-			ReadOnly: false,
+			Timeout:      time.Second * 5,
+			ReadOnly:     false,
+			FreelistType: bbolt.FreelistArrayType,
 		})
 
-	case "redis":
+	case Redis:
 		return NewRedis(c.Address,
 			redis.DialDatabase(c.Db),
 			redis.DialConnectTimeout(time.Second*3),
@@ -174,13 +114,13 @@ func New(c *Config) (Cache, error) {
 			redis.DialPassword(c.Password),
 		)
 
-	case "mem":
+	case Mem:
 		return NewMem(), nil
 
-	case "echo":
-		return NewEcho(c)
+	case SugarDB:
+		return NewSugarDB(c)
 
-	case "bitcask":
+	case Bitcask:
 		return NewBitcask(c)
 
 	default:

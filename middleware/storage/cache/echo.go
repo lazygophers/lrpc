@@ -8,19 +8,19 @@ import (
 	"time"
 )
 
-type Echo struct {
+type CacheSugarDB struct {
 	cli *sugardb.SugarDB
 }
 
-func (p *Echo) Clean() error {
+func (p *CacheSugarDB) Clean() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SetPrefix(prefix string) {
+func (p *CacheSugarDB) SetPrefix(prefix string) {
 }
 
-func (p *Echo) Get(key string) (string, error) {
+func (p *CacheSugarDB) Get(key string) (string, error) {
 	value, err := p.cli.Get(key)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -33,7 +33,7 @@ func (p *Echo) Get(key string) (string, error) {
 	return value, nil
 }
 
-func (p *Echo) Set(key string, value any) error {
+func (p *CacheSugarDB) Set(key string, value any) error {
 	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{})
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (p *Echo) Set(key string, value any) error {
 	return nil
 }
 
-func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
+func (p *CacheSugarDB) SetEx(key string, value any, timeout time.Duration) error {
 	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
 		ExpireOpt:  sugardb.SETEX,
 		ExpireTime: int(time.Now().Add(timeout).Unix()),
@@ -52,7 +52,7 @@ func (p *Echo) SetEx(key string, value any, timeout time.Duration) error {
 	return nil
 }
 
-func (p *Echo) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheSugarDB) SetNx(key string, value interface{}) (bool, error) {
 	_, ok, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
 		WriteOpt: sugardb.SETNX,
 	})
@@ -62,7 +62,7 @@ func (p *Echo) SetNx(key string, value interface{}) (bool, error) {
 	return ok, nil
 }
 
-func (p *Echo) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheSugarDB) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	log.Debugf("set nx ex %s", key)
 
 	ok, err := p.SetNx(key, value)
@@ -81,7 +81,7 @@ func (p *Echo) SetNxWithTimeout(key string, value interface{}, timeout time.Dura
 	return ok, nil
 }
 
-func (p *Echo) Ttl(key string) (time.Duration, error) {
+func (p *CacheSugarDB) Ttl(key string) (time.Duration, error) {
 	ttl, err := p.cli.TTL(key)
 	if err != nil {
 		return -1, err
@@ -97,11 +97,11 @@ func (p *Echo) Ttl(key string) (time.Duration, error) {
 	return time.Second * time.Duration(ttl), nil
 }
 
-func (p *Echo) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheSugarDB) Expire(key string, timeout time.Duration) (bool, error) {
 	return p.cli.Expire(key, int(timeout.Seconds()))
 }
 
-func (p *Echo) Incr(key string) (int64, error) {
+func (p *CacheSugarDB) Incr(key string) (int64, error) {
 	value, err := p.cli.Incr(key)
 	if err != nil {
 		return -1, err
@@ -109,7 +109,7 @@ func (p *Echo) Incr(key string) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) Decr(key string) (int64, error) {
+func (p *CacheSugarDB) Decr(key string) (int64, error) {
 	value, err := p.cli.Decr(key)
 	if err != nil {
 		return -1, err
@@ -117,7 +117,7 @@ func (p *Echo) Decr(key string) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) IncrBy(key string, val int64) (int64, error) {
+func (p *CacheSugarDB) IncrBy(key string, val int64) (int64, error) {
 	value, err := p.cli.IncrBy(key, strconv.FormatInt(val, 10))
 	if err != nil {
 		return -1, err
@@ -125,7 +125,7 @@ func (p *Echo) IncrBy(key string, val int64) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) DecrBy(key string, val int64) (int64, error) {
+func (p *CacheSugarDB) DecrBy(key string, val int64) (int64, error) {
 	value, err := p.cli.DecrBy(key, strconv.FormatInt(val, 10))
 	if err != nil {
 		return -1, err
@@ -133,12 +133,12 @@ func (p *Echo) DecrBy(key string, val int64) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) Exists(keys ...string) (bool, error) {
+func (p *CacheSugarDB) Exists(keys ...string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheSugarDB) HSet(key string, field string, value interface{}) (bool, error) {
 	val, err := p.cli.HSet(key, map[string]string{
 		field: anyx.ToString(value),
 	})
@@ -150,7 +150,7 @@ func (p *Echo) HSet(key string, field string, value interface{}) (bool, error) {
 	return val > 0, nil
 }
 
-func (p *Echo) HGet(key, field string) (string, error) {
+func (p *CacheSugarDB) HGet(key, field string) (string, error) {
 	values, err := p.cli.HGet(key, field)
 	if err != nil {
 		return "", err
@@ -162,7 +162,7 @@ func (p *Echo) HGet(key, field string) (string, error) {
 	return values[0], nil
 }
 
-func (p *Echo) HDel(key string, fields ...string) (int64, error) {
+func (p *CacheSugarDB) HDel(key string, fields ...string) (int64, error) {
 	value, err := p.cli.HDel(key, fields...)
 	if err != nil {
 		return -1, err
@@ -170,7 +170,7 @@ func (p *Echo) HDel(key string, fields ...string) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) HKeys(key string) ([]string, error) {
+func (p *CacheSugarDB) HKeys(key string) ([]string, error) {
 	values, err := p.cli.HKeys(key)
 	if err != nil {
 		return nil, err
@@ -179,16 +179,16 @@ func (p *Echo) HKeys(key string) ([]string, error) {
 	return values, nil
 }
 
-func (p *Echo) HGetAll(key string) (map[string]string, error) {
+func (p *CacheSugarDB) HGetAll(key string) (map[string]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) HExists(key string, field string) (bool, error) {
+func (p *CacheSugarDB) HExists(key string, field string) (bool, error) {
 	return p.cli.HExists(key, field)
 }
 
-func (p *Echo) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheSugarDB) HIncr(key string, subKey string) (int64, error) {
 	value, err := p.cli.HIncrBy(key, subKey, 1)
 	if err != nil {
 		return -1, err
@@ -196,7 +196,7 @@ func (p *Echo) HIncr(key string, subKey string) (int64, error) {
 	return int64(value), nil
 }
 
-func (p *Echo) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheSugarDB) HIncrBy(key string, field string, increment int64) (int64, error) {
 	value, err := p.cli.HIncrBy(key, field, int(increment))
 	if err != nil {
 		return -1, err
@@ -204,47 +204,47 @@ func (p *Echo) HIncrBy(key string, field string, increment int64) (int64, error)
 	return int64(value), nil
 }
 
-func (p *Echo) HDecr(key string, field string) (int64, error) {
+func (p *CacheSugarDB) HDecr(key string, field string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheSugarDB) HDecrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheSugarDB) SAdd(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SMembers(key string) ([]string, error) {
+func (p *CacheSugarDB) SMembers(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SRem(key string, members ...string) (int64, error) {
+func (p *CacheSugarDB) SRem(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheSugarDB) SRandMember(key string, count ...int64) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SPop(key string) (string, error) {
+func (p *CacheSugarDB) SPop(key string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) SisMember(key, field string) (bool, error) {
+func (p *CacheSugarDB) SisMember(key, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Echo) Del(key ...string) error {
+func (p *CacheSugarDB) Del(key ...string) error {
 	_, err := p.cli.Del(key...)
 	if err != nil {
 		return err
@@ -252,12 +252,12 @@ func (p *Echo) Del(key ...string) error {
 	return nil
 }
 
-func (p *Echo) Close() error {
+func (p *CacheSugarDB) Close() error {
 	p.cli.ShutDown()
 	return nil
 }
 
-func NewEcho(c *Config) (Cache, error) {
+func NewSugarDB(c *Config) (Cache, error) {
 	ec := sugardb.DefaultConfig()
 	if c.DataDir != "" {
 		ec.DataDir = c.DataDir
@@ -279,7 +279,7 @@ func NewEcho(c *Config) (Cache, error) {
 		return nil, err
 	}
 
-	p := &Echo{
+	p := &CacheSugarDB{
 		cli: cli,
 	}
 

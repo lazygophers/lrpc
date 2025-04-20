@@ -8,18 +8,18 @@ import (
 	"time"
 )
 
-type Bitcask struct {
+type CacheBitcask struct {
 	prefix string
 
 	cli *bitcask.Bitcask
 }
 
-func (p *Bitcask) Clean() error {
+func (p *CacheBitcask) Clean() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Get(key string) (string, error) {
+func (p *CacheBitcask) Get(key string) (string, error) {
 	value, err := p.cli.Get(bitcask.Key(key))
 	if err != nil {
 		if err == bitcask.ErrKeyNotFound {
@@ -31,156 +31,156 @@ func (p *Bitcask) Get(key string) (string, error) {
 	return string(value), nil
 }
 
-func (p *Bitcask) Set(key string, value any) error {
+func (p *CacheBitcask) Set(key string, value any) error {
 	return p.cli.Put(bitcask.Key(key), bitcask.Value(anyx.ToString(value)))
 }
 
-func (p *Bitcask) SetEx(key string, value any, timeout time.Duration) error {
+func (p *CacheBitcask) SetEx(key string, value any, timeout time.Duration) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheBitcask) SetNx(key string, value interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheBitcask) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Ttl(key string) (time.Duration, error) {
+func (p *CacheBitcask) Ttl(key string) (time.Duration, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheBitcask) Expire(key string, timeout time.Duration) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Incr(key string) (int64, error) {
+func (p *CacheBitcask) Incr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Decr(key string) (int64, error) {
+func (p *CacheBitcask) Decr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) IncrBy(key string, value int64) (int64, error) {
+func (p *CacheBitcask) IncrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) DecrBy(key string, value int64) (int64, error) {
+func (p *CacheBitcask) DecrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Exists(keys ...string) (bool, error) {
+func (p *CacheBitcask) Exists(keys ...string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheBitcask) HSet(key string, field string, value interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HGet(key, field string) (string, error) {
+func (p *CacheBitcask) HGet(key, field string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HDel(key string, fields ...string) (int64, error) {
+func (p *CacheBitcask) HDel(key string, fields ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HKeys(key string) ([]string, error) {
+func (p *CacheBitcask) HKeys(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HGetAll(key string) (map[string]string, error) {
+func (p *CacheBitcask) HGetAll(key string) (map[string]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HExists(key string, field string) (bool, error) {
+func (p *CacheBitcask) HExists(key string, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheBitcask) HIncr(key string, subKey string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheBitcask) HIncrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HDecr(key string, field string) (int64, error) {
+func (p *CacheBitcask) HDecr(key string, field string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheBitcask) HDecrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheBitcask) SAdd(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SMembers(key string) ([]string, error) {
+func (p *CacheBitcask) SMembers(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SRem(key string, members ...string) (int64, error) {
+func (p *CacheBitcask) SRem(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheBitcask) SRandMember(key string, count ...int64) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SPop(key string) (string, error) {
+func (p *CacheBitcask) SPop(key string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) SisMember(key, field string) (bool, error) {
+func (p *CacheBitcask) SisMember(key, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Del(key ...string) error {
+func (p *CacheBitcask) Del(key ...string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bitcask) Close() error {
+func (p *CacheBitcask) Close() error {
 	return p.cli.Close()
 }
 
-func (p *Bitcask) SetPrefix(prefix string) {
+func (p *CacheBitcask) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
 func NewBitcask(c *Config) (Cache, error) {
 	var err error
-	p := &Bitcask{}
+	p := &CacheBitcask{}
 
 	p.cli, err = bitcask.Open(c.DataDir, bitcask.WithAutoRecovery(true), bitcask.WithSyncWrites(false))
 	if err != nil {

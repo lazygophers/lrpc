@@ -10,141 +10,144 @@ import (
 	"time"
 )
 
-var (
-	bboltBucket = []byte(app.Name)
-)
-
-type Bbolt struct {
+type CacheBbolt struct {
 	conn *bbolt.DB
-	rt   *rate.RateLimiter
+
+	rt *rate.RateLimiter
+
+	prefix string
 }
 
-func (p *Bbolt) Clean() error {
+func (p *CacheBbolt) Clean() error {
+	return p.conn.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(p.prefix))
+		return b.ForEach(func(k, v []byte) error {
+			return b.Delete(k)
+		})
+	})
+}
+
+func (p *CacheBbolt) SetPrefix(prefix string) {
+	p.prefix = prefix
+}
+
+func (p *CacheBbolt) IncrBy(key string, value int64) (int64, error) {
+
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SetPrefix(prefix string) {
+func (p *CacheBbolt) DecrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) IncrBy(key string, value int64) (int64, error) {
+func (p *CacheBbolt) Expire(key string, timeout time.Duration) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) DecrBy(key string, value int64) (int64, error) {
+func (p *CacheBbolt) Ttl(key string) (time.Duration, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheBbolt) Incr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) Ttl(key string) (time.Duration, error) {
+func (p *CacheBbolt) Decr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) Incr(key string) (int64, error) {
+func (p *CacheBbolt) Exists(keys ...string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) Decr(key string) (int64, error) {
+func (p *CacheBbolt) HIncr(key string, subKey string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) Exists(keys ...string) (bool, error) {
+func (p *CacheBbolt) HIncrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheBbolt) HDecr(key string, field string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheBbolt) HDecrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HDecr(key string, field string) (int64, error) {
+func (p *CacheBbolt) SAdd(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheBbolt) SMembers(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheBbolt) SRem(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SMembers(key string) ([]string, error) {
+func (p *CacheBbolt) SRandMember(key string, count ...int64) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SRem(key string, members ...string) (int64, error) {
+func (p *CacheBbolt) SPop(key string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheBbolt) SisMember(key, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SPop(key string) (string, error) {
+func (p *CacheBbolt) HExists(key string, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) SisMember(key, field string) (bool, error) {
+func (p *CacheBbolt) HKeys(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HExists(key string, field string) (bool, error) {
+func (p *CacheBbolt) HSet(key string, field string, value interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HKeys(key string) ([]string, error) {
+func (p *CacheBbolt) HGet(key, field string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheBbolt) HDel(key string, fields ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HGet(key, field string) (string, error) {
+func (p *CacheBbolt) HGetAll(key string) (map[string]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Bbolt) HDel(key string, fields ...string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Bbolt) HGetAll(key string) (map[string]string, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Bbolt) autoClear() {
+func (p *CacheBbolt) autoClear() {
 	ok, _ := p.rt.Try()
 	if !ok {
 		return
@@ -153,9 +156,9 @@ func (p *Bbolt) autoClear() {
 	p.clear()
 }
 
-func (p *Bbolt) clear() {
+func (p *CacheBbolt) clear() {
 	err := p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 
 		var item Item
 		return b.ForEach(func(k, v []byte) error {
@@ -180,22 +183,22 @@ func (p *Bbolt) clear() {
 	}
 }
 
-func (p *Bbolt) SetEx(key string, value any, timeout time.Duration) error {
+func (p *CacheBbolt) SetEx(key string, value any, timeout time.Duration) error {
 	item := &Item{
 		Data:     utils.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
 
 	return p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 		return b.Put([]byte(key), item.Bytes())
 	})
 }
 
-func (p *Bbolt) Get(key string) (string, error) {
+func (p *CacheBbolt) Get(key string) (string, error) {
 	var value string
 	err := p.conn.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 		v := b.Get([]byte(key))
 		if v == nil {
 			return NotFound
@@ -219,25 +222,25 @@ func (p *Bbolt) Get(key string) (string, error) {
 	return value, err
 }
 
-func (p *Bbolt) Set(key string, value any) error {
+func (p *CacheBbolt) Set(key string, value any) error {
 	item := &Item{
 		Data: utils.ToString(value),
 	}
 
 	return p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 		return b.Put([]byte(key), item.Bytes())
 	})
 }
 
-func (p *Bbolt) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheBbolt) SetNx(key string, value interface{}) (bool, error) {
 	item := &Item{
 		Data: utils.ToString(value),
 	}
 
 	var ok bool
 	err := p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 
 		value := b.Get([]byte(key))
 		if value != nil {
@@ -251,7 +254,7 @@ func (p *Bbolt) SetNx(key string, value interface{}) (bool, error) {
 	return ok, err
 }
 
-func (p *Bbolt) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheBbolt) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	item := &Item{
 		Data:     utils.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
@@ -259,7 +262,7 @@ func (p *Bbolt) SetNxWithTimeout(key string, value interface{}, timeout time.Dur
 
 	var ok bool
 	err := p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 
 		value := b.Get([]byte(key))
 		if value != nil {
@@ -273,9 +276,9 @@ func (p *Bbolt) SetNxWithTimeout(key string, value interface{}, timeout time.Dur
 	return ok, err
 }
 
-func (p *Bbolt) Del(key ...string) error {
+func (p *CacheBbolt) Del(key ...string) error {
 	return p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 		for _, k := range key {
 			err := b.Delete([]byte(k))
 			if err != nil {
@@ -286,13 +289,13 @@ func (p *Bbolt) Del(key ...string) error {
 	})
 }
 
-func (p *Bbolt) Close() error {
+func (p *CacheBbolt) Close() error {
 	return p.conn.Close()
 }
 
-func (p *Bbolt) Reset() error {
+func (p *CacheBbolt) Reset() error {
 	return p.conn.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bboltBucket)
+		b := tx.Bucket([]byte(p.prefix))
 		return b.ForEach(func(k, v []byte) error {
 			return b.Delete(k)
 		})
@@ -300,18 +303,19 @@ func (p *Bbolt) Reset() error {
 }
 
 func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {
-	p := &Bbolt{
-		rt: rate.New(2, time.Minute*10),
+	p := &CacheBbolt{
+		rt:     rate.New(2, time.Minute*10),
+		prefix: app.Name,
 	}
 
-	conn, err := bbolt.Open(addr, 0666, options)
+	conn, err := bbolt.Open(addr, 0o666, options)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
 	err = conn.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists(bboltBucket)
+		_, err := tx.CreateBucketIfNotExists([]byte(p.prefix))
 		return err
 	})
 

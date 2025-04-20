@@ -8,139 +8,139 @@ import (
 	"time"
 )
 
-type Mem struct {
+type CacheMem struct {
 	sync.RWMutex
 
 	data map[string]*Item
 	rt   *rate.RateLimiter
 }
 
-func (p *Mem) Clean() error {
+func (p *CacheMem) Clean() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SetPrefix(prefix string) {
+func (p *CacheMem) SetPrefix(prefix string) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) IncrBy(key string, value int64) (int64, error) {
+func (p *CacheMem) IncrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) DecrBy(key string, value int64) (int64, error) {
+func (p *CacheMem) DecrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheMem) Expire(key string, timeout time.Duration) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) Ttl(key string) (time.Duration, error) {
+func (p *CacheMem) Ttl(key string) (time.Duration, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) Incr(key string) (int64, error) {
+func (p *CacheMem) Incr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) Decr(key string) (int64, error) {
+func (p *CacheMem) Decr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) Exists(keys ...string) (bool, error) {
+func (p *CacheMem) Exists(keys ...string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheMem) HIncr(key string, subKey string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheMem) HIncrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HDecr(key string, field string) (int64, error) {
+func (p *CacheMem) HDecr(key string, field string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheMem) HDecrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheMem) SAdd(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SMembers(key string) ([]string, error) {
+func (p *CacheMem) SMembers(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SRem(key string, members ...string) (int64, error) {
+func (p *CacheMem) SRem(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheMem) SRandMember(key string, count ...int64) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SPop(key string) (string, error) {
+func (p *CacheMem) SPop(key string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SisMember(key, field string) (bool, error) {
+func (p *CacheMem) SisMember(key, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HExists(key string, field string) (bool, error) {
+func (p *CacheMem) HExists(key string, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HKeys(key string) ([]string, error) {
+func (p *CacheMem) HKeys(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheMem) HSet(key string, field string, value interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HGet(key, field string) (string, error) {
+func (p *CacheMem) HGet(key, field string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HDel(key string, fields ...string) (int64, error) {
+func (p *CacheMem) HDel(key string, fields ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) HGetAll(key string) (map[string]string, error) {
+func (p *CacheMem) HGetAll(key string) (map[string]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Mem) SetEx(key string, value any, timeout time.Duration) error {
+func (p *CacheMem) SetEx(key string, value any, timeout time.Duration) error {
 	p.autoClear()
 
 	p.Lock()
@@ -154,7 +154,7 @@ func (p *Mem) SetEx(key string, value any, timeout time.Duration) error {
 	return nil
 }
 
-func (p *Mem) autoClear() {
+func (p *CacheMem) autoClear() {
 	ok, _ := p.rt.Try()
 	if !ok {
 		return
@@ -163,7 +163,7 @@ func (p *Mem) autoClear() {
 	p.clear()
 }
 
-func (p *Mem) clear() {
+func (p *CacheMem) clear() {
 	p.Lock()
 	defer p.Unlock()
 
@@ -183,7 +183,7 @@ func (p *Mem) clear() {
 	p.data = data
 }
 
-func (p *Mem) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheMem) SetNx(key string, value interface{}) (bool, error) {
 	p.autoClear()
 
 	p.Lock()
@@ -201,7 +201,7 @@ func (p *Mem) SetNx(key string, value interface{}) (bool, error) {
 	return true, nil
 }
 
-func (p *Mem) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheMem) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	p.autoClear()
 
 	p.Lock()
@@ -220,7 +220,7 @@ func (p *Mem) SetNxWithTimeout(key string, value interface{}, timeout time.Durat
 	return true, nil
 }
 
-func (p *Mem) Get(key string) (string, error) {
+func (p *CacheMem) Get(key string) (string, error) {
 	p.autoClear()
 
 	p.RLock()
@@ -238,7 +238,7 @@ func (p *Mem) Get(key string) (string, error) {
 	return val.Data, nil
 }
 
-func (p *Mem) Set(key string, val any) error {
+func (p *CacheMem) Set(key string, val any) error {
 	p.autoClear()
 
 	p.Lock()
@@ -251,7 +251,7 @@ func (p *Mem) Set(key string, val any) error {
 	return nil
 }
 
-func (p *Mem) Del(key ...string) error {
+func (p *CacheMem) Del(key ...string) error {
 	p.autoClear()
 
 	p.Lock()
@@ -264,7 +264,7 @@ func (p *Mem) Del(key ...string) error {
 	return nil
 }
 
-func (p *Mem) Close() error {
+func (p *CacheMem) Close() error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -273,7 +273,7 @@ func (p *Mem) Close() error {
 	return nil
 }
 
-func (p *Mem) Reset() error {
+func (p *CacheMem) Reset() error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -283,7 +283,7 @@ func (p *Mem) Reset() error {
 }
 
 func NewMem() Cache {
-	p := &Mem{
+	p := &CacheMem{
 		data: make(map[string]*Item),
 		rt:   rate.New(2, time.Minute),
 	}

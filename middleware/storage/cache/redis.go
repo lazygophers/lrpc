@@ -12,23 +12,23 @@ import (
 	"github.com/shomali11/xredis"
 )
 
-type Redis struct {
+type CacheRedis struct {
 	cli *xredis.Client
 
 	prefix string
 }
 
-func (p *Redis) Clean() error {
+func (p *CacheRedis) Clean() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Redis) SetPrefix(prefix string) {
+func (p *CacheRedis) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
 func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
-	p := &Redis{
+	p := &CacheRedis{
 		cli: xredis.NewClient(&redis.Pool{
 			Dial: func() (redis.Conn, error) {
 				return redis.Dial("tcp", address, opts...)
@@ -59,27 +59,27 @@ func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
 	return newBaseCache(p), nil
 }
 
-func (p *Redis) Incr(key string) (int64, error) {
+func (p *CacheRedis) Incr(key string) (int64, error) {
 	return p.cli.Incr(p.prefix + key)
 }
 
-func (p *Redis) Decr(key string) (int64, error) {
+func (p *CacheRedis) Decr(key string) (int64, error) {
 	return p.cli.Decr(p.prefix + key)
 }
 
-func (p *Redis) IncrBy(key string, value int64) (int64, error) {
+func (p *CacheRedis) IncrBy(key string, value int64) (int64, error) {
 	return p.cli.IncrBy(p.prefix+key, value)
 }
 
-func (p *Redis) IncrByFloat(key string, increment float64) (float64, error) {
+func (p *CacheRedis) IncrByFloat(key string, increment float64) (float64, error) {
 	return p.cli.IncrByFloat(p.prefix+key, increment)
 }
 
-func (p *Redis) DecrBy(key string, value int64) (int64, error) {
+func (p *CacheRedis) DecrBy(key string, value int64) (int64, error) {
 	return p.cli.DecrBy(p.prefix+key, value)
 }
 
-func (p *Redis) Get(key string) (string, error) {
+func (p *CacheRedis) Get(key string) (string, error) {
 	log.Debugf("get %s", key)
 
 	val, ok, err := p.cli.Get(p.prefix + key)
@@ -93,7 +93,7 @@ func (p *Redis) Get(key string) (string, error) {
 	return val, nil
 }
 
-func (p *Redis) Exists(keys ...string) (bool, error) {
+func (p *CacheRedis) Exists(keys ...string) (bool, error) {
 	ok, err := p.cli.Exists(candy.Map(keys, func(key string) string {
 		return p.prefix + key
 	})...)
@@ -108,7 +108,7 @@ func (p *Redis) Exists(keys ...string) (bool, error) {
 	return ok, nil
 }
 
-func (p *Redis) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheRedis) SetNx(key string, value interface{}) (bool, error) {
 	log.Debugf("set nx %s", key)
 
 	ok, err := p.cli.SetNx(p.prefix+key, anyx.ToString(value))
@@ -123,7 +123,7 @@ func (p *Redis) SetNx(key string, value interface{}) (bool, error) {
 	return ok, nil
 }
 
-func (p *Redis) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheRedis) Expire(key string, timeout time.Duration) (bool, error) {
 	ok, err := p.cli.Expire(p.prefix+key, int64(timeout.Seconds()))
 	if err != nil {
 		if err == redis.ErrNil {
@@ -136,7 +136,7 @@ func (p *Redis) Expire(key string, timeout time.Duration) (bool, error) {
 	return ok, nil
 }
 
-func (p *Redis) Ttl(key string) (time.Duration, error) {
+func (p *CacheRedis) Ttl(key string) (time.Duration, error) {
 	connection := p.cli.GetConnection()
 
 	ttl, err := redis.Int64(connection.Do("TTL", p.prefix+key))
@@ -148,21 +148,21 @@ func (p *Redis) Ttl(key string) (time.Duration, error) {
 	return time.Duration(ttl) * time.Second, nil
 }
 
-func (p *Redis) Set(key string, value interface{}) (err error) {
+func (p *CacheRedis) Set(key string, value interface{}) (err error) {
 	log.Debugf("set %s", key)
 
 	_, err = p.cli.Set(p.prefix+key, anyx.ToString(value))
 	return err
 }
 
-func (p *Redis) SetEx(key string, value interface{}, timeout time.Duration) error {
+func (p *CacheRedis) SetEx(key string, value interface{}, timeout time.Duration) error {
 	log.Debugf("set ex %s", key)
 
 	_, err := p.cli.SetEx(p.prefix+key, anyx.ToString(value), int64(timeout.Seconds()))
 	return err
 }
 
-func (p *Redis) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheRedis) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	log.Debugf("set nx ex %s", key)
 
 	ok, err := p.SetNx(key, value)
@@ -181,18 +181,18 @@ func (p *Redis) SetNxWithTimeout(key string, value interface{}, timeout time.Dur
 	return ok, nil
 }
 
-func (p *Redis) Del(keys ...string) (err error) {
+func (p *CacheRedis) Del(keys ...string) (err error) {
 	_, err = p.cli.Del(candy.Map(keys, func(key string) string {
 		return p.prefix + key
 	})...)
 	return
 }
 
-func (p *Redis) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheRedis) HSet(key string, field string, value interface{}) (bool, error) {
 	return p.cli.HSet(p.prefix+key, field, anyx.ToString(value))
 }
 
-func (p *Redis) HGet(key, field string) (string, error) {
+func (p *CacheRedis) HGet(key, field string) (string, error) {
 	val, ok, err := p.cli.HGet(p.prefix+key, field)
 	if err != nil {
 		return "", err
@@ -204,26 +204,26 @@ func (p *Redis) HGet(key, field string) (string, error) {
 	return val, nil
 }
 
-func (p *Redis) HGetAll(key string) (map[string]string, error) {
+func (p *CacheRedis) HGetAll(key string) (map[string]string, error) {
 	return p.cli.HGetAll(p.prefix + key)
 }
 
-func (p *Redis) HKeys(key string) ([]string, error) {
+func (p *CacheRedis) HKeys(key string) ([]string, error) {
 	return p.cli.HKeys(p.prefix + key)
 }
 
-func (p *Redis) HVals(key string) ([]string, error) {
+func (p *CacheRedis) HVals(key string) ([]string, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
 	return redis.Strings(conn.Do("HVALS", p.prefix+key))
 }
 
-func (p *Redis) HDel(key string, fields ...string) (int64, error) {
+func (p *CacheRedis) HDel(key string, fields ...string) (int64, error) {
 	return p.cli.HDel(p.prefix+key, fields...)
 }
 
-func (p *Redis) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheRedis) SAdd(key string, members ...string) (int64, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
@@ -236,14 +236,14 @@ func (p *Redis) SAdd(key string, members ...string) (int64, error) {
 	return redis.Int64(conn.Do("SADD", args...))
 }
 
-func (p *Redis) SMembers(key string) ([]string, error) {
+func (p *CacheRedis) SMembers(key string) ([]string, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
 	return redis.Strings(conn.Do("SMEMBERS", p.prefix+key))
 }
 
-func (p *Redis) SRem(key string, members ...string) (int64, error) {
+func (p *CacheRedis) SRem(key string, members ...string) (int64, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
@@ -256,7 +256,7 @@ func (p *Redis) SRem(key string, members ...string) (int64, error) {
 	return redis.Int64(conn.Do("SREM", args...))
 }
 
-func (p *Redis) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheRedis) SRandMember(key string, count ...int64) ([]string, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
@@ -271,38 +271,38 @@ func (p *Redis) SRandMember(key string, count ...int64) ([]string, error) {
 	return redis.Strings(conn.Do("SRANDMEMBER", args...))
 }
 
-func (p *Redis) SPop(key string) (string, error) {
+func (p *CacheRedis) SPop(key string) (string, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
 	return redis.String(conn.Do("SPOP", p.prefix+key))
 }
 
-func (p *Redis) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheRedis) HIncr(key string, subKey string) (int64, error) {
 	return p.cli.HIncr(p.prefix+key, subKey)
 }
 
-func (p *Redis) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheRedis) HIncrBy(key string, field string, increment int64) (int64, error) {
 	return p.cli.HIncrBy(p.prefix+key, field, increment)
 }
 
-func (p *Redis) HIncrByFloat(key string, field string, increment float64) (float64, error) {
+func (p *CacheRedis) HIncrByFloat(key string, field string, increment float64) (float64, error) {
 	return p.cli.HIncrByFloat(p.prefix+key, field, increment)
 }
 
-func (p *Redis) HDecr(key string, field string) (int64, error) {
+func (p *CacheRedis) HDecr(key string, field string) (int64, error) {
 	return p.cli.HDecr(p.prefix+key, field)
 }
 
-func (p *Redis) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheRedis) HDecrBy(key string, field string, increment int64) (int64, error) {
 	return p.cli.HDecrBy(p.prefix+key, field, increment)
 }
 
-func (p *Redis) HExists(key, field string) (bool, error) {
+func (p *CacheRedis) HExists(key, field string) (bool, error) {
 	return p.cli.HExists(p.prefix+key, field)
 }
 
-func (p *Redis) SisMember(key, field string) (bool, error) {
+func (p *CacheRedis) SisMember(key, field string) (bool, error) {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
 
@@ -312,6 +312,6 @@ func (p *Redis) SisMember(key, field string) (bool, error) {
 	return redis.Bool(conn.Do("SISMEMBER", args...))
 }
 
-func (p *Redis) Close() error {
+func (p *CacheRedis) Close() error {
 	return p.cli.Close()
 }
