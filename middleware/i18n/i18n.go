@@ -201,7 +201,7 @@ func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
 
 		pack := NewPack(lang)
 
-		buf, err := embedFs.ReadFile(filepath.Join(dirPath, dir.Name()))
+		buf, err := embedFs.ReadFile(filepath.ToSlash(filepath.Join(dirPath, dir.Name())))
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return err

@@ -1,9 +1,13 @@
 package db
 
 import (
+	"fmt"
 	"github.com/lazygophers/utils/app"
 	"gorm.io/gorm/logger"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -64,22 +68,26 @@ type Config struct {
 
 func (c *Config) apply() {
 	if c.Type == "" {
-		c.Type = "sqlite"
+		c.Type = Sqlite
 	}
 
 	switch c.Type {
-	case "sqlite", "sqlite3":
-		c.Type = "sqlite"
+	case Sqlite, "sqlite3":
+		c.Type = Sqlite
 
 		if c.Address == "" {
 			c.Address, _ = os.Executable()
+		}
+
+		if !strings.HasPrefix(c.Address, "file:") {
+			c.Address = "file:" + c.Address
 		}
 
 		if c.Name == "" {
 			c.Name = app.Name + ".db"
 		}
 
-	case "mysql":
+	case MySQL:
 		if c.Address == "" {
 			c.Address = "127.0.0.1"
 		}
@@ -121,5 +129,45 @@ func (c *Config) apply() {
 		if c.Name == "" {
 			c.Name = app.Name
 		}
+	}
+}
+
+func (c *Config) DSN() string {
+	switch c.Type {
+	case Sqlite:
+		query := &url.Values{}
+
+		dsn := fmt.Sprintf("%s.db", filepath.ToSlash(filepath.Join(c.Address, c.Name)))
+
+		query.Set("_vacuum", "2")
+		query.Set("_journal", "delete")
+		query.Set("_locking_mode", "exclusive")
+		query.Set("mode", "rwc")
+		query.Set("_sync", "3")
+		query.Set("_timeout", "9999999")
+
+		if c.Username != "" && c.Password != "" {
+			query.Set("_auth", "1")
+
+			if c.Username != "" {
+				query.Set("_auth_user", c.Username)
+			}
+
+			if c.Password != "" {
+				query.Set("_auth_pass", c.Password)
+			}
+
+			query.Set("_auth_crypt", "sha512")
+			query.Set("_auth_salt", app.Name)
+		}
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		return dsn + "?" + query.Encode()
+
+	default:
+		return ""
 	}
 }
