@@ -16,13 +16,15 @@ type CacheMem struct {
 }
 
 func (p *CacheMem) Clean() error {
-	//TODO implement me
-	panic("implement me")
+	p.Lock()
+	defer p.Unlock()
+
+	p.data = make(map[string]*Item)
+
+	return nil
 }
 
 func (p *CacheMem) SetPrefix(prefix string) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (p *CacheMem) IncrBy(key string, value int64) (int64, error) {

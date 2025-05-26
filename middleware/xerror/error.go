@@ -104,6 +104,18 @@ func GetCode(err error) int32 {
 	return -1
 }
 
+func GetMsg(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if x, ok := err.(*Error); ok {
+		return x.Msg
+	}
+
+	return err.Error()
+}
+
 func New(code int32) *Error {
 	if err, ok := errMap[code]; ok {
 		return err.Clone()
