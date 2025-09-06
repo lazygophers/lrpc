@@ -2,12 +2,13 @@ package db
 
 import (
 	"fmt"
-	"github.com/lazygophers/utils/app"
-	"gorm.io/gorm/logger"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/lazygophers/utils/app"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -63,7 +64,8 @@ type Config struct {
 
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
-	Logger logger.Interface `json:"-" yaml:"-"`
+	Logger     logger.Interface `json:"-" yaml:"-"`
+	GormLogger logger.Interface `json:"-" yaml:"-"`
 }
 
 func (c *Config) apply() {

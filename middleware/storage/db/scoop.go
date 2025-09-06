@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils/anyx"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"reflect"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Scoop struct {
@@ -552,7 +553,7 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 			}
 			field := vv.Elem().FieldByName(stringx.Snake2Camel(cols[i]))
 			if !field.IsValid() {
-				log.Warnf("invalid field: %s", stringx.Snake2Camel(cols[i]))
+				log.Debugf("invalid field: %s", stringx.Snake2Camel(cols[i]))
 				continue
 			}
 			err = decode(field, col)

@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
-	"time"
 
 	//_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	mysqlC "github.com/go-sql-driver/mysql"
@@ -115,6 +116,8 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		ConnPool:       nil,
 		Dialector:      nil,
 		Plugins:        nil,
+
+		Logger: c.GormLogger,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)

@@ -2,12 +2,14 @@ package db
 
 import (
 	"context"
-	"github.com/lazygophers/log"
+	"io"
 	"path"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lazygophers/log"
 
 	"github.com/gookit/color"
 	"gorm.io/gorm/logger"
@@ -34,6 +36,11 @@ func NewLogger() *Logger {
 		logger: log.Clone().SetCallerDepth(5),
 	}
 	l.LogMode(logger.Info)
+	return l
+}
+
+func (l *Logger) SetOutput(writes ...io.Writer) *Logger {
+	l.logger.SetOutput(writes...)
 	return l
 }
 
