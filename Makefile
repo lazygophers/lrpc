@@ -1,7 +1,7 @@
 # LRPC项目Makefile
 # 用于管理测试环境和资源
 
-.PHONY: test test-with-coverage test-setup test-teardown clean
+.PHONY: test test-with-coverage test-setup test-teardown clean clean-all clean-docker clean-files clean-cache clean-test clean-check clean-safe clean-emergency reset
 .DEFAULT_GOAL := help
 
 # 测试端口配置
@@ -59,6 +59,8 @@ test-teardown: ## 停止并删除测试服务
 	@docker rm ${REDIS_CONTAINER} ${MYSQL_CONTAINER} ${CLICKHOUSE_CONTAINER} 2>/dev/null || true
 	@echo "测试环境已清理"
 
+clean-test: test-teardown ## 别名: 清理测试环境 (同 test-teardown)
+
 test-status: ## 检查测试服务状态
 	@echo "检查测试服务状态..."
 	@echo "Redis:"
@@ -109,11 +111,116 @@ benchmark: test-setup ## 运行性能测试
 	@export REDIS_URL="redis://localhost:${REDIS_PORT}" && \
 	 go test -v -bench=. -benchmem ./...
 
-clean: test-teardown ## 清理所有生成的文件和测试环境
-	@echo "清理生成的文件..."
-	@rm -f coverage.out coverage.html
+clean-files: ## 清理所有生成的文件 (覆盖率报告、日志等)
+	@echo "🧹 清理生成的文件..."
+	@echo "  清理覆盖率报告..."
+	@find . -name "*.out" -type f -exec rm -f {} \; 2>/dev/null || true
+	@find . -name "coverage*.html" -type f -exec rm -f {} \; 2>/dev/null || true
+	@echo "  清理日志文件..."
+	@find . -name "*.log" -type f -exec rm -f {} \; 2>/dev/null || true
+	@find . -name "*.tmp" -type f -exec rm -f {} \; 2>/dev/null || true
+	@find . -name "*.temp" -type f -exec rm -f {} \; 2>/dev/null || true
+	@echo "  清理临时文件..."
+	@rm -rf .tmp/ tmp/ temp/ 2>/dev/null || true
+	@rm -f nohup.out 2>/dev/null || true
+	@echo "  文件清理完成 ✅"
+
+clean-cache: ## 清理Go测试缓存和模块缓存
+	@echo "🧹 清理Go缓存..."
+	@echo "  清理测试缓存..."
 	@go clean -testcache
-	@echo "清理完成"
+	@echo "  清理构建缓存..."
+	@go clean -cache
+	@echo "  清理模块缓存..."
+	@go clean -modcache -x 2>/dev/null || echo "  (需要管理员权限跳过模块缓存清理)"
+	@echo "  缓存清理完成 ✅"
+
+clean-docker: ## 强制清理所有测试相关Docker资源
+	@echo "🧹 清理Docker测试资源..."
+	@echo "  停止测试容器..."
+	@docker stop ${REDIS_CONTAINER} ${MYSQL_CONTAINER} ${CLICKHOUSE_CONTAINER} 2>/dev/null || true
+	@echo "  删除测试容器..."
+	@docker rm ${REDIS_CONTAINER} ${MYSQL_CONTAINER} ${CLICKHOUSE_CONTAINER} 2>/dev/null || true
+	@echo "  检查并清理孤立容器..."
+	@docker ps -a --filter "name=lrpc-test-" --format "{{.Names}}" | xargs -r docker rm -f 2>/dev/null || true
+	@echo "  清理未使用的测试镜像..."
+	@docker images --filter "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
+	@echo "  清理Docker网络 (如果存在)..."
+	@docker network ls --filter "name=lrpc" -q | xargs -r docker network rm 2>/dev/null || true
+	@echo "  清理Docker卷 (如果存在)..."
+	@docker volume ls --filter "name=lrpc" -q | xargs -r docker volume rm 2>/dev/null || true
+	@echo "  Docker资源清理完成 ✅"
+
+clean: clean-files ## 标准清理 (文件 + 测试容器)
+	@echo "🧹 执行标准清理..."
+	@$(MAKE) clean-docker --no-print-directory
+	@echo "标准清理完成 ✅"
+
+clean-all: clean-files clean-cache clean-docker ## 完全清理 (所有文件、缓存、Docker资源)
+	@echo "🧹 执行完全清理..."
+	@echo "  检查端口占用..."
+	@lsof -ti:${REDIS_PORT} | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti:${MYSQL_PORT} | xargs -r kill -9 2>/dev/null || true  
+	@lsof -ti:${CLICKHOUSE_PORT} | xargs -r kill -9 2>/dev/null || true
+	@echo "  清理Git临时文件..."
+	@git clean -fd 2>/dev/null || true
+	@echo "完全清理完成 ✅"
+
+clean-check: ## 检查清理效果 (显示剩余的测试相关资源)
+	@echo "🔍 检查清理效果..."
+	@echo ""
+	@echo "📁 文件检查:"
+	@echo "  覆盖率文件:" && find . -name "*.out" -o -name "coverage*.html" | head -5 || echo "    ✅ 无覆盖率文件"
+	@echo "  日志文件:" && find . -name "*.log" | head -5 || echo "    ✅ 无日志文件"  
+	@echo "  临时文件:" && find . -name "*.tmp" -o -name "*.temp" | head -5 || echo "    ✅ 无临时文件"
+	@echo ""
+	@echo "🐳 Docker检查:"
+	@echo "  测试容器:" && docker ps -a --filter "name=lrpc-test-" --format "table {{.Names}}\t{{.Status}}" || echo "    ✅ 无测试容器"
+	@echo "  孤立镜像:" && docker images --filter "dangling=true" --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | head -3 || echo "    ✅ 无孤立镜像"
+	@echo ""
+	@echo "🌐 端口检查:"
+	@echo "  Redis端口 ${REDIS_PORT}:" && lsof -ti:${REDIS_PORT} | head -1 && echo "    ⚠️  端口被占用" || echo "    ✅ 端口空闲"
+	@echo "  MySQL端口 ${MYSQL_PORT}:" && lsof -ti:${MYSQL_PORT} | head -1 && echo "    ⚠️  端口被占用" || echo "    ✅ 端口空闲"
+	@echo "  ClickHouse端口 ${CLICKHOUSE_PORT}:" && lsof -ti:${CLICKHOUSE_PORT} | head -1 && echo "    ⚠️  端口被占用" || echo "    ✅ 端口空闲"
+	@echo ""
+	@echo "检查完成!"
+
+clean-safe: ## 安全清理 (会先询问确认)
+	@echo "🔐 安全清理模式"
+	@echo ""
+	@echo "将要清理以下内容:"
+	@echo "  📁 所有生成的文件 (*.out, *.html, *.log, *.tmp)"
+	@echo "  🐳 所有测试Docker容器和相关资源"  
+	@echo "  🌐 占用的测试端口 (${REDIS_PORT}, ${MYSQL_PORT}, ${CLICKHOUSE_PORT})"
+	@echo ""
+	@read -p "确认要继续吗? (y/N): " -n 1 -r; echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "开始清理..."; \
+		$(MAKE) clean-all --no-print-directory; \
+	else \
+		echo "已取消清理操作"; \
+	fi
+
+clean-emergency: ## 紧急清理 (强制清理所有资源，用于解决资源占用问题)
+	@echo "🚨 紧急清理模式 - 强制清理所有资源"
+	@echo "  强制停止所有相关进程..."
+	@pkill -f "redis-server.*${REDIS_PORT}" 2>/dev/null || true
+	@pkill -f "mysqld.*${MYSQL_PORT}" 2>/dev/null || true
+	@pkill -f "clickhouse.*${CLICKHOUSE_PORT}" 2>/dev/null || true
+	@echo "  强制清理端口占用..."
+	@lsof -ti:${REDIS_PORT} | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti:${MYSQL_PORT} | xargs -r kill -9 2>/dev/null || true
+	@lsof -ti:${CLICKHOUSE_PORT} | xargs -r kill -9 2>/dev/null || true
+	@echo "  强制清理Docker资源..."
+	@docker kill $$(docker ps -q --filter "name=lrpc-test-") 2>/dev/null || true
+	@docker rm -f $$(docker ps -aq --filter "name=lrpc-test-") 2>/dev/null || true
+	@docker system prune -f --filter "label=lrpc-test" 2>/dev/null || true
+	@echo "  清理文件系统..."
+	@$(MAKE) clean-files --no-print-directory
+	@echo "🚨 紧急清理完成"
+
+reset: clean-all deps ## 完全重置环境 (清理 + 重新下载依赖)
+	@echo "🔄 重置开发环境完成"
 
 deps: ## 安装/更新依赖
 	@echo "更新Go依赖..."
