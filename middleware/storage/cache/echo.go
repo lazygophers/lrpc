@@ -3,7 +3,7 @@ package cache
 import (
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"strconv"
 	"time"
 )
@@ -34,7 +34,7 @@ func (p *CacheSugarDB) Get(key string) (string, error) {
 }
 
 func (p *CacheSugarDB) Set(key string, value any) error {
-	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{})
+	_, _, err := p.cli.Set(key, candy.ToString(value), sugardb.SETOptions{})
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (p *CacheSugarDB) Set(key string, value any) error {
 }
 
 func (p *CacheSugarDB) SetEx(key string, value any, timeout time.Duration) error {
-	_, _, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
+	_, _, err := p.cli.Set(key, candy.ToString(value), sugardb.SETOptions{
 		ExpireOpt:  sugardb.SETEX,
 		ExpireTime: int(time.Now().Add(timeout).Unix()),
 	})
@@ -53,7 +53,7 @@ func (p *CacheSugarDB) SetEx(key string, value any, timeout time.Duration) error
 }
 
 func (p *CacheSugarDB) SetNx(key string, value interface{}) (bool, error) {
-	_, ok, err := p.cli.Set(key, anyx.ToString(value), sugardb.SETOptions{
+	_, ok, err := p.cli.Set(key, candy.ToString(value), sugardb.SETOptions{
 		WriteOpt: sugardb.SETNX,
 	})
 	if err != nil {
@@ -140,7 +140,7 @@ func (p *CacheSugarDB) Exists(keys ...string) (bool, error) {
 
 func (p *CacheSugarDB) HSet(key string, field string, value interface{}) (bool, error) {
 	val, err := p.cli.HSet(key, map[string]string{
-		field: anyx.ToString(value),
+		field: candy.ToString(value),
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)

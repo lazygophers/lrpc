@@ -349,8 +349,8 @@ func (p *ModelScoop[M]) UpdateOrCreate(values map[string]interface{}, m *M) *Upd
 		}
 	}
 
-	// TODO: anyx.DeepCopy
-	//anyx.DeepCopy(&mm, m)
+	// TODO: candy.DeepCopy
+	//candy.DeepCopy(&mm, m)
 
 	return &UpdateOrCreateResult[M]{
 		Object: &mm,
@@ -388,8 +388,8 @@ func (p *ModelScoop[M]) CreateNotExist(m *M) *CreateNotExistResult[M] {
 		}
 	}
 
-	// TODO: anyx.DeepCopy
-	//anyx.DeepCopy(&mm, m)
+	// TODO: candy.DeepCopy
+	//candy.DeepCopy(&mm, m)
 
 	return &CreateNotExistResult[M]{
 		Object: &mm,
@@ -453,8 +453,8 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 		}
 	}
 
-	// TODO: anyx.DeepCopy
-	//anyx.DeepCopy(&mm, m)
+	// TODO: candy.DeepCopy
+	//candy.DeepCopy(&mm, m)
 
 	return &CreateOrUpdateResult[M]{
 		Object: &mm,

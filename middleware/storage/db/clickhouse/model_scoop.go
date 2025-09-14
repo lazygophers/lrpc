@@ -260,7 +260,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 //		}
 //	}
 //
-//	anyx.DeepCopy(&mm, m)
+//	candy.DeepCopy(&mm, m)
 //
 //	return &UpdateOrCreateResult[M]{
 //		Object: &mm,
@@ -298,7 +298,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 //		}
 //	}
 //
-//	anyx.DeepCopy(&mm, m)
+//	candy.DeepCopy(&mm, m)
 //
 //	return &CreateNotExistResult[M]{
 //		Object: &mm,
@@ -362,7 +362,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 //		}
 //	}
 //
-//	anyx.DeepCopy(&mm, m)
+//	candy.DeepCopy(&mm, m)
 //
 //	return &CreateOrUpdateResult[M]{
 //		Object: &mm,

@@ -1,2 +1,11 @@
 CLAUDE.md
 .claude
+.idea
+.vscode
+coverage.out
+coverage-*.out
+coverage.html
+coverage-*.html
+*.prof
+*.test
+*.log

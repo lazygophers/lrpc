@@ -1,8 +1,6 @@
 module github.com/lazygophers/lrpc
 
-go 1.23.3
-
-toolchain go1.24.0
+go 1.24.0
 
 require (
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
@@ -12,12 +10,12 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/gookit/color v1.5.5-0.20240610061437-fedc17449eaf
-	github.com/lazygophers/log v0.0.0-20250409033028-0656cc92f9c3
-	github.com/lazygophers/utils v0.0.0-20250430052029-57f0cb71ff66
+	github.com/lazygophers/log v0.0.0-20250913143351-cedd7b275cf8
+	github.com/lazygophers/utils v0.0.0-20250914121833-1e1d1bbb40af
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mutecomm/go-sqlcipher/v4 v4.4.2
 	github.com/pelletier/go-toml/v2 v2.2.4
-	github.com/petermattis/goid v0.0.0-20250319124200-ccd6737f222a
+	github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
 	github.com/valyala/fasthttp v1.59.0
 	go.etcd.io/bbolt v1.4.0
@@ -26,7 +24,7 @@ require (
 	go.mills.io/bitcask/v2 v2.1.2
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.1-0.20240725153609-f95879bd02b8
-	golang.org/x/text v0.24.0
+	golang.org/x/text v0.29.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/clickhouse v0.6.2-0.20240712033123-f363ecfefd66
@@ -46,21 +44,22 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/bytedance/sonic v1.13.2 // indirect
-	github.com/bytedance/sonic/loader v0.2.4 // indirect
-	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.14.1 // indirect
+	github.com/bytedance/sonic/loader v0.3.0 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elliotchance/pie/v2 v2.9.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.26.0 // indirect
+	github.com/go-playground/validator/v10 v10.27.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -85,7 +84,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible // indirect
 	github.com/lestrrat-go/strftime v1.1.0 // indirect
@@ -114,11 +113,11 @@ require (
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.16.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/arch v0.20.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/grpc v1.71.0 // indirect

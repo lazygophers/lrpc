@@ -3,7 +3,7 @@ package etcd
 import (
 	"context"
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/routine"
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -113,7 +113,7 @@ func (p *Client) Del(key string) error {
 }
 
 func (p *Client) Set(key string, val interface{}) error {
-	_, err := p.cli.Put(context.TODO(), key, anyx.ToString(val))
+	_, err := p.cli.Put(context.TODO(), key, candy.ToString(val))
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (p *Client) Set(key string, val interface{}) error {
 func (p *Client) SetWithVersion(key string, val interface{}, version int64) (bool, error) {
 	res, err := p.cli.Txn(context.TODO()).
 		If(clientv3.Compare(clientv3.Version(key), "=", version)).
-		Then(clientv3.OpPut(key, anyx.ToString(val))).
+		Then(clientv3.OpPut(key, candy.ToString(val))).
 		Commit()
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -191,7 +191,7 @@ func (p *Client) SetEx(key string, val interface{}, timeout time.Duration) error
 		return err
 	}
 
-	_, err = p.cli.Put(context.TODO(), key, anyx.ToString(val), clientv3.WithLease(leaseRsp.ID))
+	_, err = p.cli.Put(context.TODO(), key, candy.ToString(val), clientv3.WithLease(leaseRsp.ID))
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package cache
 import (
 	"errors"
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
 	"time"
@@ -111,7 +111,7 @@ func (p *CacheRedis) Exists(keys ...string) (bool, error) {
 func (p *CacheRedis) SetNx(key string, value interface{}) (bool, error) {
 	log.Debugf("set nx %s", key)
 
-	ok, err := p.cli.SetNx(p.prefix+key, anyx.ToString(value))
+	ok, err := p.cli.SetNx(p.prefix+key, candy.ToString(value))
 	if err != nil {
 		if err == redis.ErrNil {
 			return false, nil
@@ -151,14 +151,14 @@ func (p *CacheRedis) Ttl(key string) (time.Duration, error) {
 func (p *CacheRedis) Set(key string, value interface{}) (err error) {
 	log.Debugf("set %s", key)
 
-	_, err = p.cli.Set(p.prefix+key, anyx.ToString(value))
+	_, err = p.cli.Set(p.prefix+key, candy.ToString(value))
 	return err
 }
 
 func (p *CacheRedis) SetEx(key string, value interface{}, timeout time.Duration) error {
 	log.Debugf("set ex %s", key)
 
-	_, err := p.cli.SetEx(p.prefix+key, anyx.ToString(value), int64(timeout.Seconds()))
+	_, err := p.cli.SetEx(p.prefix+key, candy.ToString(value), int64(timeout.Seconds()))
 	return err
 }
 
@@ -189,7 +189,7 @@ func (p *CacheRedis) Del(keys ...string) (err error) {
 }
 
 func (p *CacheRedis) HSet(key string, field string, value interface{}) (bool, error) {
-	return p.cli.HSet(p.prefix+key, field, anyx.ToString(value))
+	return p.cli.HSet(p.prefix+key, field, candy.ToString(value))
 }
 
 func (p *CacheRedis) HGet(key, field string) (string, error) {

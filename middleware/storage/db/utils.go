@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm/clause"
 	"reflect"
@@ -286,10 +286,10 @@ func FormatSql(sql string, values ...interface{}) string {
 		case clause.Expr:
 			out.WriteString(x.SQL)
 			for _, v := range x.Vars {
-				out.WriteString(anyx.ToString(v))
+				out.WriteString(candy.ToString(v))
 			}
 		default:
-			out.WriteString(anyx.ToString(values[i]))
+			out.WriteString(candy.ToString(values[i]))
 		}
 		i++
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"strings"
 	"time"
 )
@@ -48,7 +48,7 @@ func (p *Database) Get(key string) (string, error) {
 }
 
 func (p *Database) Set(key string, value any) error {
-	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, anyx.ToString(value), 0)
+	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), 0)
 	if err != nil {
 		return p.coverError(err)
 	}
@@ -57,7 +57,7 @@ func (p *Database) Set(key string, value any) error {
 }
 
 func (p *Database) SetEx(key string, value any, timeout time.Duration) error {
-	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, anyx.ToString(value), time.Now().Add(timeout).Unix())
+	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), time.Now().Add(timeout).Unix())
 	if err != nil {
 		return p.coverError(err)
 	}
@@ -65,7 +65,7 @@ func (p *Database) SetEx(key string, value any, timeout time.Duration) error {
 }
 
 func (p *Database) SetNx(key string, value interface{}) (bool, error) {
-	_, err := p.db.Exec(fmt.Sprintf("insert into %s (k, v, e) values (?,?,?)", p.tableName), key, anyx.ToString(value), 0)
+	_, err := p.db.Exec(fmt.Sprintf("insert into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), 0)
 	if err != nil {
 		if strings.Contains(err.Error(), "(1555)") && strings.Contains(err.Error(), "UNIQUE") {
 			return false, nil

@@ -2,15 +2,6 @@ package i18n
 
 import (
 	"fmt"
-	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/anyx"
-	"github.com/lazygophers/utils/candy"
-	"github.com/lazygophers/utils/routine"
-	"github.com/lazygophers/utils/stringx"
-	"github.com/petermattis/goid"
-	"go.uber.org/atomic"
-	"golang.org/x/text/language"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"io/fs"
 	"maps"
 	"net/http"
@@ -19,6 +10,15 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/routine"
+	"github.com/lazygophers/utils/stringx"
+	"github.com/petermattis/goid"
+	"go.uber.org/atomic"
+	"golang.org/x/text/language"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type LocalizeFs interface {
@@ -99,7 +99,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 		case map[any]any:
 			mm := make(map[string]interface{}, len(x))
 			for k, v := range x {
-				mm[anyx.ToString(k)] = v
+				mm[candy.ToString(k)] = v
 			}
 
 			p.parse(keys, mm)
@@ -262,12 +262,12 @@ var (
 		"HasPrefix":  strings.HasPrefix,
 		"HasSuffix":  strings.HasSuffix,
 
-		"PluckString": anyx.PluckString,
-		"PluckInt":    anyx.PluckInt,
-		"PluckInt32":  anyx.PluckInt32,
-		"PluckUint32": anyx.PluckUint32,
-		"PluckInt64":  anyx.PluckInt64,
-		"PluckUint64": anyx.PluckUint64,
+		"PluckString": candy.PluckString,
+		"PluckInt":    candy.PluckInt,
+		"PluckInt32":  candy.PluckInt32,
+		"PluckUint32": candy.PluckUint32,
+		"PluckInt64":  candy.PluckInt64,
+		"PluckUint64": candy.PluckUint64,
 
 		"StringSliceEmpty": func(ss []string) bool {
 			return len(ss) == 0

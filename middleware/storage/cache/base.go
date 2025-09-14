@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/stringx"
 	"google.golang.org/protobuf/proto"
@@ -45,7 +45,7 @@ func (p *baseCache) GetBool(key string) (bool, error) {
 		return false, err
 	}
 
-	return anyx.ToBool(buf), nil
+	return candy.ToBool(buf), nil
 }
 
 func (p *baseCache) GetInt(key string) (int, error) {
@@ -54,7 +54,7 @@ func (p *baseCache) GetInt(key string) (int, error) {
 		return 0, err
 	}
 
-	return anyx.ToInt(buf), nil
+	return candy.ToInt(buf), nil
 }
 
 func (p *baseCache) GetUint(key string) (uint, error) {
@@ -63,7 +63,7 @@ func (p *baseCache) GetUint(key string) (uint, error) {
 		return 0, err
 	}
 
-	return anyx.ToUint(buf), nil
+	return candy.ToUint(buf), nil
 }
 
 func (p *baseCache) GetInt32(key string) (int32, error) {
@@ -72,7 +72,7 @@ func (p *baseCache) GetInt32(key string) (int32, error) {
 		return 0, err
 	}
 
-	return anyx.ToInt32(buf), nil
+	return candy.ToInt32(buf), nil
 }
 
 func (p *baseCache) GetUint32(key string) (uint32, error) {
@@ -81,7 +81,7 @@ func (p *baseCache) GetUint32(key string) (uint32, error) {
 		return 0, err
 	}
 
-	return anyx.ToUint32(buf), nil
+	return candy.ToUint32(buf), nil
 }
 
 func (p *baseCache) GetInt64(key string) (int64, error) {
@@ -90,7 +90,7 @@ func (p *baseCache) GetInt64(key string) (int64, error) {
 		return 0, err
 	}
 
-	return anyx.ToInt64(buf), nil
+	return candy.ToInt64(buf), nil
 }
 
 func (p *baseCache) GetUint64(key string) (uint64, error) {
@@ -99,7 +99,7 @@ func (p *baseCache) GetUint64(key string) (uint64, error) {
 		return 0, err
 	}
 
-	return anyx.ToUint64(buf), nil
+	return candy.ToUint64(buf), nil
 }
 
 func (p *baseCache) GetFloat32(key string) (float32, error) {
@@ -108,7 +108,7 @@ func (p *baseCache) GetFloat32(key string) (float32, error) {
 		return 0, err
 	}
 
-	return anyx.ToFloat32(buf), nil
+	return candy.ToFloat32(buf), nil
 }
 
 func (p *baseCache) GetFloat64(key string) (float64, error) {
@@ -117,7 +117,7 @@ func (p *baseCache) GetFloat64(key string) (float64, error) {
 		return 0, err
 	}
 
-	return anyx.ToFloat64(buf), nil
+	return candy.ToFloat64(buf), nil
 }
 
 func (p *baseCache) GetBoolSlice(key string) ([]bool, error) {
@@ -129,7 +129,7 @@ func (p *baseCache) GetBoolSlice(key string) ([]bool, error) {
 
 	res := make([]bool, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToBool(v))
+		res = append(res, candy.ToBool(v))
 	}
 
 	return res, nil
@@ -144,7 +144,7 @@ func (p *baseCache) GetIntSlice(key string) ([]int, error) {
 
 	res := make([]int, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToInt(v))
+		res = append(res, candy.ToInt(v))
 	}
 
 	return res, nil
@@ -159,7 +159,7 @@ func (p *baseCache) GetUintSlice(key string) ([]uint, error) {
 
 	res := make([]uint, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToUint(v))
+		res = append(res, candy.ToUint(v))
 	}
 
 	return res, nil
@@ -174,7 +174,7 @@ func (p *baseCache) GetInt32Slice(key string) ([]int32, error) {
 
 	res := make([]int32, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToInt32(v))
+		res = append(res, candy.ToInt32(v))
 	}
 
 	return res, nil
@@ -189,7 +189,7 @@ func (p *baseCache) GetUint32Slice(key string) ([]uint32, error) {
 
 	res := make([]uint32, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToUint32(v))
+		res = append(res, candy.ToUint32(v))
 	}
 
 	return res, nil
@@ -204,7 +204,7 @@ func (p *baseCache) GetInt64Slice(key string) ([]int64, error) {
 
 	res := make([]int64, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToInt64(v))
+		res = append(res, candy.ToInt64(v))
 	}
 
 	return res, nil
@@ -219,7 +219,7 @@ func (p *baseCache) GetUint64Slice(key string) ([]uint64, error) {
 
 	res := make([]uint64, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToUint64(v))
+		res = append(res, candy.ToUint64(v))
 	}
 
 	return res, nil
@@ -234,7 +234,7 @@ func (p *baseCache) GetFloat32Slice(key string) ([]float32, error) {
 
 	res := make([]float32, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToFloat32(v))
+		res = append(res, candy.ToFloat32(v))
 	}
 
 	return res, nil
@@ -249,7 +249,7 @@ func (p *baseCache) GetFloat64Slice(key string) ([]float64, error) {
 
 	res := make([]float64, 0, len(list))
 	for _, v := range list {
-		res = append(res, anyx.ToFloat64(v))
+		res = append(res, candy.ToFloat64(v))
 	}
 
 	return res, nil

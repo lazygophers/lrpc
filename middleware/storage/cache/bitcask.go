@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/atexit"
 	"go.mills.io/bitcask/v2"
 	"time"
@@ -32,7 +32,7 @@ func (p *CacheBitcask) Get(key string) (string, error) {
 }
 
 func (p *CacheBitcask) Set(key string, value any) error {
-	return p.cli.Put(bitcask.Key(key), bitcask.Value(anyx.ToString(value)))
+	return p.cli.Put(bitcask.Key(key), bitcask.Value(candy.ToString(value)))
 }
 
 func (p *CacheBitcask) SetEx(key string, value any, timeout time.Duration) error {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/utils/anyx"
+	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -770,7 +770,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		case clause.Expr:
 			values = append(values, x)
 		default:
-			values = append(values, anyx.ToString(x))
+			values = append(values, candy.ToString(x))
 		}
 		i++
 	}
