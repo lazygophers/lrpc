@@ -23,7 +23,7 @@ func TestCacheMem_SetNxWithTimeout(t *testing.T) {
 
 	// Wait for expiration and try again
 	time.Sleep(150 * time.Millisecond)
-	
+
 	// Try SetNxWithTimeout again - it should succeed because the key has expired
 	success, err = cache.SetNxWithTimeout("timeout_key", "new_value", 100*time.Millisecond)
 	assert.NilError(t, err)
@@ -96,7 +96,7 @@ func TestCacheMem_EdgeCases(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, newVal, int64(5))
 
-	// Test Set operations with expired key  
+	// Test Set operations with expired key
 	cache.SetEx("expired_set", "[\"member1\"]", 1*time.Millisecond)
 	time.Sleep(10 * time.Millisecond)
 

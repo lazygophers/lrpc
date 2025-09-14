@@ -7,7 +7,7 @@ import (
 func TestSetPrefixDirectly(t *testing.T) {
 	mem := &CacheMem{}
 	mem.SetPrefix("test") // This should hit line 30-31
-	
+
 	// Also test through the interface
 	cache := NewMem()
 	defer cache.Close()

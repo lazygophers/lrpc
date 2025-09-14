@@ -3,8 +3,8 @@ package cache
 import (
 	"testing"
 
-	"gotest.tools/v3/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gotest.tools/v3/assert"
 )
 
 func TestBaseCacheProtobufErrorPaths(t *testing.T) {
@@ -21,7 +21,7 @@ func TestBaseCacheProtobufErrorPaths(t *testing.T) {
 	err := cache.SetPb("proto_test", testMsg)
 	assert.NilError(t, err)
 
-	// Test SetPbEx with marshaling error - using invalid message  
+	// Test SetPbEx with marshaling error - using invalid message
 	// Similar to above, testing normal flow
 	err = cache.SetPbEx("proto_test_ex", testMsg, 1)
 	assert.NilError(t, err)
@@ -32,7 +32,7 @@ func TestBaseCacheTypeConversionsErrorPaths(t *testing.T) {
 	defer cache.Close()
 
 	// Test all type conversion methods with non-existent keys to cover error paths
-	
+
 	// Test GetUint error path
 	_, err := cache.GetUint("nonexistent_uint")
 	assert.Equal(t, err, NotFound)

@@ -8,7 +8,7 @@ import (
 
 func TestCacheFactory(t *testing.T) {
 	// Test New() function with different cache types
-	
+
 	// Test memory cache creation
 	memCache, err := New(&Config{
 		Type: Mem,
@@ -33,7 +33,7 @@ func TestCacheFactory(t *testing.T) {
 func TestNotFoundError(t *testing.T) {
 	// Test NotFound error type
 	assert.Equal(t, NotFound.Error(), "key not found")
-	
+
 	// Test that it's comparable
 	err := NotFound
 	assert.Assert(t, err == NotFound)

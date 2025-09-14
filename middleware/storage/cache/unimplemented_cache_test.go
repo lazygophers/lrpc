@@ -16,7 +16,7 @@ import (
 func TestBboltCache(t *testing.T) {
 	// Skip bbolt test due to implementation issues
 	t.Skip("Bbolt cache has implementation issues and is not fully functional")
-	
+
 	// Create a temporary file for bbolt
 	tmpfile, err := os.CreateTemp("", "test_bbolt_*.db")
 	assert.NilError(t, err)
@@ -140,7 +140,7 @@ func TestRedisCache(t *testing.T) {
 func TestDatabaseCache(t *testing.T) {
 	// Skip database cache test since it requires actual database
 	t.Skip("Database cache requires actual database connection")
-	
+
 	// This function body is kept for code coverage but will be skipped
 	dbCache, err := NewDatabase(nil, "test_table")
 	if err != nil {
@@ -151,7 +151,7 @@ func TestDatabaseCache(t *testing.T) {
 
 	// Test all methods return errors
 	dbCache.SetPrefix("test:")
-	
+
 	err = dbCache.Clean()
 	assert.Assert(t, err != nil, "Clean should return error - not implemented")
 
@@ -247,7 +247,7 @@ func TestDatabaseCache(t *testing.T) {
 func TestBitcaskCache(t *testing.T) {
 	// Skip bitcask test due to external dependencies
 	t.Skip("Bitcask cache requires external dependencies and is not fully implemented")
-	
+
 	// Create temporary directory for bitcask
 	tmpdir, err := os.MkdirTemp("", "test_bitcask_*")
 	assert.NilError(t, err)
@@ -263,7 +263,7 @@ func TestBitcaskCache(t *testing.T) {
 
 	// Test methods
 	bitcaskCache.SetPrefix("test:")
-	
+
 	err = bitcaskCache.Clean()
 	assert.Assert(t, err != nil, "Clean should return error - not implemented")
 
@@ -360,8 +360,8 @@ func TestBitcaskCache(t *testing.T) {
 func TestSugarDBCache(t *testing.T) {
 	// Skip sugardb test due to external dependencies
 	t.Skip("SugarDB cache requires external dependencies and is not fully implemented")
-	
-	// Create temporary directory for sugardb  
+
+	// Create temporary directory for sugardb
 	tmpdir, err := os.MkdirTemp("", "test_sugardb_*")
 	assert.NilError(t, err)
 	defer os.RemoveAll(tmpdir)
@@ -376,7 +376,7 @@ func TestSugarDBCache(t *testing.T) {
 
 	// Test methods
 	sugardbCache.SetPrefix("test:")
-	
+
 	err = sugardbCache.Clean()
 	assert.Assert(t, err != nil, "Clean should return error - not implemented")
 

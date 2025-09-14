@@ -2,8 +2,8 @@ package cache
 
 import (
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/atexit"
+	"github.com/lazygophers/utils/candy"
 	"go.mills.io/bitcask/v2"
 	"time"
 )

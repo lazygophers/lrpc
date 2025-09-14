@@ -94,7 +94,7 @@ func TestMemCacheRemainingPaths(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(members), 1) // Should return 1 member when count <= 0
 
-	// Test SRandMember with negative count  
+	// Test SRandMember with negative count
 	members, err = cache.SRandMember("test_set", -2)
 	assert.NilError(t, err)
 	assert.Equal(t, len(members), 1) // Should still return 1 member
@@ -147,17 +147,17 @@ func (m *mockBaseCache) SetNx(key string, value interface{}) (bool, error) { ret
 func (m *mockBaseCache) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	return true, nil
 }
-func (m *mockBaseCache) Ttl(key string) (time.Duration, error)            { return 0, nil }
+func (m *mockBaseCache) Ttl(key string) (time.Duration, error)                  { return 0, nil }
 func (m *mockBaseCache) Expire(key string, timeout time.Duration) (bool, error) { return true, nil }
-func (m *mockBaseCache) Incr(key string) (int64, error)                   { return 1, nil }
-func (m *mockBaseCache) Decr(key string) (int64, error)                   { return 1, nil }
-func (m *mockBaseCache) IncrBy(key string, value int64) (int64, error)    { return value, nil }
-func (m *mockBaseCache) DecrBy(key string, value int64) (int64, error)    { return value, nil }
-func (m *mockBaseCache) Exists(keys ...string) (bool, error)              { return true, nil }
+func (m *mockBaseCache) Incr(key string) (int64, error)                         { return 1, nil }
+func (m *mockBaseCache) Decr(key string) (int64, error)                         { return 1, nil }
+func (m *mockBaseCache) IncrBy(key string, value int64) (int64, error)          { return value, nil }
+func (m *mockBaseCache) DecrBy(key string, value int64) (int64, error)          { return value, nil }
+func (m *mockBaseCache) Exists(keys ...string) (bool, error)                    { return true, nil }
 func (m *mockBaseCache) HSet(key string, field string, value interface{}) (bool, error) {
 	return true, nil
 }
-func (m *mockBaseCache) HGet(key, field string) (string, error) { return "", NotFound }
+func (m *mockBaseCache) HGet(key, field string) (string, error)           { return "", NotFound }
 func (m *mockBaseCache) HDel(key string, fields ...string) (int64, error) { return 1, nil }
 func (m *mockBaseCache) HKeys(key string) ([]string, error)               { return []string{}, nil }
 func (m *mockBaseCache) HGetAll(key string) (map[string]string, error) {
@@ -173,16 +173,16 @@ func (m *mockBaseCache) HDecrBy(key string, field string, increment int64) (int6
 	return increment, nil
 }
 func (m *mockBaseCache) SAdd(key string, members ...string) (int64, error) { return 1, nil }
-func (m *mockBaseCache) SMembers(key string) ([]string, error)            { return []string{}, nil }
+func (m *mockBaseCache) SMembers(key string) ([]string, error)             { return []string{}, nil }
 func (m *mockBaseCache) SRem(key string, members ...string) (int64, error) { return 1, nil }
 func (m *mockBaseCache) SRandMember(key string, count ...int64) ([]string, error) {
 	return []string{}, nil
 }
-func (m *mockBaseCache) SPop(key string) (string, error)                { return "", nil }
-func (m *mockBaseCache) SisMember(key, field string) (bool, error)      { return false, nil }
-func (m *mockBaseCache) Del(key ...string) error                        { return nil }
-func (m *mockBaseCache) Clean() error                                   { return nil }
-func (m *mockBaseCache) Close() error                                   { return nil }
+func (m *mockBaseCache) SPop(key string) (string, error)           { return "", nil }
+func (m *mockBaseCache) SisMember(key, field string) (bool, error) { return false, nil }
+func (m *mockBaseCache) Del(key ...string) error                   { return nil }
+func (m *mockBaseCache) Clean() error                              { return nil }
+func (m *mockBaseCache) Close() error                              { return nil }
 
 func TestBaseCacheWrapperFunctions(t *testing.T) {
 	mock := &mockBaseCache{}

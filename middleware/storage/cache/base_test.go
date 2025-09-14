@@ -17,7 +17,7 @@ func TestBaseCacheExtensions(t *testing.T) {
 	cache.Set("int_key", "42")
 	cache.Set("float_key", "3.14")
 	cache.Set("slice_key", "[1,2,3]")
-	
+
 	// Test GetBool
 	boolVal, err := cache.GetBool("bool_key")
 	assert.NilError(t, err)
@@ -206,11 +206,11 @@ func TestBaseCacheJSON(t *testing.T) {
 
 	// Test GetJson and SetJson would require protobuf support
 	// These are currently not implemented in base.go and would return errors
-	
+
 	// Test HGetJson
 	jsonStr := `{"name":"Jane","age":25}`
 	cache.HSet("json_hash", "user", jsonStr)
-	
+
 	var result TestStruct
 	err := cache.HGetJson("json_hash", "user", &result)
 	assert.NilError(t, err)

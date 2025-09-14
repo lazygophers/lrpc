@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/v3/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gotest.tools/v3/assert"
 )
 
 func TestBaseCacheProtobuf(t *testing.T) {
