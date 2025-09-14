@@ -5,7 +5,6 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/atexit"
-	"github.com/lazygophers/utils/candy"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -19,8 +18,25 @@ type CacheRedis struct {
 }
 
 func (p *CacheRedis) Clean() error {
-	//TODO implement me
-	panic("implement me")
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+	
+	keys, err := redis.Strings(conn.Do("KEYS", p.prefix+"*"))
+	if err != nil {
+		return err
+	}
+	
+	if len(keys) == 0 {
+		return nil
+	}
+	
+	args := make([]interface{}, len(keys))
+	for i, key := range keys {
+		args[i] = key
+	}
+	
+	_, err = conn.Do("DEL", args...)
+	return err
 }
 
 func (p *CacheRedis) SetPrefix(prefix string) {

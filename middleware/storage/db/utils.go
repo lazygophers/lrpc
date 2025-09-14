@@ -165,7 +165,7 @@ func decode(field reflect.Value, col []byte) error {
 		}
 		field.Set(val)
 	default:
-		log.Errorf(string(col))
+		log.Errorf("unsupported column: %s", string(col))
 		return fmt.Errorf("invalid type: %s", field.Kind().String())
 	}
 

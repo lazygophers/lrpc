@@ -13,7 +13,6 @@ require (
 	github.com/lazygophers/log v0.0.0-20250913143351-cedd7b275cf8
 	github.com/lazygophers/utils v0.0.0-20250914121833-1e1d1bbb40af
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/mutecomm/go-sqlcipher/v4 v4.4.2
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
@@ -51,7 +50,6 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/elliotchance/pie/v2 v2.9.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
@@ -86,12 +84,9 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible // indirect
-	github.com/lestrrat-go/strftime v1.1.0 // indirect
 	github.com/mattetti/filebuffer v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mcuadros/go-defaults v1.2.0 // indirect
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect

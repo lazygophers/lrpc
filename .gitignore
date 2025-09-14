@@ -2,9 +2,9 @@ CLAUDE.md
 .claude
 .idea
 .vscode
-coverage.out
-coverage-*.out
+*.out
 coverage.html
+*_coverage.html
 coverage-*.html
 *.prof
 *.test

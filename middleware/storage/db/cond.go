@@ -444,7 +444,7 @@ func (p *Cond) NotLike(column string, value string) *Cond {
 }
 
 func (p *Cond) Between(column string, min, max interface{}) *Cond {
-	p.whereRaw(fmt.Sprintf(quoteFieldName(column))+" BETWEEN ? AND ?", min, max)
+	p.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 

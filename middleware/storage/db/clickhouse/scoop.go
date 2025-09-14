@@ -2,14 +2,12 @@ package clickhouse
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"reflect"
 	"strconv"
-	"time"
 )
 
 type Scoop struct {
@@ -160,12 +158,12 @@ func (p *Scoop) NotRightLike(column string, value string) *Scoop {
 }
 
 func (p *Scoop) Between(column string, min, max interface{}) *Scoop {
-	p.cond.whereRaw(fmt.Sprintf(quoteFieldName(column))+" BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 
 func (p *Scoop) NotBetween(column string, min, max interface{}) *Scoop {
-	p.cond.whereRaw(fmt.Sprintf(quoteFieldName(column))+" NOT BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
 	return p
 }
 
