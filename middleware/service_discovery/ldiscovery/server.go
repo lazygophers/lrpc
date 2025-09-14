@@ -2,13 +2,14 @@ package ldiscovery
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/runtime"
-	"os"
-	"path/filepath"
 )
 
 // 对于服务端来说，只需要支持服务注册

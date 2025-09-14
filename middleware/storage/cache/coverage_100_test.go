@@ -20,7 +20,7 @@ func TestMemCacheSetPrefixCoverage100(t *testing.T) {
 
 	// Call SetPrefix - this is the line we need to cover
 	memCache.SetPrefix("test:")
-	
+
 	// Verify cache still works after SetPrefix
 	err := cache.Set("test", "value")
 	assert.NilError(t, err)
@@ -163,11 +163,11 @@ func TestSetPbMarshalErrorPaths(t *testing.T) {
 
 	// The error paths in SetPb/SetPbEx are when proto.Marshal fails
 	// This is hard to trigger without mocking, but let's try with nil values
-	
+
 	// Test with nil proto (this might trigger different behavior)
 	err = cache.SetPb("nil_key", (*timestamppb.Timestamp)(nil))
 	// This will likely succeed as nil proto marshals to empty bytes
-	
+
 	// Test error path by setting invalid protobuf data and then trying to get it back
 	cache.Set("corrupt_proto", "invalid protobuf data")
 	retrieveProto := &timestamppb.Timestamp{}

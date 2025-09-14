@@ -3,14 +3,15 @@ package db
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm/clause"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 func EnsureIsSliceOrArray(obj interface{}) (res reflect.Value) {

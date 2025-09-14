@@ -1,10 +1,11 @@
 package i18n
 
 import (
+	"strings"
+
 	"github.com/lazygophers/utils/json"
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
-	"strings"
 )
 
 type Localizer interface {

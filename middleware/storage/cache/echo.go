@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
-	"strconv"
-	"time"
 )
 
 type CacheSugarDB struct {
@@ -27,7 +28,7 @@ func (p *CacheSugarDB) Get(key string) (string, error) {
 		return "", err
 	}
 	if value == "" {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return value, nil
@@ -88,10 +89,10 @@ func (p *CacheSugarDB) Ttl(key string) (time.Duration, error) {
 	}
 
 	if ttl == -1 {
-		return -1, NotFound
+		return -1, ErrNotFound
 	}
 	if ttl == -2 {
-		return -2, NotFound
+		return -2, ErrNotFound
 	}
 
 	return time.Second * time.Duration(ttl), nil
@@ -156,7 +157,7 @@ func (p *CacheSugarDB) HGet(key, field string) (string, error) {
 		return "", err
 	}
 	if len(values) == 0 {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return values[0], nil

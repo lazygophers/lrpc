@@ -2,12 +2,13 @@ package clickhouse
 
 import (
 	"database/sql"
+	"reflect"
+	"strconv"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
-	"reflect"
-	"strconv"
 )
 
 type Scoop struct {
@@ -311,6 +312,12 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		}
 	}
 	defer rows.Close()
+	
+	if err = rows.Err(); err != nil {
+		return &FindResult{
+			Error: err,
+		}
+	}
 
 	cols, err := rows.Columns()
 	if err != nil {

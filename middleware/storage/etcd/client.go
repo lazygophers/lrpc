@@ -2,6 +2,9 @@ package etcd
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
@@ -10,8 +13,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"sync"
-	"time"
 )
 
 type Client struct {

@@ -10,7 +10,6 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-
 // MockCache for testing error scenarios
 type MockCache struct {
 	*CacheMem
@@ -39,7 +38,7 @@ func TestSetPbErrorPaths(t *testing.T) {
 	// Test SetPb with marshal error - create invalid proto
 	// Use a mock approach to test error paths
 	invalidProto := &timestamppb.Timestamp{Seconds: 123}
-	
+
 	// First test successful case to ensure method works
 	err := cache.SetPb("test_key", invalidProto)
 	assert.NilError(t, err, "SetPb should succeed with valid proto")
@@ -58,10 +57,10 @@ func TestSetPbErrorPaths(t *testing.T) {
 }
 
 func TestLimitErrorPaths(t *testing.T) {
-	// Test Limit with Incr error  
+	// Test Limit with Incr error
 	memCache := NewMem()
 	defer memCache.Close()
-	
+
 	// Create a more realistic test - we can't easily make Incr fail in memory cache
 	// but we can test the error handling paths by using the actual implementation
 	mockCache := &MockCache{
@@ -323,7 +322,7 @@ func TestMemCacheUncoveredPaths(t *testing.T) {
 
 	// Test SRandMember edge cases
 	cache.SAdd("test_set", "a", "b", "c")
-	
+
 	// Test with negative count (should return single member)
 	members, err := cache.SRandMember("test_set", -1)
 	assert.NilError(t, err)

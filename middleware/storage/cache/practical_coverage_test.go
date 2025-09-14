@@ -16,14 +16,14 @@ import (
 
 func TestNewFactoryWithAllTypes(t *testing.T) {
 	// Test New function with different types - focus on code paths that work
-	
+
 	// Test memory cache (this works)
 	memCache, err := New(&Config{Type: Mem})
 	assert.NilError(t, err)
 	assert.Assert(t, memCache != nil)
 	memCache.Close()
 
-	// Test empty config (defaults to mem) 
+	// Test empty config (defaults to mem)
 	defaultCache, err := New(&Config{})
 	assert.NilError(t, err)
 	assert.Assert(t, defaultCache != nil)
@@ -33,13 +33,13 @@ func TestNewFactoryWithAllTypes(t *testing.T) {
 	_, err = New(&Config{Type: "unsupported"})
 	assert.Assert(t, err != nil)
 	assert.Equal(t, err.Error(), "cache type not support")
-	
+
 	// Test Bbolt factory call (may fail but tests the factory code)
 	tmpfile, err := os.CreateTemp("", "test_bbolt_*.db")
 	if err == nil {
 		tmpfile.Close()
 		defer os.Remove(tmpfile.Name())
-		
+
 		_, err = New(&Config{Type: Bbolt, Address: tmpfile.Name()})
 		// Don't assert on error - just test that factory code path is executed
 	}
@@ -73,7 +73,7 @@ func TestConfigApplyAllPaths(t *testing.T) {
 
 	// Test all configuration apply paths
 	testConfigs := []*Config{
-		{},                                    // Empty - should default to mem
+		{},                                   // Empty - should default to mem
 		{Type: Mem},                          // Explicit mem
 		{Type: Bbolt},                        // Bbolt without address
 		{Type: Bbolt, Address: "/tmp/test"},  // Bbolt with address
@@ -133,7 +133,7 @@ func TestItemMethodsComplete(t *testing.T) {
 	bytes := item.Bytes()
 	assert.Assert(t, len(bytes) > 0)
 
-	// Test String method  
+	// Test String method
 	str := item.String()
 	assert.Assert(t, str != "")
 	assert.Assert(t, len(str) > 0)
@@ -249,10 +249,10 @@ func TestMemCacheSetPrefixComplete(t *testing.T) {
 
 	// Get the underlying CacheMem to test SetPrefix
 	memCache := cache.(*baseCache).BaseCache.(*CacheMem)
-	
+
 	// SetPrefix is a no-op but should not panic
 	memCache.SetPrefix("test_prefix:")
-	
+
 	// Should work normally after SetPrefix
 	err := cache.Set("test", "value")
 	assert.NilError(t, err)
@@ -269,7 +269,7 @@ func TestConstructorFunctions(t *testing.T) {
 	if err == nil {
 		tmpfile.Close()
 		defer os.Remove(tmpfile.Name())
-		
+
 		bboltCache, err := NewBbolt(tmpfile.Name(), &bbolt.Options{})
 		if err == nil && bboltCache != nil {
 			bboltCache.Close()
@@ -334,7 +334,7 @@ func TestMemCacheEdgeCases(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, success, false)
 
-	// Test Ttl on nonexistent key  
+	// Test Ttl on nonexistent key
 	ttl, err := cache.Ttl("nonexistent")
 	assert.NilError(t, err)
 	assert.Equal(t, ttl, -2*time.Second)
@@ -347,13 +347,13 @@ func TestMemCacheEdgeCases(t *testing.T) {
 
 	// Test SRandMember edge cases
 	cache.SAdd("test_set", "a", "b", "c")
-	
+
 	// Test with count 0 (should return 1 member)
 	members, err := cache.SRandMember("test_set", 0)
 	assert.NilError(t, err)
 	assert.Equal(t, len(members), 1)
 
-	// Test with negative count 
+	// Test with negative count
 	members, err = cache.SRandMember("test_set", -1)
 	assert.NilError(t, err)
 	assert.Equal(t, len(members), 1)

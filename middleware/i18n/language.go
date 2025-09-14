@@ -2,9 +2,10 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lazygophers/log"
 	"golang.org/x/text/language"
-	"strings"
 )
 
 type LanguageCode struct {
@@ -21,10 +22,6 @@ func (l *LanguageCode) String() string {
 }
 
 func (l *LanguageCode) GoString() string {
-	return l.String()
-}
-
-func (l *LanguageCode) ʔ() string {
 	return l.String()
 }
 

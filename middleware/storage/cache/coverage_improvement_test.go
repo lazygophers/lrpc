@@ -105,7 +105,7 @@ func TestBaseCacheSlicesFullCoverage(t *testing.T) {
 	assert.Equal(t, len(float64Slice), 3)
 	assert.Equal(t, float64Slice[0], 1.1)
 
-	// Test GetBoolSlice with more scenarios  
+	// Test GetBoolSlice with more scenarios
 	cache.Set("bool_slice_errors", "[true,false,true]")
 	boolSlice, err := cache.GetBoolSlice("bool_slice_errors")
 	assert.NilError(t, err)
@@ -122,11 +122,11 @@ func TestCacheMemEdgeCases(t *testing.T) {
 	// Test Exists with multiple keys where some exist
 	cache.Set("exists1", "value")
 	cache.Set("exists2", "value")
-	
+
 	exists, err := cache.Exists("exists1", "exists2")
 	assert.NilError(t, err)
 	assert.Equal(t, exists, true)
-	
+
 	// Test with one non-existent key
 	exists, err = cache.Exists("exists1", "nonexistent")
 	assert.NilError(t, err)
@@ -134,7 +134,7 @@ func TestCacheMemEdgeCases(t *testing.T) {
 
 	// Test SRandMember with edge cases
 	cache.SAdd("rand_set", "a", "b", "c", "d", "e")
-	
+
 	// Test with count = 0 (should return 1 member by default when count <= 0)
 	members, err := cache.SRandMember("rand_set", 0)
 	assert.NilError(t, err)

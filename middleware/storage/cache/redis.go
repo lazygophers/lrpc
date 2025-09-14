@@ -2,10 +2,11 @@ package cache
 
 import (
 	"errors"
-	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils/candy"
-	"github.com/lazygophers/utils/atexit"
 	"time"
+
+	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/atexit"
+	"github.com/lazygophers/utils/candy"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/shomali11/xredis"
@@ -20,21 +21,21 @@ type CacheRedis struct {
 func (p *CacheRedis) Clean() error {
 	conn := p.cli.GetConnection()
 	defer conn.Close()
-	
+
 	keys, err := redis.Strings(conn.Do("KEYS", p.prefix+"*"))
 	if err != nil {
 		return err
 	}
-	
+
 	if len(keys) == 0 {
 		return nil
 	}
-	
+
 	args := make([]interface{}, len(keys))
 	for i, key := range keys {
 		args[i] = key
 	}
-	
+
 	_, err = conn.Do("DEL", args...)
 	return err
 }
@@ -103,7 +104,7 @@ func (p *CacheRedis) Get(key string) (string, error) {
 		return "", err
 	}
 	if !ok {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return val, nil
@@ -214,7 +215,7 @@ func (p *CacheRedis) HGet(key, field string) (string, error) {
 		return "", err
 	}
 	if !ok {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return val, nil

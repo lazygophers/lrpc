@@ -2,9 +2,10 @@ package core
 
 import (
 	"errors"
-	"github.com/lazygophers/log"
 	"strconv"
 	"strings"
+
+	"github.com/lazygophers/log"
 )
 
 const (

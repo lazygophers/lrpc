@@ -1,9 +1,10 @@
 package lrpc_test
 
 import (
+	"testing"
+
 	"github.com/lazygophers/lrpc"
 	"gotest.tools/v3/assert"
-	"testing"
 )
 
 func TestSearchTree(t *testing.T) {

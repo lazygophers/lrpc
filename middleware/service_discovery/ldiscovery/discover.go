@@ -3,6 +3,10 @@ package ldiscovery
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/storage/etcd"
@@ -12,9 +16,6 @@ import (
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/runtime"
 	"google.golang.org/protobuf/proto"
-	"os"
-	"path/filepath"
-	"sync"
 
 	"github.com/fsnotify/fsnotify"
 )

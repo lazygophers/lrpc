@@ -22,7 +22,7 @@ func TestCacheMem_BasicOperations(t *testing.T) {
 
 	// Test non-existent key
 	_, err = cache.Get("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestCacheMem_SetEx(t *testing.T) {
@@ -43,7 +43,7 @@ func TestCacheMem_SetEx(t *testing.T) {
 
 	// Should not exist after expiration
 	_, err = cache.Get("expiring_key")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestCacheMem_SetNx(t *testing.T) {
@@ -138,7 +138,7 @@ func TestCacheMem_Expire(t *testing.T) {
 
 	// Key should be expired
 	_, err = cache.Get("expire_test")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestCacheMem_Ttl(t *testing.T) {
@@ -188,7 +188,7 @@ func TestCacheMem_HashOperations(t *testing.T) {
 
 	// Test HGet non-existent field
 	_, err = cache.HGet("hash_key", "nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test HExists
 	exists, err := cache.HExists("hash_key", "field1")
@@ -322,10 +322,10 @@ func TestCacheMem_Del(t *testing.T) {
 
 	// Verify deletion
 	_, err = cache.Get("key1")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.Get("key2")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// key3 should still exist
 	value, err := cache.Get("key3")
@@ -347,10 +347,10 @@ func TestCacheMem_Clean(t *testing.T) {
 
 	// All keys should be gone
 	_, err = cache.Get("key1")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.Get("key2")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestCacheMem_ConcurrentAccess(t *testing.T) {
@@ -413,7 +413,7 @@ func TestCacheMem_AutoClear(t *testing.T) {
 
 	// The expired key should be cleaned up
 	_, err = cache.Get("expired_key")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// The new key should still exist
 	value, err := cache.Get("new_key")

@@ -3,11 +3,12 @@ package db
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"strconv"
 )
 
 // CASE WHEN (`a` = 1) THEN "1" WHEN (`b` = 2) THEN 2 ELSE 10 END

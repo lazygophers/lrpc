@@ -1,8 +1,9 @@
 package db
 
 import (
-	"gorm.io/gorm"
 	"reflect"
+
+	"gorm.io/gorm"
 )
 
 type Tabler interface {

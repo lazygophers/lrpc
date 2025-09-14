@@ -1,9 +1,10 @@
 package cache
 
 import (
-	"github.com/lazygophers/utils/app"
 	"os"
 	"path/filepath"
+
+	"github.com/lazygophers/utils/app"
 )
 
 const (

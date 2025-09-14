@@ -17,7 +17,7 @@ func TestBaseCacheExtensions(t *testing.T) {
 	cache.Set("int_key", "42")
 	cache.Set("float_key", "3.14")
 	cache.Set("slice_key", "[1,2,3]")
-	
+
 	// Test GetBool
 	boolVal, err := cache.GetBool("bool_key")
 	assert.NilError(t, err)
@@ -136,16 +136,16 @@ func TestBaseCacheErrorCases(t *testing.T) {
 
 	// Test with non-existent keys
 	_, err := cache.GetBool("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetInt("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetFloat32("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetIntSlice("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test with invalid numeric values (candy functions use defaults, don't return errors)
 	cache.Set("invalid_int", "not_a_number")
@@ -206,11 +206,11 @@ func TestBaseCacheJSON(t *testing.T) {
 
 	// Test GetJson and SetJson would require protobuf support
 	// These are currently not implemented in base.go and would return errors
-	
+
 	// Test HGetJson
 	jsonStr := `{"name":"Jane","age":25}`
 	cache.HSet("json_hash", "user", jsonStr)
-	
+
 	var result TestStruct
 	err := cache.HGetJson("json_hash", "user", &result)
 	assert.NilError(t, err)
@@ -219,7 +219,7 @@ func TestBaseCacheJSON(t *testing.T) {
 
 	// Test HGetJson with non-existent key
 	err = cache.HGetJson("nonexistent", "field", &result)
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test HGetJson with invalid JSON
 	cache.HSet("bad_json", "field", "not valid json")

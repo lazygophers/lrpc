@@ -2,14 +2,15 @@ package cache
 
 import (
 	"errors"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
 	"google.golang.org/protobuf/proto"
-	"time"
 )
 
-var NotFound = errors.New("key not found")
+var ErrNotFound = errors.New("key not found")
 
 type BaseCache interface {
 	SetPrefix(prefix string)

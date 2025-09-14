@@ -4,10 +4,11 @@ package db
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/glebarez/sqlite"
 	"github.com/lazygophers/log"
 	"gorm.io/gorm"
-	"path/filepath"
 )
 
 func newSqlite(c *Config) gorm.Dialector {

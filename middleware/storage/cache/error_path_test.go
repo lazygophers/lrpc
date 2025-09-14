@@ -3,8 +3,8 @@ package cache
 import (
 	"testing"
 
-	"gotest.tools/v3/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gotest.tools/v3/assert"
 )
 
 func TestBaseCacheProtobufErrorPaths(t *testing.T) {
@@ -21,7 +21,7 @@ func TestBaseCacheProtobufErrorPaths(t *testing.T) {
 	err := cache.SetPb("proto_test", testMsg)
 	assert.NilError(t, err)
 
-	// Test SetPbEx with marshaling error - using invalid message  
+	// Test SetPbEx with marshaling error - using invalid message
 	// Similar to above, testing normal flow
 	err = cache.SetPbEx("proto_test_ex", testMsg, 1)
 	assert.NilError(t, err)
@@ -32,30 +32,30 @@ func TestBaseCacheTypeConversionsErrorPaths(t *testing.T) {
 	defer cache.Close()
 
 	// Test all type conversion methods with non-existent keys to cover error paths
-	
+
 	// Test GetUint error path
 	_, err := cache.GetUint("nonexistent_uint")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetInt32 error path
 	_, err = cache.GetInt32("nonexistent_int32")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetUint32 error path
 	_, err = cache.GetUint32("nonexistent_uint32")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetInt64 error path
 	_, err = cache.GetInt64("nonexistent_int64")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetUint64 error path
 	_, err = cache.GetUint64("nonexistent_uint64")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetFloat64 error path
 	_, err = cache.GetFloat64("nonexistent_float64")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestBaseCacheSliceErrorPaths(t *testing.T) {
@@ -66,35 +66,35 @@ func TestBaseCacheSliceErrorPaths(t *testing.T) {
 
 	// Test GetBoolSlice error path
 	_, err := cache.GetBoolSlice("nonexistent_bool_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetUintSlice error path
 	_, err = cache.GetUintSlice("nonexistent_uint_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetInt32Slice error path
 	_, err = cache.GetInt32Slice("nonexistent_int32_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetUint32Slice error path
 	_, err = cache.GetUint32Slice("nonexistent_uint32_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetInt64Slice error path
 	_, err = cache.GetInt64Slice("nonexistent_int64_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetUint64Slice error path
 	_, err = cache.GetUint64Slice("nonexistent_uint64_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetFloat32Slice error path
 	_, err = cache.GetFloat32Slice("nonexistent_float32_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test GetFloat64Slice error path
 	_, err = cache.GetFloat64Slice("nonexistent_float64_slice")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestMemCacheCompleteExists(t *testing.T) {
