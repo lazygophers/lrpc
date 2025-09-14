@@ -85,6 +85,8 @@ test: test-setup ## 运行所有测试 (自动管理测试环境)
 	 export CLICKHOUSE_URL="tcp://localhost:19000?database=default" && \
 	 go test -v -timeout 30s ./... || (echo "测试失败!" && exit 1)
 
+	make clean
+
 test-with-coverage: test-setup ## 运行测试并生成覆盖率报告
 	@echo "运行测试并生成覆盖率报告..."
 	@export REDIS_URL="redis://localhost:${REDIS_PORT}" && \
@@ -160,7 +162,7 @@ clean-all: clean-files clean-cache clean-docker ## 完全清理 (所有文件、
 	@echo "🧹 执行完全清理..."
 	@echo "  检查端口占用..."
 	@lsof -ti:${REDIS_PORT} | xargs -r kill -9 2>/dev/null || true
-	@lsof -ti:${MYSQL_PORT} | xargs -r kill -9 2>/dev/null || true  
+	@lsof -ti:${MYSQL_PORT} | xargs -r kill -9 2>/dev/null || true
 	@lsof -ti:${CLICKHOUSE_PORT} | xargs -r kill -9 2>/dev/null || true
 	@echo "  清理Git临时文件..."
 	@git clean -fd 2>/dev/null || true
@@ -171,7 +173,7 @@ clean-check: ## 检查清理效果 (显示剩余的测试相关资源)
 	@echo ""
 	@echo "📁 文件检查:"
 	@echo "  覆盖率文件:" && find . -name "*.out" -o -name "coverage*.html" | head -5 || echo "    ✅ 无覆盖率文件"
-	@echo "  日志文件:" && find . -name "*.log" | head -5 || echo "    ✅ 无日志文件"  
+	@echo "  日志文件:" && find . -name "*.log" | head -5 || echo "    ✅ 无日志文件"
 	@echo "  临时文件:" && find . -name "*.tmp" -o -name "*.temp" | head -5 || echo "    ✅ 无临时文件"
 	@echo ""
 	@echo "🐳 Docker检查:"
@@ -190,7 +192,7 @@ clean-safe: ## 安全清理 (会先询问确认)
 	@echo ""
 	@echo "将要清理以下内容:"
 	@echo "  📁 所有生成的文件 (*.out, *.html, *.log, *.tmp)"
-	@echo "  🐳 所有测试Docker容器和相关资源"  
+	@echo "  🐳 所有测试Docker容器和相关资源"
 	@echo "  🌐 占用的测试端口 (${REDIS_PORT}, ${MYSQL_PORT}, ${CLICKHOUSE_PORT})"
 	@echo ""
 	@read -p "确认要继续吗? (y/N): " -n 1 -r; echo; \
