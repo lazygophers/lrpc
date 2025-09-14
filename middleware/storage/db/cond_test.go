@@ -1,11 +1,12 @@
 package db_test
 
 import (
-	"github.com/lazygophers/lrpc/middleware/storage/db"
-	"gotest.tools/v3/assert"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/lazygophers/lrpc/middleware/storage/db"
+	"gotest.tools/v3/assert"
 )
 
 func TestCond(t *testing.T) {

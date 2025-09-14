@@ -1,8 +1,9 @@
 package i18n
 
 import (
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"strconv"
+
+	"github.com/lazygophers/lrpc/middleware/xerror"
 )
 
 var _ xerror.I18n = (*I18nForXerror)(nil)

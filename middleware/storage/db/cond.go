@@ -2,10 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/lazygophers/log"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/lazygophers/log"
 )
 
 type Cond struct {

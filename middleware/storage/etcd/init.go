@@ -2,11 +2,12 @@ package etcd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/runtime"
 	"gopkg.in/yaml.v3"
-	"os"
-	"path/filepath"
 )
 
 var (

@@ -3,10 +3,11 @@
 package db
 
 import (
+	"path/filepath"
+
 	"github.com/lazygophers/log"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 	//_ "github.com/mutecomm/go-sqlcipher/v4"

@@ -3,8 +3,9 @@ package etcd
 import (
 	"context"
 	"errors"
-	"github.com/lazygophers/log"
 	"time"
+
+	"github.com/lazygophers/log"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"

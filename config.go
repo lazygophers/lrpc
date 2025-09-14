@@ -2,10 +2,11 @@ package lrpc
 
 import (
 	"errors"
+	"reflect"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/xerror"
-	"reflect"
 )
 
 type ListenData struct {

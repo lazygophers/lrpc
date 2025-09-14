@@ -2,9 +2,10 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/lazygophers/log"
 	"golang.org/x/text/language"
-	"strings"
 )
 
 type LanguageCode struct {

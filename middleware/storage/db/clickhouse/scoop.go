@@ -2,12 +2,13 @@ package clickhouse
 
 import (
 	"database/sql"
+	"reflect"
+	"strconv"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
-	"reflect"
-	"strconv"
 )
 
 type Scoop struct {

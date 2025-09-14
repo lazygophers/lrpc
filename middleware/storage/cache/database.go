@@ -3,11 +3,12 @@ package cache
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
 	"github.com/lazygophers/utils/candy"
-	"strings"
-	"time"
 )
 
 type Database struct {

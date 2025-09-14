@@ -1,16 +1,17 @@
 package ldiscovery
 
 import (
+	"math/rand"
+	"net"
+	"net/url"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
 	"github.com/valyala/fasthttp"
-	"math/rand"
-	"net"
-	"net/url"
-	"time"
 )
 
 func GetServer(name string) (*core.ServiceDiscoveryService, error) {

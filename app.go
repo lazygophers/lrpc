@@ -1,8 +1,9 @@
 package lrpc
 
 import (
-	"github.com/valyala/fasthttp"
 	"sync"
+
+	"github.com/valyala/fasthttp"
 )
 
 type App struct {

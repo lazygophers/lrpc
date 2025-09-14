@@ -2,10 +2,11 @@ package cache
 
 import (
 	"errors"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/shomali11/xredis"

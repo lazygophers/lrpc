@@ -2,10 +2,11 @@ package cache
 
 import (
 	"encoding/json"
-	"github.com/beefsack/go-rate"
-	"gorm.io/gorm/utils"
 	"math/rand"
 	"strconv"
+
+	"github.com/beefsack/go-rate"
+	"gorm.io/gorm/utils"
 
 	"sync"
 	"time"

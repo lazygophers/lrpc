@@ -1,0 +1,56 @@
+# golangci-lint configuration for LazyGophers Utils
+# Minimal configuration compatible with golangci-lint v2.4.0+
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - cyclop
+    - dupl
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocyclo
+    - godot
+    - gosec
+    - ireturn
+    - lll
+    - nakedret
+    - nestif
+    - nonamedreturns
+    - testpackage
+    - tparallel
+    - unparam
+  enable:
+    - bodyclose
+    - contextcheck
+    - durationcheck
+    - errname
+    - nilerr
+    - nilnil
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
+    - asciicheck
+    - bidichk
+    - grouper
+    - importas
+    - usestdlibvars
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+severity:
+  default: error

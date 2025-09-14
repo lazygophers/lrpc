@@ -3,10 +3,11 @@ package clickhouse
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	_ "gorm.io/driver/clickhouse"
-	"time"
 )
 
 type Client struct {

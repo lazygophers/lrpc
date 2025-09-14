@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
-	"strconv"
-	"time"
 )
 
 type CacheSugarDB struct {

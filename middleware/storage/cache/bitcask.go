@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"time"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
 	"go.mills.io/bitcask/v2"
-	"time"
 )
 
 type CacheBitcask struct {

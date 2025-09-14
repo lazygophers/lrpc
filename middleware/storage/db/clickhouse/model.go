@@ -2,8 +2,9 @@ package clickhouse
 
 import (
 	"database/sql"
-	"gorm.io/gorm"
 	"reflect"
+
+	"gorm.io/gorm"
 )
 
 type Tabler interface {
