@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils/candy"

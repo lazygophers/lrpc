@@ -2,7 +2,6 @@ package clickhouse
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type ModelScoop[M any] struct {
