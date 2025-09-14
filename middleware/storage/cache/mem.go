@@ -556,8 +556,8 @@ func (p *CacheMem) SetNx(key string, value interface{}) (bool, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	_, ok := p.data[key]
-	if ok {
+	item, ok := p.data[key]
+	if ok && (item.ExpireAt.IsZero() || time.Now().Before(item.ExpireAt)) {
 		return false, nil
 	}
 
@@ -574,8 +574,8 @@ func (p *CacheMem) SetNxWithTimeout(key string, value interface{}, timeout time.
 	p.Lock()
 	defer p.Unlock()
 
-	_, ok := p.data[key]
-	if ok {
+	item, ok := p.data[key]
+	if ok && (item.ExpireAt.IsZero() || time.Now().Before(item.ExpireAt)) {
 		return false, nil
 	}
 
