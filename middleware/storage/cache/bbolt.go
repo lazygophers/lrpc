@@ -159,12 +159,14 @@ func (p *CacheBbolt) Exists(keys ...string) (bool, error) {
 			}
 
 			var item Item
-			if err := json.Unmarshal(v, &item); err != nil {
-				allExist = false
-				return err
-			}
-
-			if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
+			if err := json.Unmarshal(v, &item); err == nil {
+				// Only process if JSON is valid
+				if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
+					allExist = false
+					return nil
+				}
+			} else {
+				// Treat invalid JSON as non-existent (graceful handling)
 				allExist = false
 				return nil
 			}
