@@ -2,40 +2,42 @@ name: Lint
 
 on:
     push:
-        branches: [master]
+        branches: [ master ]
     pull_request:
-        branches: [master]
+        branches: [ master ]
 
 jobs:
     golangci:
         name: lint
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+            -   name: Checkout
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
 
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  check-latest: true
+            -   name: Set up Go
+                uses: actions/setup-go@v5
+                with:
+                    check-latest: true
 
-            - name: Cache Go modules
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      ~/.cache/go-build
-                      ~/go/pkg/mod
-                  key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-                  restore-keys: |
-                      ${{ runner.os }}-go-
+            -   name: Cache Go modules
+                uses: actions/cache@v4
+                with:
+                    path: |
+                        ~/.cache/go-build
+                        ~/go/pkg/mod
+                    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                    restore-keys: |
+                        ${{ runner.os }}-go-
 
-            - name: Verify dependencies
-              run: go mod verify
+            -   name: Verify dependencies
+                run: go mod verify
 
-            - name: Run golangci-lint
-              uses: golangci/golangci-lint-action@v8
-              with:
-                  version: latest
-                  args: --timeout=10m --issues-exit-code=1
+            -   name: Run golangci-lint
+                uses: golangci/golangci-lint-action@v8
+                env:
+                    CGO_ENABLED: 0
+                with:
+                    version: latest
+                    args: --timeout=10m --issues-exit-code=1
