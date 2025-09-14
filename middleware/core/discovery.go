@@ -9,7 +9,7 @@ import (
 func (p *ServiceDiscoveryNode) key() string {
 	switch p.Type {
 	case ServiceType_Service:
-		return fmt.Sprintf("%s:%d", p.Host, p.Port)
+		return fmt.Sprintf("%s:%s", p.Host, p.Port)
 
 	default:
 		log.Panicf("service type %d not supported", p.Type)

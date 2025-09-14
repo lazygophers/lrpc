@@ -105,12 +105,12 @@ func (p *ModelScoop[M]) NotRightLike(column string, value string) *ModelScoop[M]
 }
 
 func (p *ModelScoop[M]) Between(column string, min, max interface{}) *ModelScoop[M] {
-	p.cond.whereRaw(fmt.Sprintf(quoteFieldName(column))+" BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 
 func (p *ModelScoop[M]) NotBetween(column string, min, max interface{}) *ModelScoop[M] {
-	p.cond.whereRaw(fmt.Sprintf(quoteFieldName(column))+" NOT BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
 	return p
 }
 
