@@ -1,7 +1,7 @@
 # LRPC项目Makefile
 # 用于管理测试环境和资源
 
-.PHONY: test test-with-coverage test-setup test-teardown clean clean-all clean-docker clean-files clean-cache clean-test clean-check clean-safe clean-emergency reset
+.PHONY: test test-with-coverage test-setup test-teardown clean clean-all clean-docker clean-files clean-cache clean-test clean-check clean-safe clean-emergency reset lint install-lint update-lint lint-fix lint-config format dev-check ci pre-commit
 .DEFAULT_GOAL := help
 
 # 测试端口配置
@@ -233,14 +233,52 @@ build: ## 构建项目
 	@echo "构建项目..."
 	@go build ./...
 
-lint: ## 运行代码检查
-	@echo "运行代码检查..."
-	@go vet ./...
+lint: ## 运行 golangci-lint 代码检查
+	@echo "运行 golangci-lint 代码检查..."
+	@which golangci-lint > /dev/null 2>&1 || (echo "未找到 golangci-lint，请运行 'make install-lint' 安装" && exit 1)
+	@golangci-lint run ./...
+
+install-lint: ## 安装 golangci-lint
+	@echo "安装 golangci-lint..."
+	@which golangci-lint > /dev/null 2>&1 && echo "golangci-lint 已安装" || \
+		(curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin latest)
+	@echo "golangci-lint 安装完成"
+
+update-lint: ## 更新 golangci-lint 到最新版本
+	@echo "更新 golangci-lint..."
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin latest
+	@echo "golangci-lint 更新完成"
+
+lint-fix: ## 运行 golangci-lint 并自动修复可修复的问题
+	@echo "运行 golangci-lint 自动修复..."
+	@which golangci-lint > /dev/null 2>&1 || (echo "未找到 golangci-lint，请运行 'make install-lint' 安装" && exit 1)
+	@golangci-lint run --fix ./...
+
+lint-config: ## 显示当前 golangci-lint 配置
+	@echo "当前 golangci-lint 配置:"
+	@which golangci-lint > /dev/null 2>&1 || (echo "未找到 golangci-lint，请运行 'make install-lint' 安装" && exit 1)
+	@golangci-lint config path
+	@echo ""
+	@echo "支持的 linters:"
+	@golangci-lint linters
+
+format: ## 格式化代码 (gofmt + goimports)
+	@echo "格式化代码..."
 	@go fmt ./...
+	@which goimports > /dev/null 2>&1 && goimports -w . || echo "提示: 安装 goimports 以获得更好的导入格式化 (go install golang.org/x/tools/cmd/goimports@latest)"
 
 # 快速开发循环
 dev-test: ## 开发模式: 快速运行测试 (使用现有环境)
 	@go test -v -short -timeout 10s ./...
+
+dev-check: format lint dev-test ## 开发模式: 完整检查 (格式化 + lint + 单元测试)
+	@echo "开发检查完成 ✅"
+
+ci: format lint test ## CI 模式: 完整的 CI 检查流程 (格式化 + lint + 完整测试)
+	@echo "CI 检查完成 ✅"
+
+pre-commit: format lint-fix dev-test ## 提交前检查 (格式化 + 自动修复 lint 问题 + 快速测试)
+	@echo "提交前检查完成 ✅"
 
 # 检查Docker是否可用
 check-docker:
