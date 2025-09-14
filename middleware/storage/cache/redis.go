@@ -104,7 +104,7 @@ func (p *CacheRedis) Get(key string) (string, error) {
 		return "", err
 	}
 	if !ok {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return val, nil
@@ -215,7 +215,7 @@ func (p *CacheRedis) HGet(key, field string) (string, error) {
 		return "", err
 	}
 	if !ok {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return val, nil

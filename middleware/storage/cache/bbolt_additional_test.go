@@ -60,7 +60,7 @@ func TestBboltErrorPaths(t *testing.T) {
 
 	// Test operations on non-existent keys/buckets
 	_, err = bboltCache.Get("nonexistent")
-	assert.Assert(t, err != nil) // Should return an error (may not be NotFound exactly)
+	assert.Assert(t, err != nil) // Should return an error (may not be ErrNotFound exactly)
 
 	// Test Exists with all non-existent keys
 	exists, err := bboltCache.Exists("nonexistent1", "nonexistent2")

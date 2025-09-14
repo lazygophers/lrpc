@@ -47,7 +47,7 @@ func TestBaseCacheProtobuf(t *testing.T) {
 	// Test GetPb with non-existent key
 	var notFound timestamppb.Timestamp
 	err = cache.GetPb("nonexistent_proto", &notFound)
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestBaseCacheProtobufErrors(t *testing.T) {

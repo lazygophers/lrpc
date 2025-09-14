@@ -312,6 +312,12 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		}
 	}
 	defer rows.Close()
+	
+	if err = rows.Err(); err != nil {
+		return &FindResult{
+			Error: err,
+		}
+	}
 
 	cols, err := rows.Columns()
 	if err != nil {

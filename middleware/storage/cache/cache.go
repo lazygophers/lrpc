@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var NotFound = errors.New("key not found")
+var ErrNotFound = errors.New("key not found")
 
 type BaseCache interface {
 	SetPrefix(prefix string)

@@ -131,7 +131,7 @@ func (m *mockBaseCache) Get(key string) (string, error) {
 	if val, ok := m.data[key]; ok {
 		return val, nil
 	}
-	return "", NotFound
+	return "", ErrNotFound
 }
 func (m *mockBaseCache) Set(key string, value any) error {
 	if m.data == nil {
@@ -157,7 +157,7 @@ func (m *mockBaseCache) Exists(keys ...string) (bool, error)                    
 func (m *mockBaseCache) HSet(key string, field string, value interface{}) (bool, error) {
 	return true, nil
 }
-func (m *mockBaseCache) HGet(key, field string) (string, error)           { return "", NotFound }
+func (m *mockBaseCache) HGet(key, field string) (string, error)           { return "", ErrNotFound }
 func (m *mockBaseCache) HDel(key string, fields ...string) (int64, error) { return 1, nil }
 func (m *mockBaseCache) HKeys(key string) ([]string, error)               { return []string{}, nil }
 func (m *mockBaseCache) HGetAll(key string) (map[string]string, error) {

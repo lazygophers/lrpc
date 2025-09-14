@@ -49,7 +49,7 @@ func TestCacheMem_Reset(t *testing.T) {
 
 	// Verify data is gone
 	_, err = cache.Get("key1")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 }
 
 func TestCacheMem_SetPrefix(t *testing.T) {
@@ -125,7 +125,7 @@ func TestCacheMem_HashComplexOperations(t *testing.T) {
 	// Test HGet with invalid JSON
 	cache.Set("bad_hash3", "not valid json")
 	_, err = cache.HGet("bad_hash3", "field")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test HExists with invalid JSON
 	exists, err := cache.HExists("bad_hash3", "field")
@@ -230,7 +230,7 @@ func TestCacheMem_HashOperationsEdgeCases(t *testing.T) {
 
 	// Test operations on non-existent hash
 	_, err := cache.HGet("nonexistent_hash", "field")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	exists, err := cache.HExists("nonexistent_hash", "field")
 	assert.NilError(t, err)

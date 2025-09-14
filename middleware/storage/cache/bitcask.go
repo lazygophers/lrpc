@@ -24,7 +24,7 @@ func (p *CacheBitcask) Get(key string) (string, error) {
 	value, err := p.cli.Get(bitcask.Key(key))
 	if err != nil {
 		if err == bitcask.ErrKeyNotFound {
-			return "", NotFound
+			return "", ErrNotFound
 		}
 		return "", err
 	}

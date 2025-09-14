@@ -32,7 +32,7 @@ func (p *Database) coverError(err error) error {
 	}
 
 	if err == sql.ErrNoRows {
-		return NotFound
+		return ErrNotFound
 	}
 
 	return err
@@ -111,7 +111,7 @@ func (p *Database) Ttl(key string) (time.Duration, error) {
 func (p *Database) Expire(key string, timeout time.Duration) (bool, error) {
 	res, err := p.db.Exec(fmt.Sprintf("update %s set e = ? where k = ?", p.tableName), time.Now().Add(timeout).Unix(), key)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	return utils.Ignore(res.RowsAffected()) > 0, nil
 }

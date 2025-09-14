@@ -29,7 +29,7 @@ func (p *CacheBbolt) getBucket(tx *bbolt.Tx, write bool) (*bbolt.Bucket, error) 
 	}
 	b := tx.Bucket([]byte(p.prefix))
 	if b == nil {
-		return nil, NotFound
+		return nil, ErrNotFound
 	}
 	return b, nil
 }
@@ -161,7 +161,7 @@ func (p *CacheBbolt) Exists(keys ...string) (bool, error) {
 			var item Item
 			if err := json.Unmarshal(v, &item); err != nil {
 				allExist = false
-				return nil
+				return err
 			}
 
 			if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
@@ -430,7 +430,7 @@ func (p *CacheBbolt) SisMember(key, field string) (bool, error) {
 func (p *CacheBbolt) HExists(key string, field string) (bool, error) {
 	_, err := p.HGet(key, field)
 	if err != nil {
-		if err == NotFound {
+		if err == ErrNotFound {
 			return false, nil
 		}
 		return false, err
@@ -497,7 +497,7 @@ func (p *CacheBbolt) HGet(key, field string) (string, error) {
 		b := tx.Bucket([]byte(p.prefix))
 		v := b.Get([]byte(hashKey))
 		if v == nil {
-			return NotFound
+			return ErrNotFound
 		}
 
 		var item Item
@@ -506,7 +506,7 @@ func (p *CacheBbolt) HGet(key, field string) (string, error) {
 		}
 
 		if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
-			return NotFound
+			return ErrNotFound
 		}
 
 		value = item.Data
@@ -627,7 +627,7 @@ func (p *CacheBbolt) Get(key string) (string, error) {
 		}
 		v := b.Get([]byte(key))
 		if v == nil {
-			return NotFound
+			return ErrNotFound
 		}
 
 		var item Item
@@ -637,7 +637,7 @@ func (p *CacheBbolt) Get(key string) (string, error) {
 		}
 
 		if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
-			return NotFound
+			return ErrNotFound
 		}
 
 		value = item.Data

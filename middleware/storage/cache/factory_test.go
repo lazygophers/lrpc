@@ -30,11 +30,11 @@ func TestCacheFactory(t *testing.T) {
 	emptyCache.Close()
 }
 
-func TestNotFoundError(t *testing.T) {
-	// Test NotFound error type
-	assert.Equal(t, NotFound.Error(), "key not found")
+func TestErrNotFoundError(t *testing.T) {
+	// Test ErrNotFound error type
+	assert.Equal(t, ErrNotFound.Error(), "key not found")
 
 	// Test that it's comparable
-	err := NotFound
-	assert.Assert(t, err == NotFound)
+	err := ErrNotFound
+	assert.Assert(t, err == ErrNotFound)
 }

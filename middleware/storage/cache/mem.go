@@ -443,17 +443,17 @@ func (p *CacheMem) HGet(key, field string) (string, error) {
 
 	item, exists := p.data[key]
 	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	var hashMap map[string]string
 	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	value, exists := hashMap[field]
 	if !exists {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return value, nil
@@ -596,11 +596,11 @@ func (p *CacheMem) Get(key string) (string, error) {
 
 	val, ok := p.data[key]
 	if !ok {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	if !val.ExpireAt.IsZero() && time.Now().After(val.ExpireAt) {
-		return "", NotFound
+		return "", ErrNotFound
 	}
 
 	return val.Data, nil

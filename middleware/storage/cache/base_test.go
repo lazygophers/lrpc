@@ -136,16 +136,16 @@ func TestBaseCacheErrorCases(t *testing.T) {
 
 	// Test with non-existent keys
 	_, err := cache.GetBool("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetInt("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetFloat32("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	_, err = cache.GetIntSlice("nonexistent")
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test with invalid numeric values (candy functions use defaults, don't return errors)
 	cache.Set("invalid_int", "not_a_number")
@@ -219,7 +219,7 @@ func TestBaseCacheJSON(t *testing.T) {
 
 	// Test HGetJson with non-existent key
 	err = cache.HGetJson("nonexistent", "field", &result)
-	assert.Equal(t, err, NotFound)
+	assert.Equal(t, err, ErrNotFound)
 
 	// Test HGetJson with invalid JSON
 	cache.HSet("bad_json", "field", "not valid json")

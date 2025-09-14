@@ -61,7 +61,7 @@ func TestBboltCacheImplementation(t *testing.T) {
 	// Should expire
 	time.Sleep(150 * time.Millisecond)
 	_, err = bboltCache.Get("expire_key")
-	assert.Assert(t, err == NotFound)
+	assert.Assert(t, err == ErrNotFound)
 
 	// Test TTL
 	err = bboltCache.SetEx("ttl_key", "value", 1*time.Hour)
@@ -169,7 +169,7 @@ func TestBboltHashOperations(t *testing.T) {
 
 	// Verify deletion
 	_, err = bboltCache.HGet("hash_key", "field2")
-	assert.Assert(t, err == NotFound)
+	assert.Assert(t, err == ErrNotFound)
 }
 
 func TestBboltSetOperations(t *testing.T) {
@@ -270,7 +270,7 @@ func TestBboltSetNxOperations(t *testing.T) {
 	// Should expire
 	time.Sleep(150 * time.Millisecond)
 	_, err = bboltCache.Get("nx_timeout")
-	assert.Assert(t, err == NotFound)
+	assert.Assert(t, err == ErrNotFound)
 }
 
 func TestBboltCleanOperation(t *testing.T) {
@@ -300,10 +300,10 @@ func TestBboltCleanOperation(t *testing.T) {
 
 	// Verify data is gone
 	_, err = bboltCache.Get("key1")
-	assert.Assert(t, err == NotFound)
+	assert.Assert(t, err == ErrNotFound)
 
 	_, err = bboltCache.HGet("hash", "field")
-	assert.Assert(t, err == NotFound)
+	assert.Assert(t, err == ErrNotFound)
 
 	members, err := bboltCache.SMembers("set")
 	assert.NilError(t, err)

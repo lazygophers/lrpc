@@ -39,7 +39,7 @@ func NewClient(c *db.Config) (*Client, error) {
 	dbConn, err := sql.Open("clickhouse", dsn)
 	if err != nil {
 		log.Errorf("err:%v", err)
-		return nil, nil
+		return nil, err
 	}
 	// TODO 其他的sql操作
 	dbConn.SetMaxOpenConns(50)

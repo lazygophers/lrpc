@@ -340,6 +340,12 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		}
 	}
 	defer rows.Close()
+	
+	if err = rows.Err(); err != nil {
+		return &FindResult{
+			Error: err,
+		}
+	}
 
 	cols, err := rows.Columns()
 	if err != nil {
@@ -511,6 +517,15 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		}
 	}
 	defer rows.Close()
+	
+	if err = rows.Err(); err != nil {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, -1
+		}, err)
+		return &FirstResult{
+			Error: err,
+		}
+	}
 
 	cols, err := rows.Columns()
 	if err != nil {
