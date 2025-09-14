@@ -14,8 +14,8 @@ type CacheSugarDB struct {
 }
 
 func (p *CacheSugarDB) Clean() error {
-	//TODO implement me
-	panic("implement me")
+	p.cli.Flush(-1)
+	return nil
 }
 
 func (p *CacheSugarDB) SetPrefix(prefix string) {
@@ -25,7 +25,7 @@ func (p *CacheSugarDB) Get(key string) (string, error) {
 	value, err := p.cli.Get(key)
 	if err != nil {
 		log.Errorf("err:%v", err)
-		return "", err
+		return "", ErrNotFound
 	}
 	if value == "" {
 		return "", ErrNotFound
@@ -135,8 +135,12 @@ func (p *CacheSugarDB) DecrBy(key string, val int64) (int64, error) {
 }
 
 func (p *CacheSugarDB) Exists(keys ...string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+	count, err := p.cli.Exists(keys...)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (p *CacheSugarDB) HSet(key string, field string, value interface{}) (bool, error) {
@@ -181,8 +185,20 @@ func (p *CacheSugarDB) HKeys(key string) ([]string, error) {
 }
 
 func (p *CacheSugarDB) HGetAll(key string) (map[string]string, error) {
-	//TODO implement me
-	panic("implement me")
+	values, err := p.cli.HGetAll(key)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	
+	result := make(map[string]string)
+	for i := 0; i < len(values); i += 2 {
+		if i+1 < len(values) {
+			result[values[i]] = values[i+1]
+		}
+	}
+	
+	return result, nil
 }
 
 func (p *CacheSugarDB) HExists(key string, field string) (bool, error) {
@@ -206,43 +222,74 @@ func (p *CacheSugarDB) HIncrBy(key string, field string, increment int64) (int64
 }
 
 func (p *CacheSugarDB) HDecr(key string, field string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	return p.HDecrBy(key, field, 1)
 }
 
 func (p *CacheSugarDB) HDecrBy(key string, field string, increment int64) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	value, err := p.cli.HIncrBy(key, field, -int(increment))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return -1, err
+	}
+	return int64(value), nil
 }
 
 func (p *CacheSugarDB) SAdd(key string, members ...string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	value, err := p.cli.SAdd(key, members...)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return -1, err
+	}
+	return int64(value), nil
 }
 
 func (p *CacheSugarDB) SMembers(key string) ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+	values, err := p.cli.SMembers(key)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return values, nil
 }
 
 func (p *CacheSugarDB) SRem(key string, members ...string) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	value, err := p.cli.SRem(key, members...)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return -1, err
+	}
+	return int64(value), nil
 }
 
 func (p *CacheSugarDB) SRandMember(key string, count ...int64) ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+	cnt := 1
+	if len(count) > 0 {
+		cnt = int(count[0])
+	}
+	
+	values, err := p.cli.SRandMember(key, cnt)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return values, nil
 }
 
 func (p *CacheSugarDB) SPop(key string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	values, err := p.cli.SPop(key, 1)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return "", err
+	}
+	
+	if len(values) == 0 {
+		return "", ErrNotFound
+	}
+	return values[0], nil
 }
 
 func (p *CacheSugarDB) SisMember(key, field string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+	return p.cli.SisMember(key, field)
 }
 
 func (p *CacheSugarDB) Del(key ...string) error {
