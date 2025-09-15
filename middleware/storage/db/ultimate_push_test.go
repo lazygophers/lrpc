@@ -51,7 +51,7 @@ func setupUltimatePushDB(t *testing.T) (*db.Client, *db.Model[UltimatePushModel]
 }
 
 // TestPrintFunctionUltimate targets the empty Print function specifically
-func TestPrintFunctionUltimate(t *testing.T) {
+func TestPrintFunctionUltimatePush(t *testing.T) {
 	t.Run("test Print function - empty implementation", func(t *testing.T) {
 		// The Print function in log.go:111 is empty: func (*mysqlLogger) Print(v ...interface{}) {}
 		// We need to instantiate mysqlLogger and call Print to achieve coverage
