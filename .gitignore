@@ -9,4 +9,4 @@ coverage-*.html
 *.prof
 *.test
 *.log
-middleware/storage/cache/aof/
+/middleware/storage/cache/aof
