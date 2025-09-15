@@ -109,5 +109,7 @@ type mysqlLogger struct {
 }
 
 func (*mysqlLogger) Print(v ...interface{}) {
-
+	// MySQL driver logger implementation - intentionally minimal
+	// This satisfies the mysql driver's Logger interface requirement
+	_ = v // explicitly use the parameter to satisfy linters
 }
