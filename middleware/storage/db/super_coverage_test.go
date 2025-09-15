@@ -133,6 +133,10 @@ func TestDecodeFunctionSuper(t *testing.T) {
 
 					t.Logf("Scanned %d columns for %s", len(cols), testCase.name)
 				}
+				
+				if err := rows.Err(); err != nil {
+					t.Logf("Rows error for %s: %v", testCase.name, err)
+				}
 			})
 		}
 

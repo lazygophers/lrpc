@@ -94,9 +94,14 @@ func TestPrintFunctionCoverage(t *testing.T) {
 		}
 
 		// Test operations that might trigger Print with actual errors
-		_, err := debugDB.WithContext(ctx).Raw("INVALID SQL STATEMENT").Rows()
+		rows, err := debugDB.WithContext(ctx).Raw("INVALID SQL STATEMENT").Rows()
 		if err != nil {
 			t.Logf("Invalid SQL operation failed as expected: %v", err)
+		} else if rows != nil {
+			defer rows.Close()
+			if err := rows.Err(); err != nil {
+				t.Logf("Rows error: %v", err)
+			}
 		}
 
 		// Create and drop table operations to trigger more logger calls

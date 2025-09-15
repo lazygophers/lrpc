@@ -120,6 +120,7 @@ func TestDecodeFunctionUltra(t *testing.T) {
 				t.Logf("Query '%s' failed: %v", query, err)
 				continue
 			}
+			defer rows.Close()
 
 			for rows.Next() {
 				cols, err := rows.Columns()
@@ -142,7 +143,10 @@ func TestDecodeFunctionUltra(t *testing.T) {
 					t.Logf("Query '%s' scanned %d columns", query, len(values))
 				}
 			}
-			rows.Close()
+			
+			if err := rows.Err(); err != nil {
+				t.Logf("Rows error for query '%s': %v", query, err)
+			}
 		}
 
 		// Test direct scoop operations that might trigger decode

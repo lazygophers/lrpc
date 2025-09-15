@@ -133,6 +133,10 @@ func TestDecodeFunction_ErrorPaths(t *testing.T) {
 				}
 				t.Logf("Successfully scanned malformed data: slice=%s, map=%s, pointer=%s", slice, mapData, pointer)
 			}
+			
+			if err := rows.Err(); err != nil {
+				t.Logf("Rows error: %v", err)
+			}
 		})
 
 		// Test case 2: Force decode with invalid data types
@@ -182,6 +186,10 @@ func TestDecodeFunction_ErrorPaths(t *testing.T) {
 					t.Logf("Scanned error test data: int=%s, uint=%s, float=%s, bool=%s", 
 						intVal, uintVal, floatVal, boolVal)
 				}
+			}
+			
+			if err := rows.Err(); err != nil {
+				t.Logf("Rows error: %v", err)
 			}
 		})
 
@@ -309,8 +317,20 @@ func TestGetTableName_FallbackLogic(t *testing.T) {
 						defer sqlDB.Close()
 						
 						// Perform SQL operations
-						_, err = sqlDB.Query("SELECT name FROM sqlite_master WHERE type='table'")
-						return err
+						rows, err := sqlDB.Query("SELECT name FROM sqlite_master WHERE type='table'")
+						if err != nil {
+							return err
+						}
+						defer rows.Close()
+						
+						for rows.Next() {
+							var name string
+							if scanErr := rows.Scan(&name); scanErr != nil {
+								return scanErr
+							}
+						}
+						
+						return rows.Err()
 					},
 				},
 			}
@@ -544,6 +564,11 @@ func TestComplexScenarios_FinalPush(t *testing.T) {
 							count++
 							t.Logf("Scanned row %d: name=%s, binary_len=%d", count, name, len(binary))
 						}
+					}
+					
+					if err := rows.Err(); err != nil {
+						t.Logf("Rows error: %v", err)
+						return err
 					}
 					return nil
 				},

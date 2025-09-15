@@ -143,6 +143,10 @@ func TestDecodeFunctionPrecision(t *testing.T) {
 
 			t.Logf("Successfully decoded %d columns with various data types", len(cols))
 		}
+		
+		if err := rows.Err(); err != nil {
+			t.Logf("Rows error: %v", err)
+		}
 
 		// Test Find operations that trigger decode with struct fields
 		results, err := model.NewScoop().Find()
@@ -228,6 +232,10 @@ func TestDecodeErrorCases(t *testing.T) {
 			} else {
 				t.Logf("Scan with problematic data unexpectedly succeeded")
 			}
+		}
+		
+		if err := rows.Err(); err != nil {
+			t.Logf("Rows error: %v", err)
 		}
 
 		t.Logf("Decode error testing completed")
@@ -344,6 +352,10 @@ func TestBoolDecodeVariations(t *testing.T) {
 
 			t.Logf("Bool test values: true1=%s, true2=%s, false1=%s, false2=%s, invalid=%s", 
 				trueVal1, trueVal2, falseVal1, falseVal2, invalidVal)
+		}
+		
+		if err := rows.Err(); err != nil {
+			t.Logf("Rows error: %v", err)
 		}
 
 		t.Logf("Boolean decode variations testing completed")

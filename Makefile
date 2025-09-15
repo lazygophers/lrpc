@@ -122,6 +122,7 @@ clean-files: ## 清理所有生成的文件 (覆盖率报告、日志等)
 	@find . -name "*.log" -type f -exec rm -f {} \; 2>/dev/null || true
 	@find . -name "*.tmp" -type f -exec rm -f {} \; 2>/dev/null || true
 	@find . -name "*.temp" -type f -exec rm -f {} \; 2>/dev/null || true
+	@find . -name "*.test" -type f -exec rm -f {} \; 2>/dev/null || true
 	@echo "  清理临时文件..."
 	@rm -rf .tmp/ tmp/ temp/ 2>/dev/null || true
 	@rm -f nohup.out 2>/dev/null || true

@@ -376,6 +376,10 @@ func TestDecodeFunctionAdvancedCoverage(t *testing.T) {
 
 					t.Logf("Successfully decoded %d columns for %s", len(cols), testCase.name)
 				}
+				
+				if err := rows.Err(); err != nil {
+					t.Logf("Rows error for %s: %v", testCase.name, err)
+				}
 			})
 		}
 

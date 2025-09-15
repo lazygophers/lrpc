@@ -221,6 +221,10 @@ func TestDecodeFunctionBreakthrough(t *testing.T) {
 						t.Logf("Decode succeeded for %s", test.name)
 					}
 				}
+				
+				if err := rows.Err(); err != nil {
+					t.Logf("Rows error for %s: %v", test.name, err)
+				}
 			})
 		}
 

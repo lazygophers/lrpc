@@ -206,6 +206,10 @@ func TestDecodeFunctionComprehensive(t *testing.T) {
 						t.Logf("Successfully decoded %d columns for %s: %s", len(cols), testCase.name, testCase.description)
 					}
 				}
+				
+				if err := rows.Err(); err != nil {
+					t.Logf("Rows error for %s: %v", testCase.name, err)
+				}
 			})
 		}
 
