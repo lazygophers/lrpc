@@ -788,3 +788,34 @@ func TestI18n_localizeWithDefaultFallback(t *testing.T) {
 	assert.Equal(t, "US Specific", value)
 	assert.True(t, found)
 }
+
+func TestI18n_LoadLocalizesWithFs_SpecificErrors(t *testing.T) {
+	t.Run("file read error in actual function", func(t *testing.T) {
+		i18n := NewI18n()
+		mockFs := newMockFs()
+		
+		// Create a directory entry but no corresponding file
+		mockFs.dirs["test"] = []fs.DirEntry{
+			&mockDirEntry{name: "en.json"},
+		}
+		// Intentionally don't add the file to trigger ReadFile error
+		
+		err := i18n.LoadLocalizesWithFs("test", mockFs)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "file not found")
+	})
+	
+	t.Run("json unmarshal error in actual function", func(t *testing.T) {
+		i18n := NewI18n()
+		mockFs := newMockFs()
+		
+		// Create malformed JSON that will cause unmarshal error
+		mockFs.dirs["test"] = []fs.DirEntry{
+			&mockDirEntry{name: "bad.json"},
+		}
+		mockFs.files["test/bad.json"] = []byte(`{"key": value without quotes}`)
+		
+		err := i18n.LoadLocalizesWithFs("test", mockFs)
+		assert.Error(t, err)
+	})
+}
