@@ -77,7 +77,7 @@ func (p *Error) Is(err error) bool {
 		return x.Code == p.Code
 	}
 
-	return errors.Is(p, err)
+	return false
 }
 
 func (p *Error) CheckCode(code int32) bool {
