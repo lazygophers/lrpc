@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/utils"
 	"github.com/lazygophers/utils/json"
+	"github.com/lazygophers/utils/validator"
 	"github.com/valyala/fasthttp"
 	"google.golang.org/protobuf/proto"
 )
@@ -138,7 +138,7 @@ func (p *Ctx) BodyParser(o any) (err error) {
 				return err
 			}
 
-			err = utils.Validate(v)
+			err = validator.Struct(v)
 			if err != nil {
 				log.Errorf("err:%v", err)
 				return err
@@ -154,7 +154,7 @@ func (p *Ctx) BodyParser(o any) (err error) {
 		return err
 	}
 
-	err = utils.Validate(o)
+	err = validator.Struct(o)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
