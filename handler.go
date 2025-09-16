@@ -6,7 +6,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/utils"
+	"github.com/lazygophers/utils/validator"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -137,7 +137,7 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 				return err
 			}
 
-			err = utils.Validate(req.Interface())
+			err = validator.Struct(req.Interface())
 			if err != nil {
 				log.Errorf("err:%v", err)
 				p.afterHandlerWithRef(ctx, req, err)
@@ -228,7 +228,7 @@ func (p *App) ToHandlerFunc(logic any) HandlerFunc {
 				return err
 			}
 
-			err = utils.Validate(req.Interface())
+			err = validator.Struct(req.Interface())
 			if err != nil {
 				return err
 			}
