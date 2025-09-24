@@ -59,6 +59,13 @@ func (p *ListOption) AddOption(key int32, value string) *ListOption {
 }
 
 func (p *ListOption) Clone() *ListOption {
+	if p == nil {
+		return &ListOption{
+			Offset: defaultOffset,
+			Limit:  defaultLimit,
+		}
+	}
+
 	return &ListOption{
 		Offset:    p.Offset,
 		Limit:     p.Limit,
@@ -72,6 +79,13 @@ func (p *ListOption) Processor() *ListOptionProcessor {
 }
 
 func (p *ListOption) Paginate() *Paginate {
+	if p == nil {
+		return &Paginate{
+			Offset: defaultOffset,
+			Limit:  defaultLimit,
+		}
+	}
+
 	return &Paginate{
 		Offset: p.Offset,
 		Limit:  p.Limit,
