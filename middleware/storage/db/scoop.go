@@ -374,6 +374,18 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 
 // ——————————操作——————————
 
+// handleAutoTimeField sets auto timestamp fields (CreatedAt/UpdatedAt) if they are zero.
+// Returns true if the field was auto-set, false otherwise.
+func handleAutoTimeField(field *schema.Field, fieldValue reflect.Value) bool {
+	if field.AutoCreateTime != 0 && fieldValue.IsZero() {
+		if field.DataType == "int64" || field.DataType == "uint64" {
+			fieldValue.SetInt(time.Now().Unix())
+			return true
+		}
+	}
+	return false
+}
+
 // buildInsertSQL constructs an INSERT statement with proper IGNORE/ON CONFLICT handling
 // based on the database type. It supports single-row and multi-row insertions.
 // columns: list of column names
@@ -818,19 +830,15 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	values := make([]interface{}, 0, fieldCount)
 
 	for _, field := range stmt.Schema.Fields {
-		if field.AutoCreateTime != 0 && vv.FieldByName(field.Name).IsZero() {
-			// Set auto create time for CreatedAt/UpdatedAt
-			if field.DataType == "int64" || field.DataType == "uint64" {
-				vv.FieldByName(field.Name).SetInt(time.Now().Unix())
-			}
-		}
+		fieldValue := vv.FieldByName(field.Name)
+
+		// Set auto create time for CreatedAt/UpdatedAt if needed
+		handleAutoTimeField(field, fieldValue)
 
 		// Skip auto increment primary key if it's zero
-		if field.AutoIncrement && vv.FieldByName(field.Name).IsZero() {
+		if field.AutoIncrement && fieldValue.IsZero() {
 			continue
 		}
-
-		fieldValue := vv.FieldByName(field.Name)
 
 		// Handle soft delete field - insert 0 for nil *time.Time
 		if field.Name == structFieldDeletedAt && fieldValue.Kind() == reflect.Ptr {
@@ -1063,10 +1071,8 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 				fieldValue := rowValue.FieldByName(info.field.Name)
 
 				// Set auto time if field is zero
-				if info.isAutoTime && fieldValue.IsZero() {
-					if info.field.DataType == "int64" || info.field.DataType == "uint64" {
-						fieldValue.SetInt(time.Now().Unix())
-					}
+				if info.isAutoTime {
+					handleAutoTimeField(info.field, fieldValue)
 				}
 
 				// Handle soft delete field - insert 0 for nil *time.Time
