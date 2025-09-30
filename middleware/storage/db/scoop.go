@@ -713,18 +713,21 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	// Set the auto-generated ID back to the struct if applicable
 	if res.RowsAffected > 0 {
 		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
-			// Get the last insert ID from the same connection
-			sqlDB, err := p._db.DB()
-			if err == nil {
-				var lastInsertID int64
-				if p.clientType == Sqlite {
-					err = sqlDB.QueryRow("SELECT last_insert_rowid()").Scan(&lastInsertID)
-				} else if p.clientType == MySQL {
-					err = sqlDB.QueryRow("SELECT LAST_INSERT_ID()").Scan(&lastInsertID)
-				}
-				if err == nil && lastInsertID > 0 {
-					field.SetInt(lastInsertID)
-				}
+			// Get the last insert ID using a single connection query
+			// This ensures we get the ID from the same connection that performed the INSERT
+			var lastInsertID int64
+			var queryErr error
+
+			if p.clientType == Sqlite {
+				queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
+			} else if p.clientType == MySQL {
+				queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
+			}
+
+			if queryErr != nil {
+				log.Errorf("err:%v", queryErr)
+			} else if lastInsertID > 0 {
+				field.SetInt(lastInsertID)
 			}
 		}
 	}
