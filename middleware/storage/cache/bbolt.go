@@ -35,15 +35,31 @@ func (p *CacheBbolt) getBucket(tx *bbolt.Tx, write bool) (*bbolt.Bucket, error) 
 }
 
 func (p *CacheBbolt) Clean() error {
-	return p.conn.Update(func(tx *bbolt.Tx) error {
+	err := p.conn.Update(func(tx *bbolt.Tx) error {
 		b, err := p.getBucket(tx, false)
 		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
-		return b.ForEach(func(k, v []byte) error {
-			return b.Delete(k)
+		err = b.ForEach(func(k, v []byte) error {
+			err := b.Delete(k)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+			return nil
 		})
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		return nil
 	})
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *CacheBbolt) SetPrefix(prefix string) {
@@ -64,12 +80,15 @@ func (p *CacheBbolt) IncrBy(key string, value int64) (int64, error) {
 		var current int64
 		if v != nil {
 			var item Item
-			if err := json.Unmarshal(v, &item); err == nil {
+			err := json.Unmarshal(v, &item)
+			if err == nil {
 				if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
 					current = 0 // Expired, treat as 0
 				} else {
 					current, _ = strconv.ParseInt(item.Data, 10, 64)
 				}
+			} else {
+				log.Errorf("err:%v", err)
 			}
 		}
 
@@ -85,7 +104,12 @@ func (p *CacheBbolt) IncrBy(key string, value int64) (int64, error) {
 }
 
 func (p *CacheBbolt) DecrBy(key string, value int64) (int64, error) {
-	return p.IncrBy(key, -value)
+	result, err := p.IncrBy(key, -value)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return result, nil
 }
 
 func (p *CacheBbolt) Expire(key string, timeout time.Duration) (bool, error) {
@@ -99,12 +123,19 @@ func (p *CacheBbolt) Expire(key string, timeout time.Duration) (bool, error) {
 
 		found = true
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
 		item.ExpireAt = time.Now().Add(timeout)
-		return b.Put([]byte(key), item.Bytes())
+		err = b.Put([]byte(key), item.Bytes())
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		return nil
 	})
 
 	return found, err
