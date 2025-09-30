@@ -169,7 +169,7 @@ type Scoop struct {
 }
 
 func NewScoop(db *gorm.DB, clientType string) *Scoop {
-	return &Scoop{
+	s := &Scoop{
 		depth:      3,
 		clientType: clientType,
 		_db: db.Session(&gorm.Session{
@@ -177,6 +177,9 @@ func NewScoop(db *gorm.DB, clientType string) *Scoop {
 			Initialized: true,
 		}),
 	}
+	// Set clientType in cond for proper field quoting
+	s.cond.clientType = clientType
+	return s
 }
 
 func (p *Scoop) getNotFoundError() error {
@@ -336,12 +339,12 @@ func (p *Scoop) NotRightLike(column string, value string) *Scoop {
 }
 
 func (p *Scoop) Between(column string, min, max interface{}) *Scoop {
-	p.cond.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column, p.clientType)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 
 func (p *Scoop) NotBetween(column string, min, max interface{}) *Scoop {
-	p.cond.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column, p.clientType)+" NOT BETWEEN ? AND ?", min, max)
 	return p
 }
 
@@ -454,12 +457,19 @@ func (p *Scoop) buildInsertSQL(columns []string, placeholders string) string {
 
 	if p.ignore {
 		switch p.clientType {
-		case MySQL:
+		case MySQL, TiDB:
+			// MySQL and TiDB use INSERT IGNORE
 			return "INSERT IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
 		case Sqlite:
+			// SQLite uses INSERT OR IGNORE
 			return "INSERT OR IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
-		case Postgres:
+		case Postgres, GaussDB:
+			// PostgreSQL and GaussDB use ON CONFLICT DO NOTHING
 			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders + " ON CONFLICT DO NOTHING"
+		case ClickHouse:
+			// ClickHouse doesn't support INSERT IGNORE, use regular INSERT
+			// Duplicate handling should be done via ReplacingMergeTree or deduplication
+			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
 		default:
 			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
 		}
@@ -934,7 +944,33 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	session := p._db.Session(&gorm.Session{
 		PrepareStmt: false,
 	})
-	res := session.Exec(insertSQL, values...)
+
+	// For PostgreSQL/GaussDB with auto-increment ID, use RETURNING clause for better performance
+	var lastInsertID int64
+	var res *gorm.DB
+	if p.clientType == Postgres || p.clientType == GaussDB {
+		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+			// Check if id column was included in the insert
+			hasIdColumn := false
+			for _, col := range columns {
+				if col == "id" {
+					hasIdColumn = true
+					break
+				}
+			}
+			if !hasIdColumn {
+				// Use RETURNING clause to get the ID in one query
+				insertSQL += " RETURNING id"
+				res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
+			} else {
+				res = session.Exec(insertSQL, values...)
+			}
+		} else {
+			res = session.Exec(insertSQL, values...)
+		}
+	} else {
+		res = session.Exec(insertSQL, values...)
+	}
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return insertSQL, res.RowsAffected
@@ -956,27 +992,30 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	// Set the auto-generated ID back to the struct if applicable
 	if res.RowsAffected > 0 {
 		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
-			// Get the last insert ID using a single connection query
-			// This ensures we get the ID from the same connection that performed the INSERT
-			var lastInsertID int64
-			var queryErr error
-
-			switch p.clientType {
-			case Sqlite:
-				queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
-			case MySQL:
-				queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
-			case Postgres:
-				// For Postgres, query the current value of the sequence
-				// Assumes the sequence name follows the pattern: tablename_id_seq
-				sequenceName := p.table + "_id_seq"
-				queryErr = session.Raw("SELECT currval(?)", sequenceName).Scan(&lastInsertID).Error
-			}
-
-			if queryErr != nil {
-				log.Errorf("err:%v", queryErr)
-			} else if lastInsertID > 0 {
+			// For PostgreSQL/GaussDB, lastInsertID was already set via RETURNING clause
+			if (p.clientType == Postgres || p.clientType == GaussDB) && lastInsertID > 0 {
 				field.SetInt(lastInsertID)
+			} else {
+				// For MySQL/TiDB and SQLite, query the last insert ID
+				var queryErr error
+
+				switch p.clientType {
+				case Sqlite:
+					queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
+				case MySQL, TiDB:
+					queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
+				case ClickHouse:
+					// ClickHouse doesn't support auto-increment IDs in the traditional sense
+					// IDs should be generated by the application or use UUID
+					// Log a warning and skip
+					log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+				}
+
+				if queryErr != nil {
+					log.Errorf("err:%v", queryErr)
+				} else if lastInsertID > 0 {
+					field.SetInt(lastInsertID)
+				}
 			}
 		}
 	}
@@ -1322,7 +1361,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		if i > 0 {
 			sqlRaw.WriteString(", ")
 		}
-		sqlRaw.WriteString(quoteFieldName(k))
+		sqlRaw.WriteString(quoteFieldName(k, p.clientType))
 		sqlRaw.WriteString("=")
 
 		// Handle clause.Expr with proper type assertion

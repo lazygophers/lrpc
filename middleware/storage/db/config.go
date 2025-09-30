@@ -12,17 +12,22 @@ import (
 )
 
 const (
-	Sqlite   = "sqlite"
-	MySQL    = "mysql"
-	Postgres = "postgres"
+	Sqlite     = "sqlite"
+	MySQL      = "mysql"
+	Postgres   = "postgres"
+	ClickHouse = "clickhouse"
+	TiDB       = "tidb"
+	GaussDB    = "gaussdb"
 )
 
 type Config struct {
-	// Database type, support sqlite, mysql, postgres, sqlserver, default sqlite
+	// Database type, support sqlite, mysql, postgres, clickhouse, tidb, gaussdb, default sqlite
 	// sqlite: sqlite|sqlite3
 	// mysql: mysql
 	// postgres: postgres|pg|postgresql|pgsql
-	// sqlserver: sqlserver|mssql
+	// clickhouse: clickhouse|ch
+	// tidb: tidb (MySQL-compatible)
+	// gaussdb: gaussdb (PostgreSQL-compatible)
 	Type string `yaml:"type,omitempty" json:"type,omitempty"`
 
 	// Database debug, default false
@@ -32,21 +37,27 @@ type Config struct {
 	// sqlite: full filepath, default exec path
 	// mysql: database address, default 127.0.0.1
 	// postgres: database address, default 127.0.0.1
-	// sqlserver: database address, default 127.0.0.1
+	// clickhouse: database address, default 127.0.0.1
+	// tidb: database address, default 127.0.0.1
+	// gaussdb: database address, default 127.0.0.1
 	Address string `yaml:"address,omitempty" json:"address,omitempty"`
 
 	// Database port
 	// sqlite: empty
 	// mysql: database port, default 3306
 	// postgres: database port, default 5432
-	// sqlserver: database port, default 1433
+	// clickhouse: database port, default 9000 (native) or 8123 (http)
+	// tidb: database port, default 4000
+	// gaussdb: database port, default 5432
 	Port int `yaml:"port,omitempty" json:"port,omitempty"`
 
 	// Database name
 	// sqlite: database file name, default ice.db
 	// mysql: database name, default ice
 	// postgres: database name, default ice
-	// sqlserver: database name, default ice
+	// clickhouse: database name, default default
+	// tidb: database name, default ice
+	// gaussdb: database name, default ice
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 
 	// Database username
@@ -65,8 +76,7 @@ type Config struct {
 
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
-	Logger     logger.Interface `json:"-" yaml:"-"`
-	GormLogger logger.Interface `json:"-" yaml:"-"`
+	Logger logger.Interface `json:"-" yaml:"-"`
 }
 
 func (c *Config) apply() {
@@ -104,7 +114,52 @@ func (c *Config) apply() {
 		}
 
 	case "postgres", "pg", "postgresql", "pgsql":
-		c.Type = "postgres"
+		c.Type = Postgres
+
+		if c.Address == "" {
+			c.Address = "127.0.0.1"
+		}
+
+		if c.Port == 0 {
+			c.Port = 5432
+		}
+
+		if c.Name == "" {
+			c.Name = app.Name
+		}
+
+	case "clickhouse", "ch":
+		c.Type = ClickHouse
+
+		if c.Address == "" {
+			c.Address = "127.0.0.1"
+		}
+
+		if c.Port == 0 {
+			c.Port = 9000 // Native protocol port
+		}
+
+		if c.Name == "" {
+			c.Name = "default"
+		}
+
+	case "tidb":
+		c.Type = TiDB
+
+		if c.Address == "" {
+			c.Address = "127.0.0.1"
+		}
+
+		if c.Port == 0 {
+			c.Port = 4000
+		}
+
+		if c.Name == "" {
+			c.Name = app.Name
+		}
+
+	case "gaussdb":
+		c.Type = GaussDB
 
 		if c.Address == "" {
 			c.Address = "127.0.0.1"
@@ -169,6 +224,60 @@ func (c *Config) DSN() string {
 		}
 
 		return dsn + "?" + query.Encode()
+
+	case MySQL:
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			c.Username, c.Password, c.Address, c.Port, c.Name)
+
+	case Postgres:
+		query := &url.Values{}
+		query.Set("sslmode", "disable")
+		query.Set("TimeZone", "Asia/Shanghai")
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
+			c.Address, c.Port, c.Username, c.Password, c.Name, query.Encode())
+
+	case ClickHouse:
+		// ClickHouse native protocol DSN
+		// clickhouse://username:password@host:port/database?dial_timeout=10s&max_execution_time=60
+		query := &url.Values{}
+		query.Set("dial_timeout", "10s")
+		query.Set("max_execution_time", "60")
+		query.Set("read_timeout", "30s")
+		query.Set("write_timeout", "30s")
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		if c.Username != "" && c.Password != "" {
+			return fmt.Sprintf("clickhouse://%s:%s@%s:%d/%s?%s",
+				c.Username, c.Password, c.Address, c.Port, c.Name, query.Encode())
+		}
+		return fmt.Sprintf("clickhouse://%s:%d/%s?%s",
+			c.Address, c.Port, c.Name, query.Encode())
+
+	case TiDB:
+		// TiDB is MySQL-compatible, use same DSN format as MySQL
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			c.Username, c.Password, c.Address, c.Port, c.Name)
+
+	case GaussDB:
+		// GaussDB is PostgreSQL-compatible, use same DSN format as PostgreSQL
+		query := &url.Values{}
+		query.Set("sslmode", "disable")
+		query.Set("TimeZone", "Asia/Shanghai")
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
+			c.Address, c.Port, c.Username, c.Password, c.Name, query.Encode())
 
 	default:
 		return ""
