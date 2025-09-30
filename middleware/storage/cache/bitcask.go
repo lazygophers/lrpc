@@ -74,6 +74,7 @@ func (p *CacheBitcask) Clean() error {
 func (p *CacheBitcask) Get(key string) (string, error) {
 	item, err := p.getItem(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return "", err
 	}
 	return item.Data, nil
@@ -83,7 +84,12 @@ func (p *CacheBitcask) Set(key string, value any) error {
 	item := &Item{
 		Data: candy.ToString(value),
 	}
-	return p.cli.Put(bitcask.Key(key), bitcask.Value(item.Bytes()))
+	err := p.cli.Put(bitcask.Key(key), bitcask.Value(item.Bytes()))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *CacheBitcask) SetEx(key string, value any, timeout time.Duration) error {
@@ -91,7 +97,12 @@ func (p *CacheBitcask) SetEx(key string, value any, timeout time.Duration) error
 		Data:     candy.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
-	return p.cli.Put(bitcask.Key(key), bitcask.Value(item.Bytes()))
+	err := p.cli.Put(bitcask.Key(key), bitcask.Value(item.Bytes()))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *CacheBitcask) SetNx(key string, value interface{}) (bool, error) {
@@ -140,6 +151,7 @@ func (p *CacheBitcask) Ttl(key string) (time.Duration, error) {
 		if err == ErrNotFound {
 			return -2 * time.Second, nil // Key doesn't exist
 		}
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -161,6 +173,7 @@ func (p *CacheBitcask) Expire(key string, timeout time.Duration) (bool, error) {
 		if err == ErrNotFound {
 			return false, nil
 		}
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
@@ -175,11 +188,21 @@ func (p *CacheBitcask) Expire(key string, timeout time.Duration) (bool, error) {
 }
 
 func (p *CacheBitcask) Incr(key string) (int64, error) {
-	return p.IncrBy(key, 1)
+	val, err := p.IncrBy(key, 1)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) Decr(key string) (int64, error) {
-	return p.IncrBy(key, -1)
+	val, err := p.IncrBy(key, -1)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) IncrBy(key string, value int64) (int64, error) {
@@ -206,7 +229,12 @@ func (p *CacheBitcask) IncrBy(key string, value int64) (int64, error) {
 }
 
 func (p *CacheBitcask) DecrBy(key string, value int64) (int64, error) {
-	return p.IncrBy(key, -value)
+	val, err := p.IncrBy(key, -value)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) Exists(keys ...string) (bool, error) {
@@ -238,7 +266,11 @@ func (p *CacheBitcask) HSet(key string, field string, value interface{}) (bool, 
 
 func (p *CacheBitcask) HGet(key, field string) (string, error) {
 	hashKey := fmt.Sprintf("%s:hash:%s", key, field)
-	return p.Get(hashKey)
+	value, err := p.Get(hashKey)
+	if err != nil {
+		return "", err
+	}
+	return value, nil
 }
 
 func (p *CacheBitcask) HDel(key string, fields ...string) (int64, error) {
@@ -327,20 +359,40 @@ func (p *CacheBitcask) HExists(key string, field string) (bool, error) {
 }
 
 func (p *CacheBitcask) HIncr(key string, subKey string) (int64, error) {
-	return p.HIncrBy(key, subKey, 1)
+	val, err := p.HIncrBy(key, subKey, 1)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) HIncrBy(key string, field string, increment int64) (int64, error) {
 	hashKey := fmt.Sprintf("%s:hash:%s", key, field)
-	return p.IncrBy(hashKey, increment)
+	val, err := p.IncrBy(hashKey, increment)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) HDecr(key string, field string) (int64, error) {
-	return p.HIncrBy(key, field, -1)
+	val, err := p.HIncrBy(key, field, -1)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) HDecrBy(key string, field string, increment int64) (int64, error) {
-	return p.HIncrBy(key, field, -increment)
+	val, err := p.HIncrBy(key, field, -increment)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheBitcask) SAdd(key string, members ...string) (int64, error) {
@@ -444,6 +496,7 @@ func (p *CacheBitcask) SRem(key string, members ...string) (int64, error) {
 func (p *CacheBitcask) SRandMember(key string, count ...int64) ([]string, error) {
 	members, err := p.SMembers(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -471,6 +524,7 @@ func (p *CacheBitcask) SRandMember(key string, count ...int64) ([]string, error)
 func (p *CacheBitcask) SPop(key string) (string, error) {
 	members, err := p.SMembers(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return "", err
 	}
 
@@ -495,6 +549,7 @@ func (p *CacheBitcask) SPop(key string) (string, error) {
 func (p *CacheBitcask) SisMember(key, field string) (bool, error) {
 	members, err := p.SMembers(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
@@ -518,7 +573,12 @@ func (p *CacheBitcask) Del(key ...string) error {
 }
 
 func (p *CacheBitcask) Close() error {
-	return p.cli.Close()
+	err := p.cli.Close()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *CacheBitcask) SetPrefix(prefix string) {
