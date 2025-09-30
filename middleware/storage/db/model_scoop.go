@@ -399,11 +399,10 @@ func (p *ModelScoop[M]) Chunk(size uint64, fc func(tx *Scoop, out []*M, offset u
 }
 
 func (p *ModelScoop[M]) CreateInBatches(values []*M, batchSize int) *CreateInBatchesResult {
-	if values == nil {
-		err := fmt.Errorf("CreateInBatches failed: input parameter values is nil")
-		log.Errorf("err:%v", err)
+	if len(values) == 0 {
 		return &CreateInBatchesResult{
-			Error: err,
+			RowsAffected: 0,
+			Error:        nil,
 		}
 	}
 
