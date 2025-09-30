@@ -52,15 +52,14 @@ func simpleTypeToStr(value interface{}, quoteSlice bool) string {
 	case bool:
 		if v {
 			return "1"
-		} else {
-			return "0"
 		}
+		return "0"
 	}
 	// 容器单独处理
 	switch vo.Kind() {
 	case reflect.Slice, reflect.Array:
-		var elList []string
 		count := vo.Len()
+		elList := make([]string, 0, count)
 		for x := 0; x < count; x++ {
 			el := vo.Index(x)
 			elList = append(elList, simpleTypeToStr(el.Interface(), quoteSlice))
@@ -90,7 +89,7 @@ func (p *Cond) whereRaw(cond string, values ...interface{}) {
 		if len(list)-1 != len(values) {
 			log.Warnf("invalid number of values, q %d, v %d", len(list)-1, len(values))
 		}
-		var out []string
+		out := make([]string, 0, len(list)+len(values))
 		for i := 0; i < len(list); i++ {
 			out = append(out, list[i])
 			if i < len(list)-1 && i < len(values) {
@@ -112,39 +111,25 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 	if op == "" {
 		panic(fmt.Sprintf("empty op for field %s", fieldName))
 	}
+
+	valStr := simpleTypeToStr(val, true)
+	var cond string
 	if p.tablePrefix == "" {
-		p.conds = append(p.conds,
-			fmt.Sprintf("(%s %s %s)", quoteFieldName(fieldName), op, simpleTypeToStr(val, true)))
+		cond = fmt.Sprintf("(%s %s %s)", quoteFieldName(fieldName), op, valStr)
 	} else {
-		p.conds = append(p.conds, fmt.Sprintf("(%s.%s %s %s)", p.tablePrefix, fieldName, op, simpleTypeToStr(val, true)))
+		cond = fmt.Sprintf("(%s.%s %s %s)", p.tablePrefix, fieldName, op, valStr)
 	}
+	p.conds = append(p.conds, cond)
 }
 
 func getFirstInvalidFieldNameCharIndex(s string) int {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if c == '_' {
+		// Valid characters: alphanumeric, underscore, space, dot, backtick
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+			c == '_' || c == ' ' || c == '.' || c == '`' {
 			continue
 		}
-		if c == ' ' {
-			continue
-		}
-		if c == '.' {
-			continue
-		}
-		if c == '`' {
-			continue
-		}
-		if c >= 'a' && c <= 'z' {
-			continue
-		}
-		if c >= 'A' && c <= 'Z' {
-			continue
-		}
-		if c >= '0' && c <= '9' {
-			continue
-		}
-
 		return i
 	}
 	return -1
@@ -170,11 +155,12 @@ func (p *Cond) addCmdCond(cmd string, cond interface{}) {
 	} else if strings.HasPrefix(cmd, "and") {
 		p.addSubWhere(false, cond)
 	} else if strings.HasPrefix(cmd, "raw") {
-		var list []interface{}
 		vo := reflect.ValueOf(cond)
 		vk := vo.Kind()
+		var list []interface{}
 		if vk == reflect.Slice || vk == reflect.Array {
 			n := vo.Len()
+			list = make([]interface{}, 0, n)
 			for i := 0; i < n; i++ {
 				vv := vo.Index(i)
 				if !vv.CanInterface() {
@@ -183,7 +169,8 @@ func (p *Cond) addCmdCond(cmd string, cond interface{}) {
 				list = append(list, vv.Interface())
 			}
 		} else {
-			list = append(list, cond)
+			list = make([]interface{}, 1)
+			list[0] = cond
 		}
 		if len(list) == 0 {
 			panic("$raw list empty")
@@ -224,15 +211,15 @@ func getOp(fieldName string) (newFieldName, op string) {
 	return
 }
 
-// Where 支持多种调用形式
+// where 支持多种调用形式：
 //   - map[string]interface{} 多个条件
 //     key -> field name [op], op 选填，可以这样写, fieldName> 表示 >, fieldName Like 表示 like 操作
 //     val -> 任意类型
 //   - []interface{}
 //     interface{} 可以是:
-//   - []string, 可以写成 {"fieldName", "op"?, value}
-//   - map[string]interface{}
-//   - fieldName 'op'? arg, op 不填，也就是只有两个入参时，表示是相当操作 =
+//     - []string, 可以写成 {"fieldName", "op"?, value}
+//     - map[string]interface{}
+//   - fieldName 'op'? arg, op 不填，也就是只有两个入参时，表示是相等操作 =
 //   - 自己构造的sql条件，比如: a = ? or (c = ? and d = ?), x, y, z
 func (p *Cond) where(args ...interface{}) {
 	if len(args) == 0 {
@@ -350,7 +337,9 @@ func (p *Cond) where(args ...interface{}) {
 			} else {
 				var list []interface{}
 				if vk == reflect.Slice || vk == reflect.Array {
-					for ii := 0; ii < v.Len(); ii++ {
+					vLen := v.Len()
+					list = make([]interface{}, 0, vLen)
+					for ii := 0; ii < vLen; ii++ {
 						vv := v.Index(ii)
 						if !vv.CanInterface() {
 							panic("slice element can't convert to interface")
@@ -361,7 +350,8 @@ func (p *Cond) where(args ...interface{}) {
 					if !v.CanInterface() {
 						panic("slice element can't convert to interface")
 					}
-					list = append(list, v.Interface())
+					list = make([]interface{}, 1)
+					list[0] = v.Interface()
 				}
 				p.where(list...)
 			}
@@ -442,6 +432,22 @@ func (p *Cond) NotLike(column string, value string) *Cond {
 		return p
 	}
 	p.where(column, "NOT LIKE", "%"+value+"%")
+	return p
+}
+
+func (p *Cond) NotLeftLike(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
+	p.where(column, "NOT LIKE", value+"%")
+	return p
+}
+
+func (p *Cond) NotRightLike(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
+	p.where(column, "NOT LIKE", "%"+value)
 	return p
 }
 
