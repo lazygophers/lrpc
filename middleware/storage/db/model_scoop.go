@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/utils/candy"
@@ -169,6 +171,7 @@ func (p *ModelScoop[M]) First() (*M, error) {
 	var m M
 	err := p.Scoop.First(&m).Error
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -182,6 +185,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 	var ms []*M
 	err := p.Scoop.Find(&ms).Error
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -189,10 +193,20 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 }
 
 func (p *ModelScoop[M]) Create(m *M) error {
+	if m == nil {
+		err := fmt.Errorf("Create failed: input parameter m is nil")
+		log.Errorf("err:%v", err)
+		return err
+	}
+
 	p.inc()
 	defer p.dec()
 
-	return p.Scoop.Create(m).Error
+	err := p.Scoop.Create(m).Error
+	if err != nil {
+		log.Errorf("err:%v", err)
+	}
+	return err
 }
 
 type FirstOrCreateResult[M any] struct {
@@ -203,6 +217,14 @@ type FirstOrCreateResult[M any] struct {
 }
 
 func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
+	if m == nil {
+		err := fmt.Errorf("FirstOrCreate failed: input parameter m is nil")
+		log.Errorf("err:%v", err)
+		return &FirstOrCreateResult[M]{
+			Error: err,
+		}
+	}
+
 	p.inc()
 	defer p.dec()
 
@@ -216,22 +238,25 @@ func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 					err = p.Scoop.First(&mm).Error
 					if err != nil {
 						if p.IsNotFound(err) {
+							log.Errorf("err:%v", p.getDuplicatedKeyError())
 							return &FirstOrCreateResult[M]{
 								Error: p.getDuplicatedKeyError(),
 							}
 						}
 
+						log.Errorf("err:%v", err)
 						return &FirstOrCreateResult[M]{
 							Error: err,
 						}
 					}
 
 					return &FirstOrCreateResult[M]{
-						IsCreated: true,
+						IsCreated: false,
 						Object:    &mm,
 					}
 				}
 
+				log.Errorf("err:%v", err)
 				return &FirstOrCreateResult[M]{
 					Error: err,
 				}
@@ -241,6 +266,7 @@ func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 				Object:    m,
 			}
 		}
+		log.Errorf("err:%v", err)
 		return &FirstOrCreateResult[M]{
 			Error: err,
 		}
@@ -256,11 +282,20 @@ type CreateIfNotExistsResult struct {
 }
 
 func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
+	if m == nil {
+		err := fmt.Errorf("CreateIfNotExists failed: input parameter m is nil")
+		log.Errorf("err:%v", err)
+		return &CreateIfNotExistsResult{
+			Error: err,
+		}
+	}
+
 	p.inc()
 	defer p.dec()
 
 	exist, err := p.Exist()
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return &CreateIfNotExistsResult{
 			Error: err,
 		}
@@ -277,6 +312,7 @@ func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
 		if p.IsDuplicatedKeyError(err) {
 			exist, err = p.Exist()
 			if err != nil {
+				log.Errorf("err:%v", err)
 				return &CreateIfNotExistsResult{
 					Error: err,
 				}
@@ -286,6 +322,7 @@ func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
 				return &CreateIfNotExistsResult{}
 			}
 
+			log.Errorf("err:%v", p.getDuplicatedKeyError())
 			return &CreateIfNotExistsResult{
 				Error: p.getDuplicatedKeyError(),
 			}
@@ -309,50 +346,15 @@ type UpdateOrCreateResult[M any] struct {
 	Object *M
 }
 
+// UpdateOrCreate is an alias for CreateOrUpdate for backward compatibility.
+// It performs the same operation: finds a record, updates it if found, creates it if not.
+// Deprecated: Use CreateOrUpdate instead, which provides more detailed status information.
 func (p *ModelScoop[M]) UpdateOrCreate(values map[string]interface{}, m *M) *UpdateOrCreateResult[M] {
-	p.inc()
-	defer p.dec()
-
-	var mm M
-	err := p.Scoop.First(&mm).Error
-	if err != nil {
-		if p.IsNotFound(err) {
-			err = p.Scoop.Create(m).Error
-			if err != nil {
-				return &UpdateOrCreateResult[M]{
-					Error: err,
-				}
-			}
-			return &UpdateOrCreateResult[M]{
-				IsCreated: true,
-				Object:    m,
-			}
-		}
-
-		return &UpdateOrCreateResult[M]{
-			Error: err,
-		}
-	}
-
-	err = p.Scoop.Updates(values).Error
-	if err != nil {
-		return &UpdateOrCreateResult[M]{
-			Error: err,
-		}
-	}
-
-	err = p.Scoop.First(&mm).Error
-	if err != nil {
-		return &UpdateOrCreateResult[M]{
-			Error: err,
-		}
-	}
-
-	// TODO: candy.DeepCopy
-	//candy.DeepCopy(&mm, m)
-
+	result := p.CreateOrUpdate(values, m)
 	return &UpdateOrCreateResult[M]{
-		Object: &mm,
+		IsCreated: result.Created,
+		Error:     result.Error,
+		Object:    result.Object,
 	}
 }
 
@@ -363,35 +365,15 @@ type CreateNotExistResult[M any] struct {
 	Object *M
 }
 
+// CreateNotExist is an alias for FirstOrCreate for backward compatibility.
+// It performs the same operation: finds a record, returns it if found, creates it if not.
+// Deprecated: Use FirstOrCreate instead, which provides the same functionality.
 func (p *ModelScoop[M]) CreateNotExist(m *M) *CreateNotExistResult[M] {
-	p.inc()
-	defer p.dec()
-
-	var mm M
-	err := p.Scoop.First(&mm).Error
-	if err != nil {
-		if p.IsNotFound(err) {
-			err = p.Scoop.Create(m).Error
-			if err != nil {
-				return &CreateNotExistResult[M]{
-					Error: err,
-				}
-			}
-			return &CreateNotExistResult[M]{
-				IsCreated: true,
-				Object:    m,
-			}
-		}
-		return &CreateNotExistResult[M]{
-			Error: err,
-		}
-	}
-
-	// TODO: candy.DeepCopy
-	//candy.DeepCopy(&mm, m)
-
+	result := p.FirstOrCreate(m)
 	return &CreateNotExistResult[M]{
-		Object: &mm,
+		IsCreated: result.IsCreated,
+		Error:     result.Error,
+		Object:    result.Object,
 	}
 }
 
@@ -414,6 +396,14 @@ type CreateOrUpdateResult[M any] struct {
 }
 
 func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *CreateOrUpdateResult[M] {
+	if m == nil {
+		err := fmt.Errorf("CreateOrUpdate failed: input parameter m is nil")
+		log.Errorf("err:%v", err)
+		return &CreateOrUpdateResult[M]{
+			Error: err,
+		}
+	}
+
 	p.inc()
 	defer p.dec()
 
@@ -423,6 +413,7 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 		if p.IsNotFound(err) {
 			err = p.Scoop.Create(m).Error
 			if err != nil {
+				log.Errorf("err:%v", err)
 				return &CreateOrUpdateResult[M]{
 					Error: err,
 				}
@@ -433,6 +424,7 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 			}
 		}
 
+		log.Errorf("err:%v", err)
 		return &CreateOrUpdateResult[M]{
 			Error: err,
 		}
@@ -440,6 +432,7 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 
 	err = p.Scoop.Updates(values).Error
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return &CreateOrUpdateResult[M]{
 			Error: err,
 		}
@@ -447,6 +440,7 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 
 	err = p.Scoop.First(&mm).Error
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return &CreateOrUpdateResult[M]{
 			Error: err,
 		}
@@ -456,7 +450,8 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 	//candy.DeepCopy(&mm, m)
 
 	return &CreateOrUpdateResult[M]{
-		Object: &mm,
+		Updated: true,
+		Object:  &mm,
 	}
 }
 
@@ -465,5 +460,8 @@ func (p *ModelScoop[M]) FindByPage(opt *core.ListOption) (page *core.Paginate, v
 	defer p.dec()
 
 	page, err = p.Scoop.FindByPage(opt, &values)
+	if err != nil {
+		log.Errorf("err:%v", err)
+	}
 	return page, values, err
 }
