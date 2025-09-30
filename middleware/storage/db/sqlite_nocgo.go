@@ -1,5 +1,5 @@
-//go:build !cgo
-// +build !cgo
+//go:build !sqlite_cgo
+// +build !sqlite_cgo
 
 package db
 
@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// newSqliteCGODialector is a no-op for no-CGO builds
-// This will cause a compile error if SqliteCGO is used without CGO
+// newSqliteCGODialector is a no-op for builds without sqlite_cgo tag
+// This will panic if SqliteCGO type is used without the proper build tag
 func newSqliteCGODialector(dsn string) gorm.Dialector {
-	panic("sqlite-cgo requires CGO to be enabled. Please rebuild with CGO_ENABLED=1 or use 'sqlite' type instead")
+	panic("sqlite-cgo requires CGO to be enabled. Please rebuild with: go build -tags sqlite_cgo")
 }
