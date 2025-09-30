@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
 	"google.golang.org/protobuf/proto"
@@ -136,11 +137,19 @@ type Item struct {
 }
 
 func (p *Item) Bytes() []byte {
-	buf, _ := json.Marshal(p)
+	buf, err := json.Marshal(p)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil
+	}
 	return buf
 }
 
 func (p *Item) String() string {
-	str, _ := json.MarshalString(p)
+	str, err := json.MarshalString(p)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return ""
+	}
 	return str
 }
