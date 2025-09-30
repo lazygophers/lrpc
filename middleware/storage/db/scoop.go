@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -841,7 +841,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	// Check for nil database connection
 	if p._db == nil {
 		return &CreateResult{
-			Error: errors.New("database connection is nil"),
+			Error: fmt.Errorf("Create failed: database connection is nil"),
 		}
 	}
 
@@ -859,7 +859,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		p.table = getTableName(elem)
 		if p.table == "" {
 			return &CreateResult{
-				Error: errors.New("table name is empty"),
+				Error: fmt.Errorf("Create failed: unable to determine table name for type %v", elem),
 			}
 		}
 	}
@@ -996,7 +996,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 	// Check for nil database connection
 	if p._db == nil {
 		return &CreateInBatchesResult{
-			Error: errors.New("database connection is nil"),
+			Error: fmt.Errorf("CreateInBatches failed: database connection is nil"),
 		}
 	}
 
@@ -1026,7 +1026,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		p.table = getTableName(elem)
 		if p.table == "" {
 			return &CreateInBatchesResult{
-				Error: errors.New("table name is empty"),
+				Error: fmt.Errorf("CreateInBatches failed: unable to determine table name for type %v", elem),
 			}
 		}
 	}
@@ -1262,7 +1262,7 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 	if len(updateMap) == 0 {
 		return &UpdateResult{
-			Error: errors.New("updateMap is empty"),
+			Error: fmt.Errorf("Update failed: updateMap is empty, no values to update"),
 		}
 	}
 
@@ -1387,7 +1387,7 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	mType := mVal.Type()
 	if mType.Kind() != reflect.Struct {
 		return &UpdateResult{
-			Error: errors.New("m must be map or struct"),
+			Error: fmt.Errorf("Updates failed: expected struct, got %v", mType.Kind()),
 		}
 	}
 
@@ -1407,7 +1407,7 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 
 	if len(valMap) == 0 {
 		return &UpdateResult{
-			Error: errors.New("no field need to update"),
+			Error: fmt.Errorf("Updates failed: no non-zero fields found in struct %v to update", mType),
 		}
 	}
 	return p.update(valMap)
