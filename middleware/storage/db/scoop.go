@@ -585,11 +585,15 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 
 	vv := reflect.ValueOf(out)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &FindResult{
+			Error: fmt.Errorf("Find failed: out parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 	vv = vv.Elem()
 	if vv.Type().Kind() != reflect.Slice {
-		panic("invalid out type, not slice")
+		return &FindResult{
+			Error: fmt.Errorf("Find failed: out parameter must be a pointer to slice, got pointer to %v", vv.Type().Kind()),
+		}
 	}
 
 	elem := vv.Type().Elem()
@@ -673,12 +677,16 @@ func (p *Scoop) Chunk(dest interface{}, size uint64, fc func(tx *Scoop, offset u
 
 	vv := reflect.ValueOf(dest)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &ChunkResult{
+			Error: fmt.Errorf("Chunk failed: dest parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 
 	vv = vv.Elem()
 	if vv.Type().Kind() != reflect.Slice {
-		panic("invalid out type, not slice")
+		return &ChunkResult{
+			Error: fmt.Errorf("Chunk failed: dest parameter must be a pointer to slice, got pointer to %v", vv.Type().Kind()),
+		}
 	}
 
 	elem := vv.Type().Elem().Elem()
@@ -740,7 +748,9 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 
 	vv := reflect.ValueOf(out)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &FirstResult{
+			Error: fmt.Errorf("First failed: out parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 
 	if p.table == "" {
@@ -851,7 +861,9 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	if vv.Kind() != reflect.Struct {
-		panic("value is not struct")
+		return &CreateResult{
+			Error: fmt.Errorf("Create failed: value must be a struct, got %v", vv.Kind()),
+		}
 	}
 
 	elem := vv.Type()
@@ -1007,7 +1019,9 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 	}
 
 	if vv.Kind() != reflect.Slice {
-		panic("value is not slice")
+		return &CreateInBatchesResult{
+			Error: fmt.Errorf("CreateInBatches failed: value must be a slice, got %v", vv.Kind()),
+		}
 	}
 
 	if vv.Len() == 0 {
@@ -1199,7 +1213,9 @@ func (p *Scoop) Delete() *DeleteResult {
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return &DeleteResult{
+			Error: fmt.Errorf("Delete failed: table name is empty, use Table() to specify table name"),
+		}
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -1267,7 +1283,9 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return &UpdateResult{
+			Error: fmt.Errorf("Update failed: table name is empty, use Table() to specify table name"),
+		}
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -1425,7 +1443,7 @@ func (p *Scoop) Count() (uint64, error) {
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return 0, fmt.Errorf("Count failed: table name is empty, use Table() to specify table name")
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -1466,7 +1484,7 @@ func (p *Scoop) Exist() (bool, error) {
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return false, fmt.Errorf("Exists failed: table name is empty, use Table() to specify table name")
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
