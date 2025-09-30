@@ -16,11 +16,11 @@ func TestCond(t *testing.T) {
 		"a": 2,
 	}, map[string]any{
 		"a": 3,
-	}).ToString(), "((`a` = 1) OR (`a` = 2) OR (`a` = 3))")
+	}).ToString(), "((\"a\" = 1) OR (\"a\" = 2) OR (\"a\" = 3))")
 
-	assert.Equal(t, db.Where("a", 1).ToString(), "(`a` = 1)")
+	assert.Equal(t, db.Where("a", 1).ToString(), "(\"a\" = 1)")
 
-	assert.Equal(t, db.Or(db.Where("a", 1), db.Where("a", 2)).ToString(), "((`a` = 1) OR (`a` = 2))")
+	assert.Equal(t, db.Or(db.Where("a", 1), db.Where("a", 2)).ToString(), "((\"a\" = 1) OR (\"a\" = 2))")
 
 	// Test OrWhere with multiple conditions - order may vary due to map iteration
 	result := db.OrWhere(db.Where(map[string]any{
@@ -32,10 +32,10 @@ func TestCond(t *testing.T) {
 	})).ToString()
 	
 	// Check that result contains both expected condition groups in any order
-	if !(strings.Contains(result, "(`a` = 1)") && strings.Contains(result, "(`b` = 2)")) {
+	if !(strings.Contains(result, "(\"a\" = 1)") && strings.Contains(result, "(\"b\" = 2)")) {
 		t.Errorf("Result should contain a=1 and b=2 conditions: %s", result)
 	}
-	if !(strings.Contains(result, "(`a` = 2)") && strings.Contains(result, "(`b` = 3)")) {
+	if !(strings.Contains(result, "(\"a\" = 2)") && strings.Contains(result, "(\"b\" = 3)")) {
 		t.Errorf("Result should contain a=2 and b=3 conditions: %s", result)
 	}
 	if !strings.Contains(result, " OR ") {
