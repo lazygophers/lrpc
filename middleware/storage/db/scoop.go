@@ -1057,11 +1057,17 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		}
 		sqlRaw.WriteString(quoteFieldName(k))
 		sqlRaw.WriteString("=")
-		sqlRaw.WriteString("?")
+
+		// Handle clause.Expr with proper type assertion
 		switch x := v.(type) {
 		case clause.Expr:
-			values = append(values, x)
+			// For expressions, use the SQL directly instead of placeholder
+			sqlRaw.WriteString(x.SQL)
+			// Append expression variables to values
+			values = append(values, x.Vars...)
 		default:
+			// For normal values, use placeholder
+			sqlRaw.WriteString("?")
 			values = append(values, candy.ToString(x))
 		}
 		i++
