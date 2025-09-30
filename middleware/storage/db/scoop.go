@@ -374,6 +374,28 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 
 // ——————————操作——————————
 
+// buildInsertSQL constructs an INSERT statement with proper IGNORE/ON CONFLICT handling
+// based on the database type. It supports single-row and multi-row insertions.
+// columns: list of column names
+// placeholders: list of value placeholders like "(?)", or "(?), (?)" for batch inserts
+func (p *Scoop) buildInsertSQL(columns []string, placeholders string) string {
+	columnsStr := strings.Join(columns, ", ")
+
+	if p.ignore {
+		switch p.clientType {
+		case MySQL:
+			return "INSERT IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		case Sqlite:
+			return "INSERT OR IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		case Postgres:
+			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders + " ON CONFLICT DO NOTHING"
+		default:
+			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		}
+	}
+	return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+}
+
 // scanRowsInto is a helper function that scans SQL rows into a reflect.Value.
 // It handles the common logic for both Find and First operations.
 // dest should be a valid reflect.Value that can be set.
@@ -831,21 +853,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	// Build INSERT statement with IGNORE support for different databases
-	var insertSQL string
-	if p.ignore {
-		switch p.clientType {
-		case MySQL:
-			insertSQL = "INSERT IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
-		case Sqlite:
-			insertSQL = "INSERT OR IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
-		case Postgres:
-			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ") ON CONFLICT DO NOTHING"
-		default:
-			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
-		}
-	} else {
-		insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
-	}
+	insertSQL := p.buildInsertSQL(columns, "("+strings.Join(placeholders, ", ")+")")
 
 	start := time.Now()
 	// Use Session with PrepareStmt disabled for raw SQL
@@ -1079,21 +1087,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		}
 
 		// Build INSERT statement with IGNORE support for different databases
-		var insertSQL string
-		if p.ignore {
-			switch p.clientType {
-			case MySQL:
-				insertSQL = "INSERT IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
-			case Sqlite:
-				insertSQL = "INSERT OR IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
-			case Postgres:
-				insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ") + " ON CONFLICT DO NOTHING"
-			default:
-				insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
-			}
-		} else {
-			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
-		}
+		insertSQL := p.buildInsertSQL(columns, strings.Join(allPlaceholders, ", "))
 
 		start := time.Now()
 		// Use Session with PrepareStmt disabled for raw SQL
