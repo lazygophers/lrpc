@@ -170,6 +170,10 @@ func (c *Config) DSN() string {
 
 		return dsn + "?" + query.Encode()
 
+	case MySQL:
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			c.Username, c.Password, c.Address, c.Port, c.Name)
+
 	default:
 		return ""
 	}
