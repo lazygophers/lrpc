@@ -615,27 +615,123 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		panic("value is not struct")
 	}
 
-	if field := vv.FieldByName("CreatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(time.Now().Unix())
+	elem := vv.Type()
+	if p.table == "" {
+		p.table = getTableName(elem)
 	}
 
-	if field := vv.FieldByName("UpdatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(time.Now().Unix())
+	// Parse struct to get fields and values
+	stmt := &gorm.Statement{
+		DB:    p._db,
+		Table: p.table,
+		Model: value,
+	}
+	if p._db.Statement != nil {
+		stmt.TableExpr = p._db.Statement.TableExpr
 	}
 
-	res := p._db.Create(value)
-
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
+	err := stmt.ParseWithSpecialTableName(value, stmt.Table)
+	if err != nil {
+		log.Errorf("err:%v", err)
 		return &CreateResult{
-			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			Error: err,
+		}
+	}
+
+	// Build INSERT SQL
+	var columns []string
+	var placeholders []string
+	var values []interface{}
+
+	for _, field := range stmt.Schema.Fields {
+		if field.AutoCreateTime != 0 && vv.FieldByName(field.Name).IsZero() {
+			// Set auto create time for CreatedAt/UpdatedAt
+			if field.DataType == "int64" || field.DataType == "uint64" {
+				vv.FieldByName(field.Name).SetInt(time.Now().Unix())
+			}
+		}
+
+		// Skip auto increment primary key if it's zero
+		if field.AutoIncrement && vv.FieldByName(field.Name).IsZero() {
+			continue
+		}
+
+		fieldValue := vv.FieldByName(field.Name)
+
+		// Handle soft delete field - insert 0 for nil *time.Time
+		if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				columns = append(columns, field.DBName)
+				placeholders = append(placeholders, "?")
+				values = append(values, 0) // 0 means not deleted in unix timestamp format
+				continue
+			}
+		}
+
+		columns = append(columns, field.DBName)
+		placeholders = append(placeholders, "?")
+
+		if fieldValue.IsValid() {
+			values = append(values, fieldValue.Interface())
+		} else {
+			values = append(values, nil)
+		}
+	}
+
+	insertSQL := "INSERT "
+	if p.ignore {
+		if p.clientType == MySQL {
+			insertSQL += "IGNORE "
+		}
+	}
+	insertSQL += "INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
+
+	start := time.Now()
+	// Use Session with PrepareStmt disabled for raw SQL
+	session := p._db.Session(&gorm.Session{
+		PrepareStmt: false,
+	})
+	res := session.Exec(insertSQL, values...)
+
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		return insertSQL, res.RowsAffected
+	}, res.Error)
+
+	if res.Error != nil {
+		log.Errorf("err:%v", res.Error)
+		if p.IsDuplicatedKeyError(res.Error) {
+			return &CreateResult{
+				RowsAffected: res.RowsAffected,
+				Error:        p.getDuplicatedKeyError(),
+			}
+		}
+		return &CreateResult{
+			Error: res.Error,
+		}
+	}
+
+	// Set the auto-generated ID back to the struct if applicable
+	if res.RowsAffected > 0 {
+		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+			// Get the last insert ID from the same connection
+			sqlDB, err := p._db.DB()
+			if err == nil {
+				var lastInsertID int64
+				if p.clientType == Sqlite {
+					err = sqlDB.QueryRow("SELECT last_insert_rowid()").Scan(&lastInsertID)
+				} else if p.clientType == MySQL {
+					err = sqlDB.QueryRow("SELECT LAST_INSERT_ID()").Scan(&lastInsertID)
+				}
+				if err == nil && lastInsertID > 0 {
+					field.SetInt(lastInsertID)
+				}
+			}
 		}
 	}
 
 	return &CreateResult{
 		RowsAffected: res.RowsAffected,
-		Error:        res.Error,
+		Error:        nil,
 	}
 }
 
@@ -648,22 +744,172 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 	p.inc()
 	defer p.dec()
 
-	if p.ignore {
-		p._db.Clauses(clause.Insert{Modifier: "IGNORE"})
+	// value should be a slice
+	vv := reflect.ValueOf(value)
+	for vv.Kind() == reflect.Ptr {
+		vv = vv.Elem()
 	}
 
-	res := p._db.CreateInBatches(value, batchSize)
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
+	if vv.Kind() != reflect.Slice {
+		panic("value is not slice")
+	}
+
+	if vv.Len() == 0 {
 		return &CreateInBatchesResult{
-			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			RowsAffected: 0,
+			Error:        nil,
 		}
 	}
 
+	elem := vv.Type().Elem()
+	for elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
+	}
+
+	if p.table == "" {
+		p.table = getTableName(elem)
+	}
+
+	// Get first element to parse schema
+	firstElem := vv.Index(0)
+	for firstElem.Kind() == reflect.Ptr {
+		firstElem = firstElem.Elem()
+	}
+
+	stmt := &gorm.Statement{
+		DB:    p._db,
+		Table: p.table,
+		Model: firstElem.Interface(),
+	}
+	if p._db.Statement != nil {
+		stmt.TableExpr = p._db.Statement.TableExpr
+	}
+
+	err := stmt.ParseWithSpecialTableName(firstElem.Interface(), stmt.Table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return &CreateInBatchesResult{
+			Error: err,
+		}
+	}
+
+	var totalRowsAffected int64
+
+	// Process in batches
+	for i := 0; i < vv.Len(); i += batchSize {
+		end := i + batchSize
+		if end > vv.Len() {
+			end = vv.Len()
+		}
+
+		// Build INSERT SQL for this batch
+		var columns []string
+		var allPlaceholders []string
+		var allValues []interface{}
+
+		// Build columns from first row
+		firstRowInBatch := vv.Index(i)
+		for firstRowInBatch.Kind() == reflect.Ptr {
+			firstRowInBatch = firstRowInBatch.Elem()
+		}
+
+		for _, field := range stmt.Schema.Fields {
+			if field.AutoCreateTime != 0 && firstRowInBatch.FieldByName(field.Name).IsZero() {
+				// Set auto create time for CreatedAt/UpdatedAt
+				if field.DataType == "int64" || field.DataType == "uint64" {
+					// Will set for each row below
+				}
+			}
+
+			// Skip auto increment primary key if it's zero
+			if field.AutoIncrement && firstRowInBatch.FieldByName(field.Name).IsZero() {
+				continue
+			}
+
+			// Skip DeletedAt in column list if it's nil (will add 0 value per row below)
+			fieldValue := firstRowInBatch.FieldByName(field.Name)
+			if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+				// Will include column but use 0 value
+			}
+
+			columns = append(columns, field.DBName)
+		}
+
+		// Build values for each row in batch
+		for j := i; j < end; j++ {
+			rowValue := vv.Index(j)
+			for rowValue.Kind() == reflect.Ptr {
+				rowValue = rowValue.Elem()
+			}
+
+			var rowPlaceholders []string
+			for _, field := range stmt.Schema.Fields {
+				if field.AutoCreateTime != 0 && rowValue.FieldByName(field.Name).IsZero() {
+					// Set auto create time for CreatedAt/UpdatedAt
+					if field.DataType == "int64" || field.DataType == "uint64" {
+						rowValue.FieldByName(field.Name).SetInt(time.Now().Unix())
+					}
+				}
+
+				// Skip auto increment primary key if it's zero
+				if field.AutoIncrement && rowValue.FieldByName(field.Name).IsZero() {
+					continue
+				}
+
+				fieldValue := rowValue.FieldByName(field.Name)
+
+				// Handle soft delete field - insert 0 for nil *time.Time
+				if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+					rowPlaceholders = append(rowPlaceholders, "?")
+					allValues = append(allValues, 0) // 0 means not deleted
+					continue
+				}
+
+				rowPlaceholders = append(rowPlaceholders, "?")
+				if fieldValue.IsValid() {
+					allValues = append(allValues, fieldValue.Interface())
+				} else {
+					allValues = append(allValues, nil)
+				}
+			}
+			allPlaceholders = append(allPlaceholders, "("+strings.Join(rowPlaceholders, ", ")+")")
+		}
+
+		insertSQL := "INSERT "
+		if p.ignore {
+			if p.clientType == MySQL {
+				insertSQL += "IGNORE "
+			}
+		}
+		insertSQL += "INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
+
+		start := time.Now()
+		res := p._db.Exec(insertSQL, allValues...)
+
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return insertSQL, res.RowsAffected
+		}, res.Error)
+
+		if res.Error != nil {
+			log.Errorf("err:%v", res.Error)
+			if p.IsDuplicatedKeyError(res.Error) {
+				return &CreateInBatchesResult{
+					RowsAffected: totalRowsAffected,
+					Error:        p.getDuplicatedKeyError(),
+				}
+			}
+			return &CreateInBatchesResult{
+				RowsAffected: totalRowsAffected,
+				Error:        res.Error,
+			}
+		}
+
+		totalRowsAffected += res.RowsAffected
+	}
+
 	return &CreateInBatchesResult{
-		Error:        res.Error,
-		RowsAffected: res.RowsAffected,
+		RowsAffected: totalRowsAffected,
+		Error:        nil,
 	}
 }
 
