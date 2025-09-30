@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
+	"unsafe"
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
@@ -13,6 +15,14 @@ import (
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm/clause"
 )
+
+// unsafeString converts []byte to string without memory allocation.
+// NOTE: The returned string shares memory with the input []byte slice.
+// Do not modify the input slice after calling this function.
+// This is safe for read-only operations like parsing.
+func unsafeString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
 
 func EnsureIsSliceOrArray(obj interface{}) reflect.Value {
 	vo := reflect.ValueOf(obj)
@@ -130,7 +140,9 @@ func scanComplexType(field reflect.Value, col []byte, isPtr bool) error {
 }
 
 func decode(field reflect.Value, col []byte) error {
-	switch field.Kind() {
+	kind := field.Kind()
+
+	switch kind {
 	case reflect.String:
 		// Fast path: no conversion needed for string
 		field.SetString(string(col))
@@ -142,67 +154,93 @@ func decode(field reflect.Value, col []byte) error {
 		return scanComplexType(field, col, true)
 	}
 
-	// Convert []byte to string once for remaining types
-	colStr := string(col)
-
-	switch field.Kind() {
+	// For numeric types, parse directly from []byte to avoid string allocation
+	switch kind {
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
 		reflect.Int32,
 		reflect.Int64:
-		val, err := strconv.ParseInt(colStr, 10, 64)
+		// Parse directly from []byte using unsafe string conversion
+		val, err := strconv.ParseInt(unsafeString(col), 10, 64)
 		if err != nil {
 			log.Errorf("parse %s err:%s", col, err)
 			return err
 		}
 		field.SetInt(val)
+		return nil
+
 	case reflect.Uint,
 		reflect.Uint8,
 		reflect.Uint16,
 		reflect.Uint32,
 		reflect.Uint64:
-		val, err := strconv.ParseUint(colStr, 10, 64)
+		val, err := strconv.ParseUint(unsafeString(col), 10, 64)
 		if err != nil {
 			log.Errorf("err:%s", err)
 			return err
 		}
 		field.SetUint(val)
+		return nil
+
 	case reflect.Float32,
 		reflect.Float64:
-		val, err := strconv.ParseFloat(colStr, 64)
+		val, err := strconv.ParseFloat(unsafeString(col), 64)
 		if err != nil {
 			log.Errorf("err:%s", err)
 			return err
 		}
 		field.SetFloat(val)
+		return nil
+
 	case reflect.Bool:
+		// Optimized bool parsing with byte-level comparison
+		if len(col) == 1 {
+			if col[0] == '1' {
+				field.SetBool(true)
+				return nil
+			}
+			if col[0] == '0' {
+				field.SetBool(false)
+				return nil
+			}
+		}
+		// Fall back to string comparison for "true"/"false"
+		colStr := unsafeString(col)
 		switch strings.ToLower(colStr) {
-		case "true", "1":
+		case "true":
 			field.SetBool(true)
-		case "false", "0":
+		case "false":
 			field.SetBool(false)
 		default:
 			return fmt.Errorf("invalid bool value: %s", colStr)
 		}
-	default:
-		log.Errorf("unsupported column: %s", colStr)
-		return fmt.Errorf("invalid type: %s", field.Kind().String())
-	}
+		return nil
 
-	return nil
+	default:
+		colStr := string(col)
+		log.Errorf("unsupported column: %s", colStr)
+		return fmt.Errorf("invalid type: %s", kind.String())
+	}
 }
 
 // tableNameCache caches computed table names by reflect.Type
-var tableNameCache = make(map[reflect.Type]string)
+// Uses sync.RWMutex for concurrent read/write safety
+var (
+	tableNameCache   = make(map[reflect.Type]string)
+	tableNameCacheMu sync.RWMutex
+)
 
 func getTableName(elem reflect.Type) string {
 	for elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
 	}
 
-	// Check cache first
-	if cached, ok := tableNameCache[elem]; ok {
+	// Check cache first with read lock
+	tableNameCacheMu.RLock()
+	cached, ok := tableNameCache[elem]
+	tableNameCacheMu.RUnlock()
+	if ok {
 		return cached
 	}
 
@@ -223,20 +261,52 @@ func getTableName(elem reflect.Type) string {
 	elemName := elem.Name()
 	result := stringx.Camel2Snake(tableName + strings.TrimPrefix(elemName, "Model"))
 
-	// Cache the result
+	// Cache the result with write lock
+	tableNameCacheMu.Lock()
 	tableNameCache[elem] = result
+	tableNameCacheMu.Unlock()
+
 	return result
 }
 
+// hasFieldCache caches field existence checks by type and field name
+// Uses sync.RWMutex for concurrent read/write safety
+type fieldCacheKey struct {
+	typ       reflect.Type
+	fieldName string
+}
+
+var (
+	hasFieldCache   = make(map[fieldCacheKey]bool)
+	hasFieldCacheMu sync.RWMutex
+)
+
 // hasField checks if the given type has a field with the specified name.
 // It unwraps pointer types before checking.
+// Results are cached for performance in high-concurrency scenarios.
 func hasField(elem reflect.Type, fieldName string) bool {
 	for elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
 	}
 
-	_, ok := elem.FieldByName(fieldName)
-	return ok
+	// Check cache first with read lock
+	key := fieldCacheKey{typ: elem, fieldName: fieldName}
+	hasFieldCacheMu.RLock()
+	cached, ok := hasFieldCache[key]
+	hasFieldCacheMu.RUnlock()
+	if ok {
+		return cached
+	}
+
+	// Perform reflection lookup
+	_, exists := elem.FieldByName(fieldName)
+
+	// Cache the result with write lock
+	hasFieldCacheMu.Lock()
+	hasFieldCache[key] = exists
+	hasFieldCacheMu.Unlock()
+
+	return exists
 }
 
 func hasDeletedAt(elem reflect.Type) bool {
