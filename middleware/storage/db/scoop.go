@@ -374,6 +374,45 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 
 // ——————————操作——————————
 
+// scanRowsInto is a helper function that scans SQL rows into a reflect.Value.
+// It handles the common logic for both Find and First operations.
+// dest should be a valid reflect.Value that can be set.
+// For Find, dest should be a slice element; for First, dest should be a struct pointer.
+func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.Time, depth int) error {
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	values := make([]sql.RawBytes, len(cols))
+	scanArgs := make([]interface{}, len(values))
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+
+	err = rows.Scan(scanArgs...)
+	if err != nil {
+		return err
+	}
+
+	for i, col := range values {
+		if col == nil {
+			continue
+		}
+		field := dest.FieldByName(stringx.Snake2Camel(cols[i]))
+		if !field.IsValid() {
+			log.Debugf("invalid field: %s", stringx.Snake2Camel(cols[i]))
+			continue
+		}
+		err = decode(field, col)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *Scoop) findSql() string {
 	b := log.GetBuffer()
 	defer log.PutBuffer(b)
@@ -497,36 +536,11 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 		}
 	}
 
-	cols, err := rows.Columns()
-	if err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FindResult{
-			Error: err,
-		}
-	}
-
-	values := make([]sql.RawBytes, len(cols))
-	scanArgs := make([]interface{}, len(values))
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-
 	var rawsAffected int64
 	// 把数据写回到out
 	for rows.Next() {
 		rawsAffected++
 
-		err = rows.Scan(scanArgs...)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, rawsAffected
-			}, err)
-			return &FindResult{
-				Error: err,
-			}
-		}
 		var v reflect.Value
 		if elem.Elem().Kind() == reflect.Ptr {
 			v = reflect.New(elem.Elem().Elem())
@@ -534,24 +548,13 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 			v = reflect.New(elem.Elem())
 		}
 
-		for i, col := range values {
-			if col == nil {
-				continue
-			}
-			field := v.Elem().FieldByName(stringx.Snake2Camel(cols[i]))
-			if !field.IsValid() {
-				log.Warnf("invalid field: %s", stringx.Snake2Camel(cols[i]))
-				continue
-			}
-
-			err = decode(field, col)
-			if err != nil {
-				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-					return sqlRaw, rawsAffected
-				}, err)
-				return &FindResult{
-					Error: err,
-				}
+		err = scanRowsInto(rows, v.Elem(), sqlRaw, start, p.depth)
+		if err != nil {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				return sqlRaw, rawsAffected
+			}, err)
+			return &FindResult{
+				Error: err,
 			}
 		}
 
@@ -688,57 +691,22 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		}
 	}
 
-	cols, err := rows.Columns()
-	if err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-
-	values := make([]sql.RawBytes, len(cols))
-	scanArgs := make([]interface{}, len(values))
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-
 	// 把数据写回到out
 	var rowAffected int64
 	for rows.Next() {
 		rowAffected++
-		err = rows.Scan(scanArgs...)
+
+		if rowAffected != 1 {
+			continue
+		}
+
+		err = scanRowsInto(rows, vv.Elem(), sqlRaw, start, p.depth)
 		if err != nil {
 			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 				return sqlRaw, 1
 			}, err)
 			return &FirstResult{
 				Error: err,
-			}
-		}
-
-		if rowAffected != 1 {
-			continue
-		}
-
-		for i, col := range values {
-			if col == nil {
-				continue
-			}
-			field := vv.Elem().FieldByName(stringx.Snake2Camel(cols[i]))
-			if !field.IsValid() {
-				log.Debugf("invalid field: %s", stringx.Snake2Camel(cols[i]))
-				continue
-			}
-			err = decode(field, col)
-			if err != nil {
-				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-					return sqlRaw, 1
-				}, err)
-				return &FirstResult{
-					Error: err,
-				}
 			}
 		}
 	}
