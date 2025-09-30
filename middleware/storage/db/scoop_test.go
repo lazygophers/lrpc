@@ -3,7 +3,6 @@ package db_test
 import (
 	"os"
 	"testing"
-	"time"
 
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"gotest.tools/v3/assert"
@@ -11,16 +10,16 @@ import (
 
 // TestProduct is a test model for scoop testing
 type TestProduct struct {
-	Id          int        `gorm:"primaryKey;autoIncrement"`
-	Name        string     `gorm:"size:100;not null"`
-	Description string     `gorm:"size:500"`
-	Price       float64    `gorm:"not null"`
-	Stock       int        `gorm:"default:0"`
-	CategoryId  int        `gorm:"index"`
-	IsActive    bool       `gorm:"default:true"`
-	CreatedAt   time.Time  `gorm:"autoCreateTime"`
-	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
-	DeletedAt   *time.Time `gorm:"index"`
+	Id          int    `gorm:"primaryKey;autoIncrement"`
+	Name        string `gorm:"size:100;not null"`
+	Description string `gorm:"size:500"`
+	Price       float64 `gorm:"not null"`
+	Stock       int    `gorm:"default:0"`
+	CategoryId  int    `gorm:"index"`
+	IsActive    bool   `gorm:"default:true"`
+	CreatedAt   int64  `gorm:"autoCreateTime"`
+	UpdatedAt   int64  `gorm:"autoUpdateTime"`
+	DeletedAt   int64  `gorm:"index"`
 }
 
 func (TestProduct) TableName() string {
@@ -207,7 +206,7 @@ func TestScoopDelete(t *testing.T) {
 		var product TestProduct
 		firstResult := client.NewScoop().Model(&TestProduct{}).Unscoped().Equal("id", products[1].Id).First(&product)
 		assert.NilError(t, firstResult.Error)
-		assert.Assert(t, product.DeletedAt != nil)
+		assert.Assert(t, product.DeletedAt != 0)
 	})
 }
 
@@ -219,13 +218,13 @@ func TestScoopCount(t *testing.T) {
 	t.Run("count all", func(t *testing.T) {
 		count, err := client.NewScoop().Model(&TestProduct{}).Count()
 		assert.NilError(t, err)
-		assert.Equal(t, count, int64(5))
+		assert.Equal(t, count, uint64(5))
 	})
 
 	t.Run("count with condition", func(t *testing.T) {
 		count, err := client.NewScoop().Model(&TestProduct{}).Equal("category_id", 1).Count()
 		assert.NilError(t, err)
-		assert.Equal(t, count, int64(2))
+		assert.Equal(t, count, uint64(2))
 	})
 }
 
@@ -428,7 +427,7 @@ func TestScoopCreateInBatches(t *testing.T) {
 
 		count, err := client.NewScoop().Model(&TestProduct{}).Like("name", "Batch%").Count()
 		assert.NilError(t, err)
-		assert.Equal(t, count, int64(3))
+		assert.Equal(t, count, uint64(3))
 	})
 }
 

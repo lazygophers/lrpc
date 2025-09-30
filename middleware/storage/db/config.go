@@ -12,17 +12,18 @@ import (
 )
 
 const (
-	Sqlite     = "sqlite"
-	MySQL      = "mysql"
-	Postgres   = "postgres"
-	ClickHouse = "clickhouse"
-	TiDB       = "tidb"
-	GaussDB    = "gaussdb"
+	Sqlite        = "sqlite"
+	MySQL         = "mysql"
+	Postgres      = "postgres"
+	ClickHouse    = "clickhouse"
+	TiDB          = "tidb"
+	GaussDB       = "gaussdb"
 )
 
 type Config struct {
-	// Database type, support sqlite, mysql, postgres, clickhouse, tidb, gaussdb, default sqlite
-	// sqlite: sqlite|sqlite3
+	// Database type, support sqlite, sqlite-cgo, mysql, postgres, clickhouse, tidb, gaussdb, default sqlite
+	// sqlite: sqlite|sqlite3 (pure Go, no CGO, no encryption support)
+	// sqlite-cgo: sqlite-cgo (with CGO, supports encryption via SQLCipher)
 	// mysql: mysql
 	// postgres: postgres|pg|postgresql|pgsql
 	// clickhouse: clickhouse|ch
@@ -68,7 +69,8 @@ type Config struct {
 	Username string `yaml:"username,omitempty" json:"username,omitempty"`
 
 	// Database password
-	// sqlite: empty
+	// sqlite: not supported (use sqlite-cgo for encryption)
+	// sqlite-cgo: SQLCipher encryption key
 	// mysql: database password
 	// postgres: database password
 	// sqlserver: database password
@@ -204,17 +206,18 @@ func (c *Config) DSN() string {
 		query.Set("_sync", "3")
 		query.Set("_timeout", "9999999")
 
+		// If password is set, use SQLCipher parameters (only effective with CGO)
+		if c.Password != "" {
+			query.Set("_key", c.Password)
+			query.Set("_cipher", "sqlcipher")
+			query.Set("_kdf_iter", "256000")
+		}
+
+		// Legacy auth support (glebarez/sqlite)
 		if c.Username != "" && c.Password != "" {
 			query.Set("_auth", "1")
-
-			if c.Username != "" {
-				query.Set("_auth_user", c.Username)
-			}
-
-			if c.Password != "" {
-				query.Set("_auth_pass", c.Password)
-			}
-
+			query.Set("_auth_user", c.Username)
+			query.Set("_auth_pass", c.Password)
 			query.Set("_auth_crypt", "sha512")
 			query.Set("_auth_salt", app.Name)
 		}

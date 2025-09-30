@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 
@@ -38,8 +37,20 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	var d gorm.Dialector
 	switch c.Type {
 	case Sqlite:
-		log.Infof("connecting to sqlite: %s", c.DSN())
-		d = sqlite.Open(c.DSN())
+		if c.Password != "" {
+			// Password is set, try to use CGO version for encryption
+			if hasCGOSupport {
+				log.Infof("connecting to sqlite with encryption (CGO/SQLCipher): %s", c.DSN())
+			} else {
+				log.Warnf("SQLite password is set but CGO is not enabled. Encryption is NOT active. To enable encryption, rebuild with CGO_ENABLED=1")
+				log.Infof("connecting to sqlite (no CGO, no encryption): %s", c.DSN())
+			}
+		} else {
+			// No password, use pure Go version
+			log.Infof("connecting to sqlite (no CGO): %s", c.DSN())
+		}
+
+		d = newSqliteDialector(c.DSN())
 
 	case MySQL:
 		log.Infof("connecting to mysql: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
