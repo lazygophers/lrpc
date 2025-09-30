@@ -26,12 +26,23 @@ func EnsureIsSliceOrArray(obj interface{}) reflect.Value {
 	return vo
 }
 
+// escapeTable is a lookup table for MySQL string escaping
+// Non-zero values indicate the escape character to use
+var escapeTable = [256]byte{
+	0:      '0',  // Must be escaped for 'mysql'
+	'\n':   'n',  // Must be escaped for logs
+	'\r':   'r',  // Carriage return
+	'\\':   '\\', // Backslash
+	'\'':   '\'', // Single quote
+	'"':    '"',  // Double quote (better safe than sorry)
+	'\032': 'Z',  // This gives problems on Win32
+}
+
 func EscapeMysqlString(sql string) string {
-	// Fast path: check if escaping is needed
+	// Fast path: check if escaping is needed using lookup table
 	needsEscape := false
 	for i := 0; i < len(sql); i++ {
-		c := sql[i]
-		if c == 0 || c == '\n' || c == '\r' || c == '\\' || c == '\'' || c == '"' || c == '\032' {
+		if escapeTable[sql[i]] != 0 {
 			needsEscape = true
 			break
 		}
@@ -42,29 +53,11 @@ func EscapeMysqlString(sql string) string {
 		return sql
 	}
 
-	// Slow path: perform escaping
+	// Slow path: perform escaping using lookup table
 	dest := make([]byte, 0, 2*len(sql))
-	var escape byte
 	for i := 0; i < len(sql); i++ {
 		c := sql[i]
-		escape = 0
-		switch c {
-		case 0: /* Must be escaped for 'mysql' */
-			escape = '0'
-		case '\n': /* Must be escaped for logs */
-			escape = 'n'
-		case '\r':
-			escape = 'r'
-		case '\\':
-			escape = '\\'
-		case '\'':
-			escape = '\''
-		case '"': /* Better safe than sorry */
-			escape = '"'
-		case '\032': /* This gives problems on Win32 */
-			escape = 'Z'
-		}
-		if escape != 0 {
+		if escape := escapeTable[c]; escape != 0 {
 			dest = append(dest, '\\', escape)
 		} else {
 			dest = append(dest, c)
@@ -137,7 +130,19 @@ func scanComplexType(field reflect.Value, col []byte, isPtr bool) error {
 }
 
 func decode(field reflect.Value, col []byte) error {
-	// Convert []byte to string once for types that need it
+	switch field.Kind() {
+	case reflect.String:
+		// Fast path: no conversion needed for string
+		field.SetString(string(col))
+		return nil
+	case reflect.Struct, reflect.Slice, reflect.Map:
+		// Complex types use raw bytes
+		return scanComplexType(field, col, false)
+	case reflect.Ptr:
+		return scanComplexType(field, col, true)
+	}
+
+	// Convert []byte to string once for remaining types
 	colStr := string(col)
 
 	switch field.Kind() {
@@ -171,8 +176,6 @@ func decode(field reflect.Value, col []byte) error {
 			return err
 		}
 		field.SetFloat(val)
-	case reflect.String:
-		field.SetString(colStr)
 	case reflect.Bool:
 		switch strings.ToLower(colStr) {
 		case "true", "1":
@@ -182,10 +185,6 @@ func decode(field reflect.Value, col []byte) error {
 		default:
 			return fmt.Errorf("invalid bool value: %s", colStr)
 		}
-	case reflect.Struct, reflect.Slice, reflect.Map:
-		return scanComplexType(field, col, false)
-	case reflect.Ptr:
-		return scanComplexType(field, col, true)
 	default:
 		log.Errorf("unsupported column: %s", colStr)
 		return fmt.Errorf("invalid type: %s", field.Kind().String())
@@ -194,11 +193,20 @@ func decode(field reflect.Value, col []byte) error {
 	return nil
 }
 
+// tableNameCache caches computed table names by reflect.Type
+var tableNameCache = make(map[reflect.Type]string)
+
 func getTableName(elem reflect.Type) string {
 	for elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
 	}
 
+	// Check cache first
+	if cached, ok := tableNameCache[elem]; ok {
+		return cached
+	}
+
+	// Check if type implements Tabler interface
 	if x, ok := reflect.New(elem).Interface().(Tabler); ok {
 		return x.TableName()
 	}
@@ -213,7 +221,11 @@ func getTableName(elem reflect.Type) string {
 
 	// Get element name safely without calling Elem() on non-pointer types
 	elemName := elem.Name()
-	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elemName, "Model"))
+	result := stringx.Camel2Snake(tableName + strings.TrimPrefix(elemName, "Model"))
+
+	// Cache the result
+	tableNameCache[elem] = result
+	return result
 }
 
 // hasField checks if the given type has a field with the specified name.
@@ -246,6 +258,11 @@ func hasId(elem reflect.Type) bool {
 func Camel2UnderScore(name string) string {
 	if name == "" {
 		return ""
+	}
+
+	// Fast path for single character
+	if len(name) == 1 {
+		return strings.ToLower(name)
 	}
 
 	// Preallocate posList with estimated capacity (typically 1/4 of string length)
