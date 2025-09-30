@@ -74,6 +74,20 @@ func EscapeMysqlString(sql string) string {
 	return string(dest)
 }
 
+// UniqueSlice removes duplicate elements from a slice while preserving order.
+// It uses a map for O(n) time complexity but requires elements to be comparable.
+//
+// Performance characteristics:
+//   - Time: O(n) where n is the slice length
+//   - Space: O(n) for the map storage
+//   - Returns original slice unchanged if length < 2
+//   - Note: Uses reflection, so has overhead. Consider type-specific implementations
+//     for performance-critical paths.
+//
+// Example:
+//
+//	input := []int{1, 2, 2, 3, 1, 4}
+//	output := UniqueSlice(input).([]int) // []int{1, 2, 3, 4}
 func UniqueSlice(s interface{}) interface{} {
 	t := reflect.TypeOf(s)
 	if t.Kind() != reflect.Slice {
