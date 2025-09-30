@@ -43,6 +43,10 @@ const (
 var (
 	gormTagCache = make(map[reflect.Type]*gormTagInfo)
 	gormTagMutex sync.RWMutex
+
+	// Cache for field name conversions from snake_case to CamelCase
+	fieldNameCache = make(map[string]string)
+	fieldNameMutex sync.RWMutex
 )
 
 // gormTagInfo stores parsed information about updatable fields
@@ -374,6 +378,31 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 
 // ——————————操作——————————
 
+// getCachedFieldName converts snake_case to CamelCase with caching.
+// This significantly improves performance when scanning database rows.
+func getCachedFieldName(dbName string) string {
+	// Fast path: read lock
+	fieldNameMutex.RLock()
+	if camelName, ok := fieldNameCache[dbName]; ok {
+		fieldNameMutex.RUnlock()
+		return camelName
+	}
+	fieldNameMutex.RUnlock()
+
+	// Slow path: convert and cache
+	fieldNameMutex.Lock()
+	defer fieldNameMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if camelName, ok := fieldNameCache[dbName]; ok {
+		return camelName
+	}
+
+	camelName := stringx.Snake2Camel(dbName)
+	fieldNameCache[dbName] = camelName
+	return camelName
+}
+
 // handleAutoTimeField sets auto timestamp fields (CreatedAt/UpdatedAt) if they are zero.
 // Returns true if the field was auto-set, false otherwise.
 func handleAutoTimeField(field *schema.Field, fieldValue reflect.Value) bool {
@@ -433,9 +462,10 @@ func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.
 		if col == nil {
 			continue
 		}
-		field := dest.FieldByName(stringx.Snake2Camel(cols[i]))
+		fieldName := getCachedFieldName(cols[i])
+		field := dest.FieldByName(fieldName)
 		if !field.IsValid() {
-			log.Debugf("invalid field: %s", stringx.Snake2Camel(cols[i]))
+			log.Debugf("invalid field: %s", fieldName)
 			continue
 		}
 		err = decode(field, col)
