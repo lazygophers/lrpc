@@ -76,31 +76,49 @@ func (p *ModelScoop[M]) NotIn(column string, values interface{}) *ModelScoop[M] 
 }
 
 func (p *ModelScoop[M]) Like(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", "%"+value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) LeftLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) RightLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", "%"+value)
 	return p
 }
 
 func (p *ModelScoop[M]) NotLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", "%"+value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) NotLeftLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) NotRightLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", "%"+value)
 	return p
 }
@@ -147,6 +165,13 @@ func (p *ModelScoop[M]) Order(fields ...string) *ModelScoop[M] {
 func (p *ModelScoop[M]) Desc(fields ...string) *ModelScoop[M] {
 	p.orders = append(p.orders, candy.Map(fields, func(s string) string {
 		return s + " DESC"
+	})...)
+	return p
+}
+
+func (p *ModelScoop[M]) Asc(fields ...string) *ModelScoop[M] {
+	p.orders = append(p.orders, candy.Map(fields, func(s string) string {
+		return s + " ASC"
 	})...)
 	return p
 }
@@ -383,8 +408,26 @@ func (p *ModelScoop[M]) Chunk(size uint64, fc func(tx *Scoop, out []*M, offset u
 
 	var out []*M
 	return p.Scoop.Chunk(&out, size, func(tx *Scoop, offset uint64) error {
-		return fc(tx, out, offset)
+		// Create a copy of the slice to avoid issues when the callback holds a reference
+		// The underlying Scoop.Chunk resets the slice on each iteration
+		batch := make([]*M, len(out))
+		copy(batch, out)
+		return fc(tx, batch, offset)
 	})
+}
+
+func (p *ModelScoop[M]) CreateInBatches(values []*M, batchSize int) *CreateInBatchesResult {
+	if len(values) == 0 {
+		return &CreateInBatchesResult{
+			RowsAffected: 0,
+			Error:        nil,
+		}
+	}
+
+	p.inc()
+	defer p.dec()
+
+	return p.Scoop.CreateInBatches(values, batchSize)
 }
 
 type CreateOrUpdateResult[M any] struct {
@@ -445,9 +488,6 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 			Error: err,
 		}
 	}
-
-	// TODO: candy.DeepCopy
-	//candy.DeepCopy(&mm, m)
 
 	return &CreateOrUpdateResult[M]{
 		Updated: true,
