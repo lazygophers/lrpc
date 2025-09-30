@@ -874,35 +874,49 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		allPlaceholders := make([]string, 0, batchRowCount)
 		allValues := make([]interface{}, 0, batchRowCount*fieldCount)
 
-		// Build columns from first row
+		// Analyze first row to determine which fields to include
+		// This avoids repeated reflection and field checks for each row
 		firstRowInBatch := vv.Index(i)
 		for firstRowInBatch.Kind() == reflect.Ptr {
 			firstRowInBatch = firstRowInBatch.Elem()
 		}
 
-		for _, field := range stmt.Schema.Fields {
-			if field.AutoCreateTime != 0 && firstRowInBatch.FieldByName(field.Name).IsZero() {
-				// Set auto create time for CreatedAt/UpdatedAt
-				if field.DataType == "int64" || field.DataType == "uint64" {
-					// Will set for each row below
-				}
-			}
+		// Build list of fields to include and their metadata
+		type fieldInfo struct {
+			field           *schema.Field
+			isAutoIncrement bool
+			isDeletedAt     bool
+			isAutoTime      bool
+		}
+		includedFields := make([]fieldInfo, 0, fieldCount)
 
-			// Skip auto increment primary key if it's zero
+		for _, field := range stmt.Schema.Fields {
+			// Skip auto increment primary key if it's zero in first row
 			if field.AutoIncrement && firstRowInBatch.FieldByName(field.Name).IsZero() {
 				continue
 			}
 
-			// Skip DeletedAt in column list if it's nil (will add 0 value per row below)
-			fieldValue := firstRowInBatch.FieldByName(field.Name)
-			if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
-				// Will include column but use 0 value
+			info := fieldInfo{
+				field:           field,
+				isAutoIncrement: field.AutoIncrement,
 			}
 
+			// Check if this is auto time field
+			if field.AutoCreateTime != 0 {
+				info.isAutoTime = true
+			}
+
+			// Check if this is DeletedAt field
+			fieldValue := firstRowInBatch.FieldByName(field.Name)
+			if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr {
+				info.isDeletedAt = true
+			}
+
+			includedFields = append(includedFields, info)
 			columns = append(columns, field.DBName)
 		}
 
-		// Build values for each row in batch
+		// Build values for each row in batch using pre-analyzed field list
 		for j := i; j < end; j++ {
 			rowValue := vv.Index(j)
 			for rowValue.Kind() == reflect.Ptr {
@@ -910,23 +924,18 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 			}
 
 			rowPlaceholders := make([]string, 0, len(columns))
-			for _, field := range stmt.Schema.Fields {
-				if field.AutoCreateTime != 0 && rowValue.FieldByName(field.Name).IsZero() {
-					// Set auto create time for CreatedAt/UpdatedAt
-					if field.DataType == "int64" || field.DataType == "uint64" {
-						rowValue.FieldByName(field.Name).SetInt(time.Now().Unix())
+			for _, info := range includedFields {
+				fieldValue := rowValue.FieldByName(info.field.Name)
+
+				// Set auto time if field is zero
+				if info.isAutoTime && fieldValue.IsZero() {
+					if info.field.DataType == "int64" || info.field.DataType == "uint64" {
+						fieldValue.SetInt(time.Now().Unix())
 					}
 				}
 
-				// Skip auto increment primary key if it's zero
-				if field.AutoIncrement && rowValue.FieldByName(field.Name).IsZero() {
-					continue
-				}
-
-				fieldValue := rowValue.FieldByName(field.Name)
-
 				// Handle soft delete field - insert 0 for nil *time.Time
-				if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+				if info.isDeletedAt && fieldValue.IsNil() {
 					rowPlaceholders = append(rowPlaceholders, "?")
 					allValues = append(allValues, 0) // 0 means not deleted
 					continue
