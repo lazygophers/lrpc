@@ -28,15 +28,17 @@ func quoteFieldName(name string) string {
 
 func quoteStr(s string) string {
 	return strconv.Quote(s)
-	//return fmt.Sprintf("'%s'", s)
 }
 
 func simpleTypeToStr(value interface{}, quoteSlice bool) string {
 	if value == nil {
-		panic("value nil")
+		return "NULL"
 	}
 	vo := reflect.ValueOf(value)
 	for vo.Kind() == reflect.Ptr || vo.Kind() == reflect.Interface {
+		if vo.IsNil() {
+			return "NULL"
+		}
 		vo = vo.Elem()
 	}
 	value = vo.Interface()
@@ -99,7 +101,6 @@ func (p *Cond) whereRaw(cond string, values ...interface{}) {
 		res = strings.Join(out, "")
 	}
 	if res != "" {
-		//p.conds = append(p.conds, fmt.Sprintf("(%s)", res))
 		p.conds = append(p.conds, res)
 	}
 }
@@ -198,7 +199,7 @@ func (p *Cond) addCmdCond(cmd string, cond interface{}) {
 }
 
 func toInterfaces(v reflect.Value) []interface{} {
-	var list []interface{}
+	list := make([]interface{}, 0, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		vv := v.Index(i)
 		if !vv.CanInterface() {
@@ -330,7 +331,6 @@ func (p *Cond) where(args ...interface{}) {
 		// 检查下第1项，是不是 string，是的话，表示这是一条条件
 		{
 			v := arg0.Index(0)
-			log.Info(v.Kind())
 			if v.Kind() == reflect.String {
 				p.where(toInterfaces(arg0)...)
 				if len(args) > 1 {
@@ -366,17 +366,6 @@ func (p *Cond) where(args ...interface{}) {
 				p.where(list...)
 			}
 		}
-	//case reflect.Struct:
-	//	switch arg0.Type().PkgPath() {
-	//	case "github.com/lazygophers/utils/db":
-	//		switch arg0.Type().Name() {
-	//		case "Cond":
-	//			p.whereRaw(args[0].(*Cond).ToString())
-	//			if len(args) > 1 {
-	//				p.where(args[1:]...)
-	//			}
-	//		}
-	//	}
 	default:
 		panic("unhandled default case")
 	}
@@ -425,21 +414,33 @@ func (p *Cond) Or(args ...interface{}) *Cond {
 }
 
 func (p *Cond) Like(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
 	p.where(column, "LIKE", "%"+value+"%")
 	return p
 }
 
 func (p *Cond) LeftLike(column string, value string) *Cond {
-	p.where(column, "LIKE", "%"+value)
-	return p
-}
-
-func (p *Cond) RightLike(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
 	p.where(column, "LIKE", value+"%")
 	return p
 }
 
+func (p *Cond) RightLike(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
+	p.where(column, "LIKE", "%"+value)
+	return p
+}
+
 func (p *Cond) NotLike(column string, value string) *Cond {
+	if value == "" {
+		return p
+	}
 	p.where(column, "NOT LIKE", "%"+value+"%")
 	return p
 }
@@ -449,6 +450,14 @@ func (p *Cond) Between(column string, min, max interface{}) *Cond {
 	return p
 }
 
+func (p *Cond) NotBetween(column string, min, max interface{}) *Cond {
+	p.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
+	return p
+}
+
+// Reset clears all conditions and resets the Cond to its initial state.
+// This includes clearing conditions, resetting OR/AND mode, top-level flag,
+// table prefix, and skip flag. Use this when you want to reuse a Cond object.
 func (p *Cond) Reset() *Cond {
 	p.conds = p.conds[:0]
 	p.isOr = false
