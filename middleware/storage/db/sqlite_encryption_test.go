@@ -45,25 +45,25 @@ func TestSqliteTypeNormalization(t *testing.T) {
 	}
 }
 
-// TestSqliteNoCGODSN tests that regular Sqlite DSN does not contain encryption parameters
+// TestSqliteNoCGODSN tests that Sqlite DSN contains encryption parameters when password is set
 func TestSqliteNoCGODSN(t *testing.T) {
 	config := &Config{
 		Type:     Sqlite,
 		Address:  "/tmp",
 		Name:     "regular",
-		Password: "ignored", // Should be ignored for no-CGO
+		Password: "test-key", // DSN should contain encryption params regardless of CGO
 	}
 
 	config.apply()
 	dsn := config.DSN()
 
-	// DSN should NOT contain SQLCipher encryption parameters
-	if contains(dsn, "_key=") {
-		t.Error("No-CGO SQLite DSN should not contain _key parameter")
+	// DSN should contain SQLCipher encryption parameters (will be ignored if CGO is disabled)
+	if !contains(dsn, "_key=test-key") {
+		t.Error("Sqlite DSN should contain _key parameter when password is set")
 	}
 
-	if contains(dsn, "_cipher=sqlcipher") {
-		t.Error("No-CGO SQLite DSN should not contain _cipher parameter")
+	if !contains(dsn, "_cipher=sqlcipher") {
+		t.Error("Sqlite DSN should contain _cipher parameter when password is set")
 	}
 }
 
