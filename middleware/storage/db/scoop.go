@@ -321,6 +321,13 @@ type FindResult struct {
 	Error        error
 }
 
+// Find executes a SELECT query and scans all matching rows into out.
+// The out parameter must be a pointer to a slice of structs.
+// Returns FindResult containing any error that occurred.
+//
+// Example:
+//   var users []User
+//   result := scoop.Where("age > ?", 18).Find(&users)
 func (p *Scoop) Find(out interface{}) *FindResult {
 	if p.cond.skip {
 		return &FindResult{}
@@ -503,6 +510,13 @@ type FirstResult struct {
 	Error error
 }
 
+// First executes a SELECT query with LIMIT 1 and scans the first row into out.
+// The out parameter must be a pointer to a struct.
+// Returns FirstResult with Error set to ErrRecordNotFound if no row is found.
+//
+// Example:
+//   var user User
+//   result := scoop.Table("users").Where("id = ?", 1).First(&user)
 func (p *Scoop) First(out interface{}) *FirstResult {
 	if p.cond.skip {
 		return &FirstResult{
@@ -632,6 +646,15 @@ type CreateResult struct {
 	Error        error
 }
 
+// Create inserts a single record into the database using raw SQL.
+// The value parameter must be a pointer to a struct.
+// Auto-increment primary keys and timestamp fields are handled automatically.
+// Supports soft delete by inserting 0 for nil DeletedAt fields.
+// Returns CreateResult with LastInsertId and RowsAffected.
+//
+// Example:
+//   user := &User{Name: "John", Age: 30}
+//   result := scoop.Table("users").Create(user)
 func (p *Scoop) Create(value interface{}) *CreateResult {
 	p.inc()
 	defer p.dec()
@@ -797,6 +820,15 @@ type CreateInBatchesResult struct {
 	Error        error
 }
 
+// CreateInBatches inserts multiple records in batches using raw SQL.
+// The value parameter must be a slice of structs or pointers to structs.
+// Records are inserted in batches of the specified batchSize to optimize performance.
+// Auto-increment primary keys and timestamp fields are handled automatically.
+// Returns CreateInBatchesResult with total RowsAffected across all batches.
+//
+// Example:
+//   users := []User{{Name: "Alice"}, {Name: "Bob"}, {Name: "Charlie"}}
+//   result := scoop.Table("users").CreateInBatches(users, 100)
 func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatchesResult {
 	p.inc()
 	defer p.dec()
@@ -1007,6 +1039,17 @@ type DeleteResult struct {
 	Error        error
 }
 
+// Delete performs a soft or hard delete on matching rows.
+// If the table has a DeletedAt field, performs soft delete by setting timestamp.
+// Otherwise performs hard delete by removing rows from the database.
+// Use Unscoped() to force hard delete even with DeletedAt field.
+// Returns DeleteResult with RowsAffected count.
+//
+// Example:
+//   // Soft delete
+//   result := scoop.Table("users").Where("id = ?", 1).Delete()
+//   // Hard delete
+//   result := scoop.Table("users").Unscoped().Where("id = ?", 1).Delete()
 func (p *Scoop) Delete() *DeleteResult {
 	if p.cond.skip {
 		return &DeleteResult{}
@@ -1172,6 +1215,17 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 }
 
+// Updates performs an UPDATE operation on matching rows.
+// The m parameter can be either a map[string]interface{} or a struct.
+// Only non-zero fields are updated. Use clause.Expr for SQL expressions.
+// Automatically updates UpdatedAt field if present.
+// Returns UpdateResult with RowsAffected count.
+//
+// Example:
+//   // Using map
+//   result := scoop.Table("users").Where("id = ?", 1).Updates(map[string]interface{}{"age": 25})
+//   // Using struct
+//   result := scoop.Table("users").Where("id = ?", 1).Updates(&User{Age: 25})
 func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	if p.cond.skip {
 		return &UpdateResult{}
@@ -1282,6 +1336,12 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	return p.update(valMap)
 }
 
+// Count returns the number of rows matching the query conditions.
+// Respects WHERE clauses and soft delete (DeletedAt) filtering.
+// Returns the count and any error that occurred.
+//
+// Example:
+//   count, err := scoop.Table("users").Where("age > ?", 18).Count()
 func (p *Scoop) Count() (uint64, error) {
 	if p.cond.skip {
 		return 0, nil
