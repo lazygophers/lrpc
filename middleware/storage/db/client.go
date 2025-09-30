@@ -62,7 +62,10 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		})
 
 		if c.Debug {
-			_ = mysqlC.SetLogger(&mysqlLogger{})
+			err := mysqlC.SetLogger(&mysqlLogger{})
+			if err != nil {
+				log.Errorf("failed to set mysql logger: %v", err)
+			}
 		}
 
 	default:
@@ -99,6 +102,19 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		p.db = p.db.Debug()
 	}
 
+	// 验证数据库连接
+	sqlDB, err := p.db.DB()
+	if err != nil {
+		log.Errorf("failed to get sql.DB: %v", err)
+		return nil, err
+	}
+
+	err = sqlDB.Ping()
+	if err != nil {
+		log.Errorf("failed to ping database: %v", err)
+		return nil, err
+	}
+
 	err = p.AutoMigrates(tables...)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -106,10 +122,12 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	}
 
 	// SQLite 特定优化：启用自动减少存储文件大小
+	// 注意：PRAGMA auto_vacuum 仅在新数据库创建时生效
+	// 对已存在的数据库，需要执行 VACUUM 命令才能应用此设置
 	if c.Type == Sqlite {
 		err = p.db.Session(&gorm.Session{
 			Initialized: true,
-		}).Exec("PRAGMA auto_vacuum = 1").Error
+		}).Exec("PRAGMA auto_vacuum = INCREMENTAL").Error
 		if err != nil {
 			log.Errorf("failed to set PRAGMA auto_vacuum: %v", err)
 			// 不返回错误，因为这是优化设置，失败不应阻止初始化
@@ -192,7 +210,14 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 
 	for _, dbName := range stmt.Schema.DBNames {
 		if columnType, ok := columnTypeMap[dbName]; ok {
-			err = migrator.MigrateColumn(table, stmt.Schema.FieldsByDBName[dbName], columnType)
+			// 检查字段是否存在于 FieldsByDBName 映射中
+			field, exists := stmt.Schema.FieldsByDBName[dbName]
+			if !exists {
+				log.Errorf("field %s not found in FieldsByDBName for table %s", dbName, tabler.TableName())
+				return fmt.Errorf("field %s not found in schema", dbName)
+			}
+
+			err = migrator.MigrateColumn(table, field, columnType)
 			if err != nil {
 				log.Errorf("err:%v", err)
 				return err
@@ -215,7 +240,10 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		return err
 	}
 
-	if len(indexList) == 0 && len(stmt.Schema.ParseIndexes()) == 0 {
+	// 缓存 ParseIndexes() 结果，避免多次调用
+	schemaIndexes := stmt.Schema.ParseIndexes()
+
+	if len(indexList) == 0 && len(schemaIndexes) == 0 {
 		// 表和 Schema 都没有索引，跳过索引对齐
 		return nil
 	}
@@ -225,12 +253,19 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		indexMap[index.Name()] = index
 	}
 
-	for _, dbIndex := range stmt.Schema.ParseIndexes() {
+	for _, dbIndex := range schemaIndexes {
 		if index, ok := indexMap[dbIndex.Name]; ok {
 			// 对齐一下字段是否相同
 			if candy.SliceEqual(index.Columns(), candy.Map(dbIndex.Fields, func(t schema.IndexOption) string {
 				return t.DBName
 			})) {
+				continue
+			}
+
+			// 检查是否为主键或唯一索引，避免重建导致数据问题
+			if dbIndex.Class == "PRIMARY" || dbIndex.Type != "" {
+				log.Warnf("skipping rebuild of special index %s (class: %s, type: %s) on table %s",
+					dbIndex.Name, dbIndex.Class, dbIndex.Type, tabler.TableName())
 				continue
 			}
 
@@ -275,6 +310,10 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 }
 
 func (p *Client) Database() *gorm.DB {
+	if p.db == nil {
+		log.Errorf("database connection is nil")
+		return nil
+	}
 	return p.db.Session(&gorm.Session{
 		Initialized: true,
 	})
@@ -294,5 +333,9 @@ func (p *Client) DriverType() string {
 }
 
 func (p *Client) NewScoop() *Scoop {
+	if p.db == nil {
+		log.Errorf("database connection is nil")
+		return nil
+	}
 	return NewScoop(p.db, p.clientType)
 }
