@@ -144,6 +144,12 @@ func extractDBName(gormTag, fieldName string) string {
 	return Camel2UnderScore(fieldName)
 }
 
+type joinClause struct {
+	joinType  string // INNER, LEFT, RIGHT, FULL
+	table     string
+	condition string
+}
+
 type Scoop struct {
 	clientType string
 	_db        *gorm.DB
@@ -161,6 +167,8 @@ type Scoop struct {
 	selects       []string
 	groups        []string
 	orders        []string
+	joins         []joinClause
+	havingCond    *Cond
 	unscoped      bool
 
 	ignore bool
@@ -377,6 +385,63 @@ func (p *Scoop) Order(fields ...string) *Scoop {
 	return p
 }
 
+// Join adds a JOIN clause to the query
+// Example: Join("INNER", "orders", "users.id = orders.user_id")
+func (p *Scoop) Join(joinType, table, condition string) *Scoop {
+	p.joins = append(p.joins, joinClause{
+		joinType:  joinType,
+		table:     table,
+		condition: condition,
+	})
+	return p
+}
+
+// InnerJoin adds an INNER JOIN clause to the query
+// Example: InnerJoin("orders", "users.id = orders.user_id")
+func (p *Scoop) InnerJoin(table, condition string) *Scoop {
+	return p.Join("INNER", table, condition)
+}
+
+// LeftJoin adds a LEFT JOIN clause to the query
+// Example: LeftJoin("orders", "users.id = orders.user_id")
+func (p *Scoop) LeftJoin(table, condition string) *Scoop {
+	return p.Join("LEFT", table, condition)
+}
+
+// RightJoin adds a RIGHT JOIN clause to the query
+// Example: RightJoin("orders", "users.id = orders.user_id")
+func (p *Scoop) RightJoin(table, condition string) *Scoop {
+	return p.Join("RIGHT", table, condition)
+}
+
+// FullJoin adds a FULL OUTER JOIN clause to the query
+// Example: FullJoin("orders", "users.id = orders.user_id")
+func (p *Scoop) FullJoin(table, condition string) *Scoop {
+	return p.Join("FULL OUTER", table, condition)
+}
+
+// CrossJoin adds a CROSS JOIN clause to the query
+// Example: CrossJoin("orders")
+func (p *Scoop) CrossJoin(table string) *Scoop {
+	return p.Join("CROSS", table, "")
+}
+
+// Having adds a HAVING clause to the query (used with GROUP BY)
+// Example: Having("COUNT(*) > ?", 5)
+func (p *Scoop) Having(args ...interface{}) *Scoop {
+	if p.havingCond == nil {
+		p.havingCond = &Cond{clientType: p.clientType}
+	}
+	p.havingCond.Where(args...)
+	return p
+}
+
+// ToSQL returns the generated SQL query string for debugging/testing purposes
+// This method is primarily for testing and should not be used in production code
+func (p *Scoop) ToSQL() string {
+	return p.findSql()
+}
+
 func (p *Scoop) Ignore(b ...bool) *Scoop {
 	if len(b) == 0 {
 		p.ignore = true
@@ -536,6 +601,20 @@ func (p *Scoop) findSql() string {
 	b.WriteString(" FROM ")
 	b.WriteString(p.table)
 
+	// Add JOIN clauses
+	if len(p.joins) > 0 {
+		for _, join := range p.joins {
+			b.WriteString(" ")
+			b.WriteString(join.joinType)
+			b.WriteString(" JOIN ")
+			b.WriteString(join.table)
+			if join.condition != "" {
+				b.WriteString(" ON ")
+				b.WriteString(join.condition)
+			}
+		}
+	}
+
 	if len(p.cond.conds) > 0 {
 		b.WriteString(" WHERE ")
 		b.WriteString(p.cond.conds[0])
@@ -551,6 +630,16 @@ func (p *Scoop) findSql() string {
 		for _, g := range p.groups[1:] {
 			b.WriteString(", ")
 			b.WriteString(g)
+		}
+	}
+
+	// Add HAVING clause
+	if p.havingCond != nil && len(p.havingCond.conds) > 0 {
+		b.WriteString(" HAVING ")
+		b.WriteString(p.havingCond.conds[0])
+		for _, c := range p.havingCond.conds[1:] {
+			b.WriteString(" AND ")
+			b.WriteString(c)
 		}
 	}
 

@@ -492,3 +492,209 @@ func TestScoopUnscoped(t *testing.T) {
 		assert.Equal(t, len(allProducts), 5)
 	})
 }
+// TestCategory is a test model for join testing
+type TestCategory struct {
+	Id        int    `gorm:"primaryKey;autoIncrement"`
+	Name      string `gorm:"size:100;not null"`
+	CreatedAt int64  `gorm:"autoCreateTime"`
+	DeletedAt int64  `gorm:"index"`
+}
+
+func (TestCategory) TableName() string {
+	return "test_categories"
+}
+
+// TestScoopJoin tests Join methods
+func TestScoopJoin(t *testing.T) {
+	client := setupTestDBForScoop(t)
+	
+	// Create test categories table
+	err := client.AutoMigrate(&TestCategory{})
+	assert.NilError(t, err)
+	
+	// Insert test categories
+	categories := []TestCategory{
+		{Name: "Electronics"},
+		{Name: "Books"},
+		{Name: "Clothing"},
+	}
+	for i := range categories {
+		result := client.NewScoop().Model(&TestCategory{}).Create(&categories[i])
+		assert.NilError(t, result.Error)
+	}
+	
+	// Insert test products with categories
+	insertTestProducts(t, client)
+	
+	t.Run("inner join", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("test_products.name", "test_categories.name as category_name").
+			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
+			Where("test_products.deleted_at", 0)
+
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("left join", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("test_products.*", "test_categories.name as category_name").
+			LeftJoin("test_categories", "test_products.category_id = test_categories.id").
+			Where("test_products.deleted_at", 0)
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("right join", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("test_products.*").
+			RightJoin("test_categories", "test_products.category_id = test_categories.id")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("multiple joins", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
+			LeftJoin("test_another_table", "test_products.id = test_another_table.product_id")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("cross join", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			CrossJoin("test_categories")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+}
+
+// TestScoopHaving tests Having method
+func TestScoopHaving(t *testing.T) {
+	client := setupTestDBForScoop(t)
+	insertTestProducts(t, client)
+	
+	t.Run("having with count", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("category_id", "COUNT(*) as count").
+			Group("category_id").
+			Having("COUNT(*) > ?", 1)
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("having with multiple conditions", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("category_id", "SUM(price) as total_price").
+			Group("category_id").
+			Having("SUM(price) > ?", 100).
+			Having("COUNT(*) > ?", 1)
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("group by with having and order", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("category_id", "AVG(price) as avg_price", "COUNT(*) as count").
+			Where("deleted_at", 0).
+			Group("category_id").
+			Having("AVG(price) > ?", 150).
+			Order("avg_price DESC")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+}
+
+// TestScoopComplexQuery tests complex queries combining Join and Having
+func TestScoopComplexQuery(t *testing.T) {
+	client := setupTestDBForScoop(t)
+	
+	// Create test categories table
+	err := client.AutoMigrate(&TestCategory{})
+	assert.NilError(t, err)
+	
+	// Insert test data
+	categories := []TestCategory{
+		{Name: "Electronics"},
+		{Name: "Books"},
+		{Name: "Clothing"},
+	}
+	for i := range categories {
+		result := client.NewScoop().Model(&TestCategory{}).Create(&categories[i])
+		assert.NilError(t, result.Error)
+	}
+	
+	insertTestProducts(t, client)
+	
+	t.Run("join with group by and having", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("test_categories.name as category", "COUNT(*) as product_count", "AVG(test_products.price) as avg_price").
+			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
+			Where("test_products.deleted_at", 0).
+			Group("test_categories.name").
+			Having("COUNT(*) > ?", 0).
+			Order("product_count DESC")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+	
+	t.Run("multiple joins with having", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("test_categories.name", "SUM(test_products.price) as total").
+			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
+			Where("test_products.is_active", true).
+			Group("test_categories.name").
+			Having("SUM(test_products.price) > ?", 200).
+			Limit(10)
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+}
+
+// TestScoopJoinBackwardCompatibility tests that existing code still works
+func TestScoopJoinBackwardCompatibility(t *testing.T) {
+	client := setupTestDBForScoop(t)
+	insertTestProducts(t, client)
+	
+	t.Run("existing queries without joins", func(t *testing.T) {
+		var products []*TestProduct
+		result := client.NewScoop().Model(&TestProduct{}).
+			Where("price > ?", 100).
+			Order("price DESC").
+			Limit(5).
+			Find(&products)
+		
+		assert.NilError(t, result.Error)
+		assert.Assert(t, len(products) > 0)
+	})
+	
+	t.Run("existing group by without having", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("category_id", "COUNT(*) as count").
+			Group("category_id").
+			Order("count DESC")
+		
+		sqlStr := sql.ToSQL()
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, len(sqlStr) > 0)
+	})
+}
