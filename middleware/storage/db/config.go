@@ -103,7 +103,7 @@ func (c *Config) apply() {
 		}
 
 	case "postgres", "pg", "postgresql", "pgsql":
-		c.Type = "postgres"
+		c.Type = Postgres
 
 		if c.Address == "" {
 			c.Address = "127.0.0.1"
@@ -172,6 +172,18 @@ func (c *Config) DSN() string {
 	case MySQL:
 		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			c.Username, c.Password, c.Address, c.Port, c.Name)
+
+	case Postgres:
+		query := &url.Values{}
+		query.Set("sslmode", "disable")
+		query.Set("TimeZone", "Asia/Shanghai")
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
+			c.Address, c.Port, c.Username, c.Password, c.Name, query.Encode())
 
 	default:
 		return ""

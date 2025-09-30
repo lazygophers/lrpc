@@ -12,6 +12,7 @@ import (
 
 	mysqlC "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -67,6 +68,13 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 				log.Errorf("failed to set mysql logger: %v", err)
 			}
 		}
+
+	case Postgres:
+		log.Infof("connecting to postgres: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		d = postgres.New(postgres.Config{
+			DSN:                  c.DSN(),
+			PreferSimpleProtocol: true,
+		})
 
 	default:
 		return nil, fmt.Errorf("unknown database type: %s", c.Type)
