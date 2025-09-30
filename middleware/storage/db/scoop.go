@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lazygophers/log"
@@ -36,6 +37,101 @@ const (
 	structFieldCreatedAt = "CreatedAt"
 	structFieldUpdatedAt = "UpdatedAt"
 )
+
+// gormTagCache caches parsed GORM tag information for struct types
+// This significantly improves performance for repeated Updates operations
+var (
+	gormTagCache = make(map[reflect.Type]*gormTagInfo)
+	gormTagMutex sync.RWMutex
+)
+
+// gormTagInfo stores parsed information about updatable fields
+type gormTagInfo struct {
+	updatableFields map[string]string // fieldName -> dbName mapping
+}
+
+// parseGormTags parses GORM tags for a struct type and caches the result
+// Returns information about which fields are updatable and their DB names
+func parseGormTags(t reflect.Type) *gormTagInfo {
+	// Fast path: read lock for cache lookup
+	gormTagMutex.RLock()
+	if info, ok := gormTagCache[t]; ok {
+		gormTagMutex.RUnlock()
+		return info
+	}
+	gormTagMutex.RUnlock()
+
+	// Slow path: write lock for cache update
+	gormTagMutex.Lock()
+	defer gormTagMutex.Unlock()
+
+	// Double-check in case another goroutine already cached it
+	if info, ok := gormTagCache[t]; ok {
+		return info
+	}
+
+	// Parse struct tags
+	info := &gormTagInfo{
+		updatableFields: make(map[string]string),
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		gormTag := field.Tag.Get("gorm")
+
+		// Skip ignored fields
+		if gormTag == "-" {
+			continue
+		}
+
+		// Skip fields that should not be updated
+		if isSkippableField(gormTag, field.Name) {
+			continue
+		}
+
+		// Extract DB column name
+		dbName := extractDBName(gormTag, field.Name)
+		info.updatableFields[field.Name] = dbName
+	}
+
+	gormTagCache[t] = info
+	return info
+}
+
+// isSkippableField checks if a field should be skipped during updates
+func isSkippableField(gormTag, fieldName string) bool {
+	// Check for special GORM tags
+	if strings.Contains(gormTag, "primaryKey") ||
+		strings.Contains(gormTag, "autoCreateTime") ||
+		strings.Contains(gormTag, "autoUpdateTime") {
+		return true
+	}
+
+	// Check for time tracking fields by name
+	if fieldName == structFieldCreatedAt || fieldName == structFieldUpdatedAt {
+		return true
+	}
+
+	return false
+}
+
+// extractDBName extracts the database column name from GORM tag
+func extractDBName(gormTag, fieldName string) string {
+	if gormTag == "" {
+		return Camel2UnderScore(fieldName)
+	}
+
+	// Parse column name from tag
+	parts := strings.Split(gormTag, ";")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "column:") {
+			return strings.TrimPrefix(part, "column:")
+		}
+	}
+
+	return Camel2UnderScore(fieldName)
+}
 
 type Scoop struct {
 	clientType string
@@ -1278,87 +1374,21 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 			Error: errors.New("m must be map or struct"),
 		}
 	}
-	fieldNum := mType.NumField()
-	valMap := make(map[string]interface{})
-	for i := 0; i < fieldNum; i++ {
-		fieldType := mType.Field(i)
-		fieldVal := mVal.Field(i)
 
-		if !fieldVal.IsValid() {
+	// Use cached tag information for better performance
+	tagInfo := parseGormTags(mType)
+	valMap := make(map[string]interface{}, len(tagInfo.updatableFields))
+
+	for fieldName, dbName := range tagInfo.updatableFields {
+		fieldVal := mVal.FieldByName(fieldName)
+
+		if !fieldVal.IsValid() || !fieldVal.CanInterface() || fieldVal.IsZero() {
 			continue
 		}
 
-		if !fieldVal.CanInterface() {
-			continue
-		}
-
-		if fieldVal.IsZero() {
-			continue
-		}
-
-		// 判断一下 gorm tags 的配置
-		// TODO 添加解析的缓存
-		gormTag := fieldType.Tag.Get("gorm")
-		if gormTag == "-" {
-			continue
-		}
-
-		var fieldName string
-		if gormTag != "" {
-			// 判断是否为主键
-			if gormTag == "primaryKey" {
-				continue
-			}
-
-			if strings.HasPrefix(gormTag, "primaryKey;") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";primaryKey") {
-				continue
-			}
-
-			// 判断是否是自动更新的字段
-			if strings.HasPrefix(gormTag, "autoCreateTime") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";autoUpdateTime") {
-				continue
-			}
-
-			if strings.HasPrefix(gormTag, "autoUpdateTime") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";autoUpdateTime") {
-				continue
-			}
-
-			// 获取字段名
-			idx := strings.Index(gormTag, "column:")
-			if idx > 0 {
-				tag := gormTag[idx+7:]
-				idx = strings.Index(tag, ";")
-				if idx > 0 {
-					fieldName = tag[:idx]
-				} else {
-					fieldName = tag
-				}
-			}
-		}
-
-		if fieldName == "" {
-			fieldName = Camel2UnderScore(fieldType.Name)
-		}
-
-		switch fieldName {
-		case fieldCreatedAt, fieldUpdatedAt:
-			continue
-		}
-
-		valMap[fieldName] = fieldVal.Interface()
+		valMap[dbName] = fieldVal.Interface()
 	}
+
 	if len(valMap) == 0 {
 		return &UpdateResult{
 			Error: errors.New("no field need to update"),
