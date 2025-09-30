@@ -12,17 +12,19 @@ import (
 )
 
 const (
-	Sqlite     = "sqlite"
-	MySQL      = "mysql"
-	Postgres   = "postgres"
-	ClickHouse = "clickhouse"
-	TiDB       = "tidb"
-	GaussDB    = "gaussdb"
+	Sqlite        = "sqlite"
+	SqliteCGO     = "sqlite-cgo"
+	MySQL         = "mysql"
+	Postgres      = "postgres"
+	ClickHouse    = "clickhouse"
+	TiDB          = "tidb"
+	GaussDB       = "gaussdb"
 )
 
 type Config struct {
-	// Database type, support sqlite, mysql, postgres, clickhouse, tidb, gaussdb, default sqlite
-	// sqlite: sqlite|sqlite3
+	// Database type, support sqlite, sqlite-cgo, mysql, postgres, clickhouse, tidb, gaussdb, default sqlite
+	// sqlite: sqlite|sqlite3 (pure Go, no CGO, no encryption support)
+	// sqlite-cgo: sqlite-cgo (with CGO, supports encryption via SQLCipher)
 	// mysql: mysql
 	// postgres: postgres|pg|postgresql|pgsql
 	// clickhouse: clickhouse|ch
@@ -68,7 +70,8 @@ type Config struct {
 	Username string `yaml:"username,omitempty" json:"username,omitempty"`
 
 	// Database password
-	// sqlite: empty
+	// sqlite: not supported (use sqlite-cgo for encryption)
+	// sqlite-cgo: SQLCipher encryption key
 	// mysql: database password
 	// postgres: database password
 	// sqlserver: database password
@@ -88,6 +91,19 @@ func (c *Config) apply() {
 	case Sqlite, "sqlite3":
 		c.Type = Sqlite
 
+		if c.Address == "" {
+			c.Address, _ = os.Executable()
+		}
+
+		if !strings.HasPrefix(c.Address, "file:") {
+			c.Address = "file:" + c.Address
+		}
+
+		if c.Name == "" {
+			c.Name = app.Name + ".db"
+		}
+
+	case SqliteCGO:
 		if c.Address == "" {
 			c.Address, _ = os.Executable()
 		}
@@ -217,6 +233,32 @@ func (c *Config) DSN() string {
 
 			query.Set("_auth_crypt", "sha512")
 			query.Set("_auth_salt", app.Name)
+		}
+
+		for key, value := range c.Extras {
+			query.Set(key, value)
+		}
+
+		return dsn + "?" + query.Encode()
+
+	case SqliteCGO:
+		query := &url.Values{}
+
+		dsn := fmt.Sprintf("%s.db", filepath.ToSlash(filepath.Join(c.Address, c.Name)))
+
+		query.Set("_vacuum", "2")
+		query.Set("_journal", "delete")
+		query.Set("_locking_mode", "exclusive")
+		query.Set("mode", "rwc")
+		query.Set("_sync", "3")
+		query.Set("_timeout", "9999999")
+
+		// SQLCipher encryption parameters
+		if c.Password != "" {
+			query.Set("_key", c.Password)
+			// SQLCipher 4.x compatible settings
+			query.Set("_cipher", "sqlcipher")
+			query.Set("_kdf_iter", "256000")
 		}
 
 		for key, value := range c.Extras {

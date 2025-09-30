@@ -38,8 +38,16 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	var d gorm.Dialector
 	switch c.Type {
 	case Sqlite:
-		log.Infof("connecting to sqlite: %s", c.DSN())
+		// Warn if password is set with no-CGO SQLite
+		if c.Password != "" {
+			log.Warnf("SQLite password is set but 'sqlite' type does not support encryption. Use 'sqlite-cgo' type for encryption support")
+		}
+		log.Infof("connecting to sqlite (no CGO): %s", c.DSN())
 		d = sqlite.Open(c.DSN())
+
+	case SqliteCGO:
+		log.Infof("connecting to sqlite (with CGO/SQLCipher): %s", c.DSN())
+		d = newSqliteCGODialector(c.DSN())
 
 	case MySQL:
 		log.Infof("connecting to mysql: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)

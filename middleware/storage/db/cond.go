@@ -34,7 +34,7 @@ func quoteFieldName(name string, clientType string) string {
 	case MySQL, TiDB, ClickHouse:
 		// MySQL, TiDB, and ClickHouse use backticks
 		return fmt.Sprintf("`%s`", name)
-	case Postgres, Sqlite, GaussDB:
+	case Postgres, Sqlite, SqliteCGO, GaussDB:
 		// PostgreSQL, SQLite, and GaussDB use double quotes
 		return fmt.Sprintf("\"%s\"", name)
 	default:
