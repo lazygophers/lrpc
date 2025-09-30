@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	Sqlite = "sqlite"
-	MySQL  = "mysql"
+	Sqlite   = "sqlite"
+	MySQL    = "mysql"
+	Postgres = "postgres"
 )
 
 type Config struct {

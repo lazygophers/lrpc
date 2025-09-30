@@ -14,6 +14,14 @@ type MinimalModel struct {
 
 func (MinimalModel) TableName() string { return "minimal_models" }
 
+// TestModelWithTimestamps for testing models with timestamps
+type TestModelWithTimestamps struct {
+	ID   int64
+	Name string
+}
+
+func (TestModelWithTimestamps) TableName() string { return "test_models_with_timestamps" }
+
 // TestClientBasicMethods tests client methods that can be tested without actual DB
 func TestClientBasicMethods(t *testing.T) {
 	t.Run("test client driver type", func(t *testing.T) {

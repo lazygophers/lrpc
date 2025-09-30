@@ -54,7 +54,11 @@ func (p *CacheMem) IncrBy(key string, value int64) (int64, error) {
 }
 
 func (p *CacheMem) DecrBy(key string, value int64) (int64, error) {
-	return p.IncrBy(key, -value)
+	val, err := p.IncrBy(key, -value)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) Expire(key string, timeout time.Duration) (bool, error) {
@@ -100,11 +104,19 @@ func (p *CacheMem) Ttl(key string) (time.Duration, error) {
 }
 
 func (p *CacheMem) Incr(key string) (int64, error) {
-	return p.IncrBy(key, 1)
+	val, err := p.IncrBy(key, 1)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) Decr(key string) (int64, error) {
-	return p.IncrBy(key, -1)
+	val, err := p.IncrBy(key, -1)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) Exists(keys ...string) (bool, error) {
@@ -128,7 +140,11 @@ func (p *CacheMem) Exists(keys ...string) (bool, error) {
 }
 
 func (p *CacheMem) HIncr(key string, subKey string) (int64, error) {
-	return p.HIncrBy(key, subKey, 1)
+	val, err := p.HIncrBy(key, subKey, 1)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) HIncrBy(key string, field string, increment int64) (int64, error) {
@@ -163,11 +179,19 @@ func (p *CacheMem) HIncrBy(key string, field string, increment int64) (int64, er
 }
 
 func (p *CacheMem) HDecr(key string, field string) (int64, error) {
-	return p.HIncrBy(key, field, -1)
+	val, err := p.HIncrBy(key, field, -1)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) HDecrBy(key string, field string, increment int64) (int64, error) {
-	return p.HIncrBy(key, field, -increment)
+	val, err := p.HIncrBy(key, field, -increment)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 func (p *CacheMem) SAdd(key string, members ...string) (int64, error) {

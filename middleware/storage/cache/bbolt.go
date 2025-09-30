@@ -35,15 +35,31 @@ func (p *CacheBbolt) getBucket(tx *bbolt.Tx, write bool) (*bbolt.Bucket, error) 
 }
 
 func (p *CacheBbolt) Clean() error {
-	return p.conn.Update(func(tx *bbolt.Tx) error {
+	err := p.conn.Update(func(tx *bbolt.Tx) error {
 		b, err := p.getBucket(tx, false)
 		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
-		return b.ForEach(func(k, v []byte) error {
-			return b.Delete(k)
+		err = b.ForEach(func(k, v []byte) error {
+			err := b.Delete(k)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+			return nil
 		})
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		return nil
 	})
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (p *CacheBbolt) SetPrefix(prefix string) {
@@ -64,12 +80,15 @@ func (p *CacheBbolt) IncrBy(key string, value int64) (int64, error) {
 		var current int64
 		if v != nil {
 			var item Item
-			if err := json.Unmarshal(v, &item); err == nil {
+			err := json.Unmarshal(v, &item)
+			if err == nil {
 				if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
 					current = 0 // Expired, treat as 0
 				} else {
 					current, _ = strconv.ParseInt(item.Data, 10, 64)
 				}
+			} else {
+				log.Errorf("err:%v", err)
 			}
 		}
 
@@ -85,7 +104,12 @@ func (p *CacheBbolt) IncrBy(key string, value int64) (int64, error) {
 }
 
 func (p *CacheBbolt) DecrBy(key string, value int64) (int64, error) {
-	return p.IncrBy(key, -value)
+	result, err := p.IncrBy(key, -value)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return result, nil
 }
 
 func (p *CacheBbolt) Expire(key string, timeout time.Duration) (bool, error) {
@@ -99,12 +123,19 @@ func (p *CacheBbolt) Expire(key string, timeout time.Duration) (bool, error) {
 
 		found = true
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
 		item.ExpireAt = time.Now().Add(timeout)
-		return b.Put([]byte(key), item.Bytes())
+		err = b.Put([]byte(key), item.Bytes())
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		return nil
 	})
 
 	return found, err
@@ -120,7 +151,9 @@ func (p *CacheBbolt) Ttl(key string) (time.Duration, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -159,7 +192,8 @@ func (p *CacheBbolt) Exists(keys ...string) (bool, error) {
 			}
 
 			var item Item
-			if err := json.Unmarshal(v, &item); err == nil {
+			err := json.Unmarshal(v, &item)
+			if err == nil {
 				// Only process if JSON is valid
 				if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
 					allExist = false
@@ -167,6 +201,7 @@ func (p *CacheBbolt) Exists(keys ...string) (bool, error) {
 				}
 			} else {
 				// Treat invalid JSON as non-existent (graceful handling)
+				log.Errorf("err:%v", err)
 				allExist = false
 				return nil
 			}
@@ -193,12 +228,15 @@ func (p *CacheBbolt) HIncrBy(key string, field string, increment int64) (int64, 
 		var current int64
 		if v != nil {
 			var item Item
-			if err := json.Unmarshal(v, &item); err == nil {
+			err := json.Unmarshal(v, &item)
+			if err == nil {
 				if !item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt) {
 					current = 0
 				} else {
 					current, _ = strconv.ParseInt(item.Data, 10, 64)
 				}
+			} else {
+				log.Errorf("err:%v", err)
 			}
 		}
 
@@ -234,10 +272,16 @@ func (p *CacheBbolt) SAdd(key string, members ...string) (int64, error) {
 		var existingSet map[string]bool
 		if v != nil {
 			var item Item
-			if err := json.Unmarshal(v, &item); err == nil {
+			err := json.Unmarshal(v, &item)
+			if err == nil {
 				if item.ExpireAt.IsZero() || time.Now().Before(item.ExpireAt) {
-					json.UnmarshalString(item.Data, &existingSet)
+					err = json.UnmarshalString(item.Data, &existingSet)
+					if err != nil {
+						log.Errorf("err:%v", err)
+					}
 				}
+			} else {
+				log.Errorf("err:%v", err)
 			}
 		}
 
@@ -281,7 +325,9 @@ func (p *CacheBbolt) SMembers(key string) ([]string, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -290,7 +336,9 @@ func (p *CacheBbolt) SMembers(key string) ([]string, error) {
 		}
 
 		var setData map[string]bool
-		if err := json.UnmarshalString(item.Data, &setData); err != nil {
+		err = json.UnmarshalString(item.Data, &setData)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -317,7 +365,9 @@ func (p *CacheBbolt) SRem(key string, members ...string) (int64, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -326,7 +376,9 @@ func (p *CacheBbolt) SRem(key string, members ...string) (int64, error) {
 		}
 
 		var setData map[string]bool
-		if err := json.UnmarshalString(item.Data, &setData); err != nil {
+		err = json.UnmarshalString(item.Data, &setData)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -409,7 +461,9 @@ func (p *CacheBbolt) SisMember(key, field string) (bool, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -418,7 +472,9 @@ func (p *CacheBbolt) SisMember(key, field string) (bool, error) {
 		}
 
 		var setData map[string]bool
-		if err := json.UnmarshalString(item.Data, &setData); err != nil {
+		err = json.UnmarshalString(item.Data, &setData)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -451,7 +507,9 @@ func (p *CacheBbolt) HKeys(key string) ([]string, error) {
 		c := b.Cursor()
 		for k, v := c.Seek([]byte(prefix)); k != nil && string(k[:len(prefix)]) == prefix; k, v = c.Next() {
 			var item Item
-			if err := json.Unmarshal(v, &item); err != nil {
+			err := json.Unmarshal(v, &item)
+			if err != nil {
+				log.Errorf("err:%v", err)
 				continue
 			}
 
@@ -503,7 +561,9 @@ func (p *CacheBbolt) HGet(key, field string) (string, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
+		err := json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 
@@ -528,7 +588,9 @@ func (p *CacheBbolt) HDel(key string, fields ...string) (int64, error) {
 		for _, field := range fields {
 			hashKey := fmt.Sprintf("%s:hash:%s", key, field)
 			if b.Get([]byte(hashKey)) != nil {
-				if err := b.Delete([]byte(hashKey)); err != nil {
+				err := b.Delete([]byte(hashKey))
+				if err != nil {
+					log.Errorf("err:%v", err)
 					return err
 				}
 				deleted++
@@ -552,7 +614,9 @@ func (p *CacheBbolt) HGetAll(key string) (map[string]string, error) {
 		c := b.Cursor()
 		for k, v := c.Seek([]byte(prefix)); k != nil && string(k[:len(prefix)]) == prefix; k, v = c.Next() {
 			var item Item
-			if err := json.Unmarshal(v, &item); err != nil {
+			err := json.Unmarshal(v, &item)
+			if err != nil {
+				log.Errorf("err:%v", err)
 				continue
 			}
 
@@ -633,8 +697,9 @@ func (p *CacheBbolt) Get(key string) (string, error) {
 		}
 
 		var item Item
-		if err := json.Unmarshal(v, &item); err != nil {
-			log.Error(err)
+		err = json.Unmarshal(v, &item)
+		if err != nil {
+			log.Errorf("err:%v", err)
 			return err
 		}
 

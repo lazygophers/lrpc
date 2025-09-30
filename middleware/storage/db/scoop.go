@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lazygophers/log"
@@ -14,7 +15,134 @@ import (
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
+
+// Field name constants for common database fields
+const (
+	fieldDeletedAt = "deleted_at"
+	fieldCreatedAt = "created_at"
+	fieldUpdatedAt = "updated_at"
+	fieldID        = "id"
+)
+
+// SQL condition constants
+const (
+	condNotDeleted = "deleted_at = 0"
+)
+
+// Field name constants for Go struct fields
+const (
+	structFieldDeletedAt = "DeletedAt"
+	structFieldCreatedAt = "CreatedAt"
+	structFieldUpdatedAt = "UpdatedAt"
+)
+
+// gormTagCache caches parsed GORM tag information for struct types
+// This significantly improves performance for repeated Updates operations
+var (
+	gormTagCache = make(map[reflect.Type]*gormTagInfo)
+	gormTagMutex sync.RWMutex
+
+	// Cache for field name conversions from snake_case to CamelCase
+	fieldNameCache = make(map[string]string)
+	fieldNameMutex sync.RWMutex
+
+	// Pool for gorm.Statement objects to reduce allocations
+	statementPool = sync.Pool{
+		New: func() interface{} {
+			return &gorm.Statement{}
+		},
+	}
+)
+
+// gormTagInfo stores parsed information about updatable fields
+type gormTagInfo struct {
+	updatableFields map[string]string // fieldName -> dbName mapping
+}
+
+// parseGormTags parses GORM tags for a struct type and caches the result
+// Returns information about which fields are updatable and their DB names
+func parseGormTags(t reflect.Type) *gormTagInfo {
+	// Fast path: read lock for cache lookup
+	gormTagMutex.RLock()
+	if info, ok := gormTagCache[t]; ok {
+		gormTagMutex.RUnlock()
+		return info
+	}
+	gormTagMutex.RUnlock()
+
+	// Slow path: write lock for cache update
+	gormTagMutex.Lock()
+	defer gormTagMutex.Unlock()
+
+	// Double-check in case another goroutine already cached it
+	if info, ok := gormTagCache[t]; ok {
+		return info
+	}
+
+	// Parse struct tags
+	info := &gormTagInfo{
+		updatableFields: make(map[string]string),
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		gormTag := field.Tag.Get("gorm")
+
+		// Skip ignored fields
+		if gormTag == "-" {
+			continue
+		}
+
+		// Skip fields that should not be updated
+		if isSkippableField(gormTag, field.Name) {
+			continue
+		}
+
+		// Extract DB column name
+		dbName := extractDBName(gormTag, field.Name)
+		info.updatableFields[field.Name] = dbName
+	}
+
+	gormTagCache[t] = info
+	return info
+}
+
+// isSkippableField checks if a field should be skipped during updates
+func isSkippableField(gormTag, fieldName string) bool {
+	// Check for special GORM tags
+	if strings.Contains(gormTag, "primaryKey") ||
+		strings.Contains(gormTag, "autoCreateTime") ||
+		strings.Contains(gormTag, "autoUpdateTime") {
+		return true
+	}
+
+	// Check for time tracking fields by name
+	if fieldName == structFieldCreatedAt || fieldName == structFieldUpdatedAt {
+		return true
+	}
+
+	return false
+}
+
+// extractDBName extracts the database column name from GORM tag
+func extractDBName(gormTag, fieldName string) string {
+	if gormTag == "" {
+		return Camel2UnderScore(fieldName)
+	}
+
+	// Parse column name from tag
+	parts := strings.Split(gormTag, ";")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "column:") {
+			return strings.TrimPrefix(part, "column:")
+		}
+	}
+
+	return Camel2UnderScore(fieldName)
+}
 
 type Scoop struct {
 	clientType string
@@ -79,6 +207,23 @@ func (p *Scoop) AutoMigrate(dst ...interface{}) error {
 	return p._db.AutoMigrate(dst...)
 }
 
+// isValidTableName validates table name to prevent SQL injection
+// Only allows alphanumeric characters, underscores, and dots (for schema.table)
+func isValidTableName(tableName string) bool {
+	if tableName == "" {
+		return false
+	}
+	for _, char := range tableName {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '_' || char == '.') {
+			return false
+		}
+	}
+	return true
+}
+
 func (p *Scoop) inc() {
 	p.depth++
 }
@@ -109,7 +254,12 @@ func (p *Scoop) Model(m any) *Scoop {
 	return p
 }
 
+// Table sets the table name for the query
+// Validates table name to prevent SQL injection
 func (p *Scoop) Table(m string) *Scoop {
+	if !isValidTableName(m) {
+		log.Warnf("invalid table name: %s, table name must contain only alphanumeric characters, underscores and dots", m)
+	}
 	p.table = m
 	return p
 }
@@ -235,6 +385,128 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 
 // ——————————操作——————————
 
+// getStatement gets a Statement from the pool and initializes it
+func getStatement(db *gorm.DB, table string, model interface{}) *gorm.Statement {
+	stmt := statementPool.Get().(*gorm.Statement)
+	stmt.DB = db
+	stmt.Table = table
+	stmt.Model = model
+	if db.Statement != nil {
+		stmt.TableExpr = db.Statement.TableExpr
+	}
+	return stmt
+}
+
+// putStatement resets and returns a Statement to the pool
+func putStatement(stmt *gorm.Statement) {
+	// Reset statement fields to avoid memory leaks
+	stmt.DB = nil
+	stmt.Table = ""
+	stmt.Model = nil
+	stmt.Schema = nil
+	stmt.TableExpr = nil
+	statementPool.Put(stmt)
+}
+
+// getCachedFieldName converts snake_case to CamelCase with caching.
+// This significantly improves performance when scanning database rows.
+func getCachedFieldName(dbName string) string {
+	// Fast path: read lock
+	fieldNameMutex.RLock()
+	if camelName, ok := fieldNameCache[dbName]; ok {
+		fieldNameMutex.RUnlock()
+		return camelName
+	}
+	fieldNameMutex.RUnlock()
+
+	// Slow path: convert and cache
+	fieldNameMutex.Lock()
+	defer fieldNameMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if camelName, ok := fieldNameCache[dbName]; ok {
+		return camelName
+	}
+
+	camelName := stringx.Snake2Camel(dbName)
+	fieldNameCache[dbName] = camelName
+	return camelName
+}
+
+// handleAutoTimeField sets auto timestamp fields (CreatedAt/UpdatedAt) if they are zero.
+// Returns true if the field was auto-set, false otherwise.
+func handleAutoTimeField(field *schema.Field, fieldValue reflect.Value) bool {
+	if field.AutoCreateTime != 0 && fieldValue.IsZero() {
+		if field.DataType == "int64" || field.DataType == "uint64" {
+			fieldValue.SetInt(time.Now().Unix())
+			return true
+		}
+	}
+	return false
+}
+
+// buildInsertSQL constructs an INSERT statement with proper IGNORE/ON CONFLICT handling
+// based on the database type. It supports single-row and multi-row insertions.
+// columns: list of column names
+// placeholders: list of value placeholders like "(?)", or "(?), (?)" for batch inserts
+func (p *Scoop) buildInsertSQL(columns []string, placeholders string) string {
+	columnsStr := strings.Join(columns, ", ")
+
+	if p.ignore {
+		switch p.clientType {
+		case MySQL:
+			return "INSERT IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		case Sqlite:
+			return "INSERT OR IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		case Postgres:
+			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders + " ON CONFLICT DO NOTHING"
+		default:
+			return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+		}
+	}
+	return "INSERT INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
+}
+
+// scanRowsInto is a helper function that scans SQL rows into a reflect.Value.
+// It handles the common logic for both Find and First operations.
+// dest should be a valid reflect.Value that can be set.
+// For Find, dest should be a slice element; for First, dest should be a struct pointer.
+func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.Time, depth int) error {
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	values := make([]sql.RawBytes, len(cols))
+	scanArgs := make([]interface{}, len(values))
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+
+	err = rows.Scan(scanArgs...)
+	if err != nil {
+		return err
+	}
+
+	for i, col := range values {
+		if col == nil {
+			continue
+		}
+		fieldName := getCachedFieldName(cols[i])
+		field := dest.FieldByName(fieldName)
+		if !field.IsValid() {
+			log.Debugf("invalid field: %s", fieldName)
+			continue
+		}
+		err = decode(field, col)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *Scoop) findSql() string {
 	b := log.GetBuffer()
 	defer log.PutBuffer(b)
@@ -299,6 +571,13 @@ type FindResult struct {
 	Error        error
 }
 
+// Find executes a SELECT query and scans all matching rows into out.
+// The out parameter must be a pointer to a slice of structs.
+// Returns FindResult containing any error that occurred.
+//
+// Example:
+//   var users []User
+//   result := scoop.Where("age > ?", 18).Find(&users)
 func (p *Scoop) Find(out interface{}) *FindResult {
 	if p.cond.skip {
 		return &FindResult{}
@@ -306,11 +585,15 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 
 	vv := reflect.ValueOf(out)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &FindResult{
+			Error: fmt.Errorf("Find failed: out parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 	vv = vv.Elem()
 	if vv.Type().Kind() != reflect.Slice {
-		panic("invalid out type, not slice")
+		return &FindResult{
+			Error: fmt.Errorf("Find failed: out parameter must be a pointer to slice, got pointer to %v", vv.Type().Kind()),
+		}
 	}
 
 	elem := vv.Type().Elem()
@@ -320,7 +603,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	}
 
 	if !p.unscoped && (p.hasDeletedAt || hasDeletedAt(elem)) {
-		p.cond.whereRaw("deleted_at = 0")
+		p.cond.whereRaw(condNotDeleted)
 	}
 
 	p.inc()
@@ -339,28 +622,16 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 			Error: err,
 		}
 	}
-	defer rows.Close()
-	
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			log.Errorf("err:%v", closeErr)
+		}
+	}()
+
 	if err = rows.Err(); err != nil {
 		return &FindResult{
 			Error: err,
 		}
-	}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FindResult{
-			Error: err,
-		}
-	}
-
-	values := make([]sql.RawBytes, len(cols))
-	scanArgs := make([]interface{}, len(values))
-	for i := range values {
-		scanArgs[i] = &values[i]
 	}
 
 	var rawsAffected int64
@@ -368,15 +639,6 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	for rows.Next() {
 		rawsAffected++
 
-		err = rows.Scan(scanArgs...)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, rawsAffected
-			}, err)
-			return &FindResult{
-				Error: err,
-			}
-		}
 		var v reflect.Value
 		if elem.Elem().Kind() == reflect.Ptr {
 			v = reflect.New(elem.Elem().Elem())
@@ -384,24 +646,13 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 			v = reflect.New(elem.Elem())
 		}
 
-		for i, col := range values {
-			if col == nil {
-				continue
-			}
-			field := v.Elem().FieldByName(stringx.Snake2Camel(cols[i]))
-			if !field.IsValid() {
-				log.Warnf("invalid field: %s", stringx.Snake2Camel(cols[i]))
-				continue
-			}
-
-			err = decode(field, col)
-			if err != nil {
-				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-					return sqlRaw, rawsAffected
-				}, err)
-				return &FindResult{
-					Error: err,
-				}
+		err = scanRowsInto(rows, v.Elem(), sqlRaw, start, p.depth)
+		if err != nil {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				return sqlRaw, rawsAffected
+			}, err)
+			return &FindResult{
+				Error: err,
 			}
 		}
 
@@ -426,12 +677,16 @@ func (p *Scoop) Chunk(dest interface{}, size uint64, fc func(tx *Scoop, offset u
 
 	vv := reflect.ValueOf(dest)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &ChunkResult{
+			Error: fmt.Errorf("Chunk failed: dest parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 
 	vv = vv.Elem()
 	if vv.Type().Kind() != reflect.Slice {
-		panic("invalid out type, not slice")
+		return &ChunkResult{
+			Error: fmt.Errorf("Chunk failed: dest parameter must be a pointer to slice, got pointer to %v", vv.Type().Kind()),
+		}
 	}
 
 	elem := vv.Type().Elem().Elem()
@@ -477,6 +732,13 @@ type FirstResult struct {
 	Error error
 }
 
+// First executes a SELECT query with LIMIT 1 and scans the first row into out.
+// The out parameter must be a pointer to a struct.
+// Returns FirstResult with Error set to ErrRecordNotFound if no row is found.
+//
+// Example:
+//   var user User
+//   result := scoop.Table("users").Where("id = ?", 1).First(&user)
 func (p *Scoop) First(out interface{}) *FirstResult {
 	if p.cond.skip {
 		return &FirstResult{
@@ -486,7 +748,9 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 
 	vv := reflect.ValueOf(out)
 	if vv.Type().Kind() != reflect.Ptr {
-		panic("invalid out type, not ptr")
+		return &FirstResult{
+			Error: fmt.Errorf("First failed: out parameter must be a pointer, got %v", vv.Type().Kind()),
+		}
 	}
 
 	if p.table == "" {
@@ -516,8 +780,12 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 			Error: err,
 		}
 	}
-	defer rows.Close()
-	
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			log.Errorf("err:%v", closeErr)
+		}
+	}()
+
 	if err = rows.Err(); err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, -1
@@ -527,57 +795,22 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		}
 	}
 
-	cols, err := rows.Columns()
-	if err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-
-	values := make([]sql.RawBytes, len(cols))
-	scanArgs := make([]interface{}, len(values))
-	for i := range values {
-		scanArgs[i] = &values[i]
-	}
-
 	// 把数据写回到out
 	var rowAffected int64
 	for rows.Next() {
 		rowAffected++
-		err = rows.Scan(scanArgs...)
+
+		if rowAffected != 1 {
+			continue
+		}
+
+		err = scanRowsInto(rows, vv.Elem(), sqlRaw, start, p.depth)
 		if err != nil {
 			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 				return sqlRaw, 1
 			}, err)
 			return &FirstResult{
 				Error: err,
-			}
-		}
-
-		if rowAffected != 1 {
-			continue
-		}
-
-		for i, col := range values {
-			if col == nil {
-				continue
-			}
-			field := vv.Elem().FieldByName(stringx.Snake2Camel(cols[i]))
-			if !field.IsValid() {
-				log.Debugf("invalid field: %s", stringx.Snake2Camel(cols[i]))
-				continue
-			}
-			err = decode(field, col)
-			if err != nil {
-				GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-					return sqlRaw, 1
-				}, err)
-				return &FirstResult{
-					Error: err,
-				}
 			}
 		}
 	}
@@ -602,9 +835,25 @@ type CreateResult struct {
 	Error        error
 }
 
+// Create inserts a single record into the database using raw SQL.
+// The value parameter must be a pointer to a struct.
+// Auto-increment primary keys and timestamp fields are handled automatically.
+// Supports soft delete by inserting 0 for nil DeletedAt fields.
+// Returns CreateResult with LastInsertId and RowsAffected.
+//
+// Example:
+//   user := &User{Name: "John", Age: 30}
+//   result := scoop.Table("users").Create(user)
 func (p *Scoop) Create(value interface{}) *CreateResult {
 	p.inc()
 	defer p.dec()
+
+	// Check for nil database connection
+	if p._db == nil {
+		return &CreateResult{
+			Error: fmt.Errorf("Create failed: database connection is nil"),
+		}
+	}
 
 	vv := reflect.ValueOf(value)
 	for vv.Kind() == reflect.Ptr {
@@ -612,30 +861,129 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	if vv.Kind() != reflect.Struct {
-		panic("value is not struct")
-	}
-
-	if field := vv.FieldByName("CreatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(time.Now().Unix())
-	}
-
-	if field := vv.FieldByName("UpdatedAt"); field.IsValid() && field.IsZero() {
-		field.SetInt(time.Now().Unix())
-	}
-
-	res := p._db.Create(value)
-
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
 		return &CreateResult{
-			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			Error: fmt.Errorf("Create failed: value must be a struct, got %v", vv.Kind()),
+		}
+	}
+
+	elem := vv.Type()
+	if p.table == "" {
+		p.table = getTableName(elem)
+		if p.table == "" {
+			return &CreateResult{
+				Error: fmt.Errorf("Create failed: unable to determine table name for type %v", elem),
+			}
+		}
+	}
+
+	// Parse struct to get fields and values
+	stmt := getStatement(p._db, p.table, value)
+	defer putStatement(stmt)
+
+	err := stmt.ParseWithSpecialTableName(value, stmt.Table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return &CreateResult{
+			Error: err,
+		}
+	}
+
+	// Build INSERT SQL
+	// Pre-allocate slices with estimated capacity based on field count
+	fieldCount := len(stmt.Schema.Fields)
+	columns := make([]string, 0, fieldCount)
+	placeholders := make([]string, 0, fieldCount)
+	values := make([]interface{}, 0, fieldCount)
+
+	for _, field := range stmt.Schema.Fields {
+		fieldValue := vv.FieldByName(field.Name)
+
+		// Set auto create time for CreatedAt/UpdatedAt if needed
+		handleAutoTimeField(field, fieldValue)
+
+		// Skip auto increment primary key if it's zero
+		if field.AutoIncrement && fieldValue.IsZero() {
+			continue
+		}
+
+		// Handle soft delete field - insert 0 for nil *time.Time
+		if field.Name == structFieldDeletedAt && fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				columns = append(columns, field.DBName)
+				placeholders = append(placeholders, "?")
+				values = append(values, 0) // 0 means not deleted in unix timestamp format
+				continue
+			}
+		}
+
+		columns = append(columns, field.DBName)
+		placeholders = append(placeholders, "?")
+
+		if fieldValue.IsValid() {
+			values = append(values, fieldValue.Interface())
+		} else {
+			values = append(values, nil)
+		}
+	}
+
+	// Build INSERT statement with IGNORE support for different databases
+	insertSQL := p.buildInsertSQL(columns, "("+strings.Join(placeholders, ", ")+")")
+
+	start := time.Now()
+	// Use Session with PrepareStmt disabled for raw SQL
+	session := p._db.Session(&gorm.Session{
+		PrepareStmt: false,
+	})
+	res := session.Exec(insertSQL, values...)
+
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		return insertSQL, res.RowsAffected
+	}, res.Error)
+
+	if res.Error != nil {
+		log.Errorf("err:%v", res.Error)
+		if p.IsDuplicatedKeyError(res.Error) {
+			return &CreateResult{
+				RowsAffected: res.RowsAffected,
+				Error:        p.getDuplicatedKeyError(),
+			}
+		}
+		return &CreateResult{
+			Error: res.Error,
+		}
+	}
+
+	// Set the auto-generated ID back to the struct if applicable
+	if res.RowsAffected > 0 {
+		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+			// Get the last insert ID using a single connection query
+			// This ensures we get the ID from the same connection that performed the INSERT
+			var lastInsertID int64
+			var queryErr error
+
+			switch p.clientType {
+			case Sqlite:
+				queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
+			case MySQL:
+				queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
+			case Postgres:
+				// For Postgres, query the current value of the sequence
+				// Assumes the sequence name follows the pattern: tablename_id_seq
+				sequenceName := p.table + "_id_seq"
+				queryErr = session.Raw("SELECT currval(?)", sequenceName).Scan(&lastInsertID).Error
+			}
+
+			if queryErr != nil {
+				log.Errorf("err:%v", queryErr)
+			} else if lastInsertID > 0 {
+				field.SetInt(lastInsertID)
+			}
 		}
 	}
 
 	return &CreateResult{
 		RowsAffected: res.RowsAffected,
-		Error:        res.Error,
+		Error:        nil,
 	}
 }
 
@@ -644,26 +992,202 @@ type CreateInBatchesResult struct {
 	Error        error
 }
 
+// CreateInBatches inserts multiple records in batches using raw SQL.
+// The value parameter must be a slice of structs or pointers to structs.
+// Records are inserted in batches of the specified batchSize to optimize performance.
+// Auto-increment primary keys and timestamp fields are handled automatically.
+// Returns CreateInBatchesResult with total RowsAffected across all batches.
+//
+// Example:
+//   users := []User{{Name: "Alice"}, {Name: "Bob"}, {Name: "Charlie"}}
+//   result := scoop.Table("users").CreateInBatches(users, 100)
 func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatchesResult {
 	p.inc()
 	defer p.dec()
 
-	if p.ignore {
-		p._db.Clauses(clause.Insert{Modifier: "IGNORE"})
-	}
-
-	res := p._db.CreateInBatches(value, batchSize)
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
+	// Check for nil database connection
+	if p._db == nil {
 		return &CreateInBatchesResult{
-			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			Error: fmt.Errorf("CreateInBatches failed: database connection is nil"),
 		}
 	}
 
+	// value should be a slice
+	vv := reflect.ValueOf(value)
+	for vv.Kind() == reflect.Ptr {
+		vv = vv.Elem()
+	}
+
+	if vv.Kind() != reflect.Slice {
+		return &CreateInBatchesResult{
+			Error: fmt.Errorf("CreateInBatches failed: value must be a slice, got %v", vv.Kind()),
+		}
+	}
+
+	if vv.Len() == 0 {
+		return &CreateInBatchesResult{
+			RowsAffected: 0,
+			Error:        nil,
+		}
+	}
+
+	elem := vv.Type().Elem()
+	for elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
+	}
+
+	if p.table == "" {
+		p.table = getTableName(elem)
+		if p.table == "" {
+			return &CreateInBatchesResult{
+				Error: fmt.Errorf("CreateInBatches failed: unable to determine table name for type %v", elem),
+			}
+		}
+	}
+
+	// Get first element to parse schema
+	firstElem := vv.Index(0)
+	for firstElem.Kind() == reflect.Ptr {
+		firstElem = firstElem.Elem()
+	}
+
+	stmt := getStatement(p._db, p.table, firstElem.Interface())
+	defer putStatement(stmt)
+
+	err := stmt.ParseWithSpecialTableName(firstElem.Interface(), stmt.Table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return &CreateInBatchesResult{
+			Error: err,
+		}
+	}
+
+	var totalRowsAffected int64
+
+	// Process in batches
+	for i := 0; i < vv.Len(); i += batchSize {
+		end := i + batchSize
+		if end > vv.Len() {
+			end = vv.Len()
+		}
+
+		// Build INSERT SQL for this batch
+		// Pre-allocate slices with estimated capacity
+		batchRowCount := end - i
+		fieldCount := len(stmt.Schema.Fields)
+		columns := make([]string, 0, fieldCount)
+		allPlaceholders := make([]string, 0, batchRowCount)
+		allValues := make([]interface{}, 0, batchRowCount*fieldCount)
+
+		// Analyze first row to determine which fields to include
+		// This avoids repeated reflection and field checks for each row
+		firstRowInBatch := vv.Index(i)
+		for firstRowInBatch.Kind() == reflect.Ptr {
+			firstRowInBatch = firstRowInBatch.Elem()
+		}
+
+		// Build list of fields to include and their metadata
+		type fieldInfo struct {
+			field           *schema.Field
+			isAutoIncrement bool
+			isDeletedAt     bool
+			isAutoTime      bool
+		}
+		includedFields := make([]fieldInfo, 0, fieldCount)
+
+		for _, field := range stmt.Schema.Fields {
+			// Skip auto increment primary key if it's zero in first row
+			if field.AutoIncrement && firstRowInBatch.FieldByName(field.Name).IsZero() {
+				continue
+			}
+
+			info := fieldInfo{
+				field:           field,
+				isAutoIncrement: field.AutoIncrement,
+			}
+
+			// Check if this is auto time field
+			if field.AutoCreateTime != 0 {
+				info.isAutoTime = true
+			}
+
+			// Check if this is DeletedAt field
+			fieldValue := firstRowInBatch.FieldByName(field.Name)
+			if field.Name == structFieldDeletedAt && fieldValue.Kind() == reflect.Ptr {
+				info.isDeletedAt = true
+			}
+
+			includedFields = append(includedFields, info)
+			columns = append(columns, field.DBName)
+		}
+
+		// Build values for each row in batch using pre-analyzed field list
+		for j := i; j < end; j++ {
+			rowValue := vv.Index(j)
+			for rowValue.Kind() == reflect.Ptr {
+				rowValue = rowValue.Elem()
+			}
+
+			rowPlaceholders := make([]string, 0, len(columns))
+			for _, info := range includedFields {
+				fieldValue := rowValue.FieldByName(info.field.Name)
+
+				// Set auto time if field is zero
+				if info.isAutoTime {
+					handleAutoTimeField(info.field, fieldValue)
+				}
+
+				// Handle soft delete field - insert 0 for nil *time.Time
+				if info.isDeletedAt && fieldValue.IsNil() {
+					rowPlaceholders = append(rowPlaceholders, "?")
+					allValues = append(allValues, 0) // 0 means not deleted
+					continue
+				}
+
+				rowPlaceholders = append(rowPlaceholders, "?")
+				if fieldValue.IsValid() {
+					allValues = append(allValues, fieldValue.Interface())
+				} else {
+					allValues = append(allValues, nil)
+				}
+			}
+			allPlaceholders = append(allPlaceholders, "("+strings.Join(rowPlaceholders, ", ")+")")
+		}
+
+		// Build INSERT statement with IGNORE support for different databases
+		insertSQL := p.buildInsertSQL(columns, strings.Join(allPlaceholders, ", "))
+
+		start := time.Now()
+		// Use Session with PrepareStmt disabled for raw SQL
+		session := p._db.Session(&gorm.Session{
+			PrepareStmt: false,
+		})
+		res := session.Exec(insertSQL, allValues...)
+
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return insertSQL, res.RowsAffected
+		}, res.Error)
+
+		if res.Error != nil {
+			log.Errorf("err:%v", res.Error)
+			if p.IsDuplicatedKeyError(res.Error) {
+				return &CreateInBatchesResult{
+					RowsAffected: totalRowsAffected,
+					Error:        p.getDuplicatedKeyError(),
+				}
+			}
+			return &CreateInBatchesResult{
+				RowsAffected: totalRowsAffected,
+				Error:        res.Error,
+			}
+		}
+
+		totalRowsAffected += res.RowsAffected
+	}
+
 	return &CreateInBatchesResult{
-		Error:        res.Error,
-		RowsAffected: res.RowsAffected,
+		RowsAffected: totalRowsAffected,
+		Error:        nil,
 	}
 }
 
@@ -672,13 +1196,26 @@ type DeleteResult struct {
 	Error        error
 }
 
+// Delete performs a soft or hard delete on matching rows.
+// If the table has a DeletedAt field, performs soft delete by setting timestamp.
+// Otherwise performs hard delete by removing rows from the database.
+// Use Unscoped() to force hard delete even with DeletedAt field.
+// Returns DeleteResult with RowsAffected count.
+//
+// Example:
+//   // Soft delete
+//   result := scoop.Table("users").Where("id = ?", 1).Delete()
+//   // Hard delete
+//   result := scoop.Table("users").Unscoped().Where("id = ?", 1).Delete()
 func (p *Scoop) Delete() *DeleteResult {
 	if p.cond.skip {
 		return &DeleteResult{}
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return &DeleteResult{
+			Error: fmt.Errorf("Delete failed: table name is empty, use Table() to specify table name"),
+		}
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -719,6 +1256,11 @@ func (p *Scoop) Delete() *DeleteResult {
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), res.RowsAffected
 	}, res.Error)
+
+	if res.Error != nil {
+		log.Errorf("err:%v", res.Error)
+	}
+
 	return &DeleteResult{
 		RowsAffected: res.RowsAffected,
 		Error:        res.Error,
@@ -736,12 +1278,14 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 	if len(updateMap) == 0 {
 		return &UpdateResult{
-			Error: errors.New("updateMap is empty"),
+			Error: fmt.Errorf("Update failed: updateMap is empty, no values to update"),
 		}
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return &UpdateResult{
+			Error: fmt.Errorf("Update failed: table name is empty, use Table() to specify table name"),
+		}
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -749,15 +1293,15 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 
 	if p.hasUpdatedAt {
-		updateMap["updated_at"] = time.Now().Unix()
+		updateMap[fieldUpdatedAt] = time.Now().Unix()
 	}
 
 	//if p.hasCreatedAt {
 	//	switch p.clientType {
 	//	case Sqlite:
-	//		updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", time.Now().Unix())
+	//		updateMap[fieldCreatedAt] = gorm.Expr("IIF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	default:
-	//		updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", time.Now().Unix())
+	//		updateMap[fieldCreatedAt] = gorm.Expr("IF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	}
 	//}
 
@@ -772,18 +1316,25 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 
 	sqlRaw.WriteString(" SET ")
 	var i int
-	var values []interface{}
+	// Pre-allocate values slice with capacity based on updateMap size
+	values := make([]interface{}, 0, len(updateMap))
 	for k, v := range updateMap {
 		if i > 0 {
 			sqlRaw.WriteString(", ")
 		}
 		sqlRaw.WriteString(quoteFieldName(k))
 		sqlRaw.WriteString("=")
-		sqlRaw.WriteString("?")
+
+		// Handle clause.Expr with proper type assertion
 		switch x := v.(type) {
 		case clause.Expr:
-			values = append(values, x)
+			// For expressions, use the SQL directly instead of placeholder
+			sqlRaw.WriteString(x.SQL)
+			// Append expression variables to values
+			values = append(values, x.Vars...)
 		default:
+			// For normal values, use placeholder
+			sqlRaw.WriteString("?")
 			values = append(values, candy.ToString(x))
 		}
 		i++
@@ -803,20 +1354,39 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
 	}, res.Error)
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
+
+	err := res.Error
+	if err != nil {
+		log.Errorf("err:%v", err)
+		if err == gorm.ErrDuplicatedKey {
+			return &UpdateResult{
+				RowsAffected: res.RowsAffected,
+				Error:        p.getDuplicatedKeyError(),
+			}
+		}
 		return &UpdateResult{
 			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			Error:        err,
 		}
 	}
 
 	return &UpdateResult{
 		RowsAffected: res.RowsAffected,
-		Error:        res.Error,
+		Error:        nil,
 	}
 }
 
+// Updates performs an UPDATE operation on matching rows.
+// The m parameter can be either a map[string]interface{} or a struct.
+// Only non-zero fields are updated. Use clause.Expr for SQL expressions.
+// Automatically updates UpdatedAt field if present.
+// Returns UpdateResult with RowsAffected count.
+//
+// Example:
+//   // Using map
+//   result := scoop.Table("users").Where("id = ?", 1).Updates(map[string]interface{}{"age": 25})
+//   // Using struct
+//   result := scoop.Table("users").Where("id = ?", 1).Updates(&User{Age: 25})
 func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	if p.cond.skip {
 		return &UpdateResult{}
@@ -835,105 +1405,45 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	mType := mVal.Type()
 	if mType.Kind() != reflect.Struct {
 		return &UpdateResult{
-			Error: errors.New("m must be map or struct"),
+			Error: fmt.Errorf("Updates failed: expected struct, got %v", mType.Kind()),
 		}
 	}
-	fieldNum := mType.NumField()
-	valMap := make(map[string]interface{})
-	for i := 0; i < fieldNum; i++ {
-		fieldType := mType.Field(i)
-		fieldVal := mVal.Field(i)
 
-		if !fieldVal.IsValid() {
+	// Use cached tag information for better performance
+	tagInfo := parseGormTags(mType)
+	valMap := make(map[string]interface{}, len(tagInfo.updatableFields))
+
+	for fieldName, dbName := range tagInfo.updatableFields {
+		fieldVal := mVal.FieldByName(fieldName)
+
+		if !fieldVal.IsValid() || !fieldVal.CanInterface() || fieldVal.IsZero() {
 			continue
 		}
 
-		if !fieldVal.CanInterface() {
-			continue
-		}
-
-		if fieldVal.IsZero() {
-			continue
-		}
-
-		// 判断一下 gorm tags 的配置
-		// TODO 添加解析的缓存
-		gormTag := fieldType.Tag.Get("gorm")
-		if gormTag == "-" {
-			continue
-		}
-
-		var fieldName string
-		if gormTag != "" {
-			// 判断是否为主键
-			if gormTag == "primaryKey" {
-				continue
-			}
-
-			if strings.HasPrefix(gormTag, "primaryKey;") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";primaryKey") {
-				continue
-			}
-
-			// 判断是否是自动更新的字段
-			if strings.HasPrefix(gormTag, "autoCreateTime") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";autoUpdateTime") {
-				continue
-			}
-
-			if strings.HasPrefix(gormTag, "autoUpdateTime") {
-				continue
-			}
-
-			if strings.Contains(gormTag, ";autoUpdateTime") {
-				continue
-			}
-
-			// 获取字段名
-			idx := strings.Index(gormTag, "column:")
-			if idx > 0 {
-				tag := gormTag[idx+7:]
-				idx = strings.Index(tag, ";")
-				if idx > 0 {
-					fieldName = tag[:idx]
-				} else {
-					fieldName = tag
-				}
-			}
-		}
-
-		if fieldName == "" {
-			fieldName = Camel2UnderScore(fieldType.Name)
-		}
-
-		switch fieldName {
-		case "created_at", "updated_at":
-			continue
-		}
-
-		valMap[fieldName] = fieldVal.Interface()
+		valMap[dbName] = fieldVal.Interface()
 	}
+
 	if len(valMap) == 0 {
 		return &UpdateResult{
-			Error: errors.New("no field need to update"),
+			Error: fmt.Errorf("Updates failed: no non-zero fields found in struct %v to update", mType),
 		}
 	}
 	return p.update(valMap)
 }
 
+// Count returns the number of rows matching the query conditions.
+// Respects WHERE clauses and soft delete (DeletedAt) filtering.
+// Returns the count and any error that occurred.
+//
+// Example:
+//   count, err := scoop.Table("users").Where("age > ?", 18).Count()
 func (p *Scoop) Count() (uint64, error) {
 	if p.cond.skip {
 		return 0, nil
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return 0, fmt.Errorf("Count failed: table name is empty, use Table() to specify table name")
 	}
 
 	if !p.unscoped && p.hasDeletedAt {
@@ -974,7 +1484,7 @@ func (p *Scoop) Exist() (bool, error) {
 	}
 
 	if p.table == "" {
-		panic("table name is empty")
+		return false, fmt.Errorf("Exists failed: table name is empty, use Table() to specify table name")
 	}
 
 	if !p.unscoped && p.hasDeletedAt {

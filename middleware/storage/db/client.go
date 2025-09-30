@@ -350,7 +350,12 @@ func (p *Client) Database() *gorm.DB {
 }
 
 func (p *Client) SqlDB() (*sql.DB, error) {
-	return p.db.DB()
+	db, err := p.db.DB()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return db, nil
 }
 
 func (p *Client) DriverType() string {

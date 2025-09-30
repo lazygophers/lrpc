@@ -3,6 +3,7 @@ package cache
 import (
 	"time"
 
+	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/stringx"
@@ -16,33 +17,55 @@ type baseCache struct {
 func (p *baseCache) SetPb(key string, j proto.Message) error {
 	buffer, err := proto.Marshal(j)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return err
 	}
 
-	return p.Set(key, stringx.ToString(buffer))
+	err = p.Set(key, stringx.ToString(buffer))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (p *baseCache) SetPbEx(key string, j proto.Message, timeout time.Duration) error {
 	buffer, err := proto.Marshal(j)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return err
 	}
 
-	return p.SetEx(key, stringx.ToString(buffer), timeout)
+	err = p.SetEx(key, stringx.ToString(buffer), timeout)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (p *baseCache) GetPb(key string, j proto.Message) error {
 	buffer, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return err
 	}
 
-	return proto.Unmarshal(stringx.ToBytes(buffer), j)
+	err = proto.Unmarshal(stringx.ToBytes(buffer), j)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (p *baseCache) GetBool(key string) (bool, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
@@ -52,6 +75,7 @@ func (p *baseCache) GetBool(key string) (bool, error) {
 func (p *baseCache) GetInt(key string) (int, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -61,6 +85,7 @@ func (p *baseCache) GetInt(key string) (int, error) {
 func (p *baseCache) GetUint(key string) (uint, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -70,6 +95,7 @@ func (p *baseCache) GetUint(key string) (uint, error) {
 func (p *baseCache) GetInt32(key string) (int32, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -79,6 +105,7 @@ func (p *baseCache) GetInt32(key string) (int32, error) {
 func (p *baseCache) GetUint32(key string) (uint32, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -88,6 +115,7 @@ func (p *baseCache) GetUint32(key string) (uint32, error) {
 func (p *baseCache) GetInt64(key string) (int64, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -97,6 +125,7 @@ func (p *baseCache) GetInt64(key string) (int64, error) {
 func (p *baseCache) GetUint64(key string) (uint64, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -106,6 +135,7 @@ func (p *baseCache) GetUint64(key string) (uint64, error) {
 func (p *baseCache) GetFloat32(key string) (float32, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -115,6 +145,7 @@ func (p *baseCache) GetFloat32(key string) (float32, error) {
 func (p *baseCache) GetFloat64(key string) (float64, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return 0, err
 	}
 
@@ -125,6 +156,7 @@ func (p *baseCache) GetBoolSlice(key string) ([]bool, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -140,6 +172,7 @@ func (p *baseCache) GetIntSlice(key string) ([]int, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -155,6 +188,7 @@ func (p *baseCache) GetUintSlice(key string) ([]uint, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -170,6 +204,7 @@ func (p *baseCache) GetInt32Slice(key string) ([]int32, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -185,6 +220,7 @@ func (p *baseCache) GetUint32Slice(key string) ([]uint32, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -200,6 +236,7 @@ func (p *baseCache) GetInt64Slice(key string) ([]int64, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -215,6 +252,7 @@ func (p *baseCache) GetUint64Slice(key string) ([]uint64, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -230,6 +268,7 @@ func (p *baseCache) GetFloat32Slice(key string) ([]float32, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -245,6 +284,7 @@ func (p *baseCache) GetFloat64Slice(key string) ([]float64, error) {
 	var list []interface{}
 	err := p.GetJson(key, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -259,12 +299,14 @@ func (p *baseCache) GetFloat64Slice(key string) ([]float64, error) {
 func (p *baseCache) Limit(key string, limit int64, timeout time.Duration) (bool, error) {
 	cnt, err := p.Incr(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
 	if cnt == 1 {
 		_, err = p.Expire(key, timeout)
 		if err != nil {
+			log.Errorf("err:%v", err)
 			return false, err
 		}
 	}
@@ -279,11 +321,13 @@ func (p *baseCache) Limit(key string, limit int64, timeout time.Duration) (bool,
 func (p *baseCache) LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error) {
 	cnt, err := p.Incr(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
 	_, err = p.Expire(key, timeout)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return false, err
 	}
 
@@ -297,6 +341,7 @@ func (p *baseCache) LimitUpdateOnCheck(key string, limit int64, timeout time.Dur
 func (p *baseCache) GetSlice(key string) ([]string, error) {
 	buf, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -307,6 +352,7 @@ func (p *baseCache) GetSlice(key string) ([]string, error) {
 	var list []string
 	err = json.UnmarshalString(buf, &list)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -316,19 +362,33 @@ func (p *baseCache) GetSlice(key string) ([]string, error) {
 func (p *baseCache) GetJson(key string, j interface{}) error {
 	value, err := p.Get(key)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return err
 	}
 
-	return json.UnmarshalString(value, j)
+	err = json.UnmarshalString(value, j)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (p *baseCache) HGetJson(key, field string, j interface{}) error {
 	value, err := p.HGet(key, field)
 	if err != nil {
+		log.Errorf("err:%v", err)
 		return err
 	}
 
-	return json.UnmarshalString(value, j)
+	err = json.UnmarshalString(value, j)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
 }
 
 func newBaseCache(c BaseCache) Cache {
