@@ -76,31 +76,49 @@ func (p *ModelScoop[M]) NotIn(column string, values interface{}) *ModelScoop[M] 
 }
 
 func (p *ModelScoop[M]) Like(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", "%"+value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) LeftLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) RightLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "LIKE", "%"+value)
 	return p
 }
 
 func (p *ModelScoop[M]) NotLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", "%"+value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) NotLeftLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", value+"%")
 	return p
 }
 
 func (p *ModelScoop[M]) NotRightLike(column string, value string) *ModelScoop[M] {
+	if value == "" {
+		return p
+	}
 	p.cond.where(column, "NOT LIKE", "%"+value)
 	return p
 }
@@ -470,9 +488,6 @@ func (p *ModelScoop[M]) CreateOrUpdate(values map[string]interface{}, m *M) *Cre
 			Error: err,
 		}
 	}
-
-	// TODO: candy.DeepCopy
-	//candy.DeepCopy(&mm, m)
 
 	return &CreateOrUpdateResult[M]{
 		Updated: true,
