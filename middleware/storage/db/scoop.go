@@ -79,6 +79,23 @@ func (p *Scoop) AutoMigrate(dst ...interface{}) error {
 	return p._db.AutoMigrate(dst...)
 }
 
+// isValidTableName validates table name to prevent SQL injection
+// Only allows alphanumeric characters, underscores, and dots (for schema.table)
+func isValidTableName(tableName string) bool {
+	if tableName == "" {
+		return false
+	}
+	for _, char := range tableName {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '_' || char == '.') {
+			return false
+		}
+	}
+	return true
+}
+
 func (p *Scoop) inc() {
 	p.depth++
 }
@@ -109,7 +126,12 @@ func (p *Scoop) Model(m any) *Scoop {
 	return p
 }
 
+// Table sets the table name for the query
+// Validates table name to prevent SQL injection
 func (p *Scoop) Table(m string) *Scoop {
+	if !isValidTableName(m) {
+		log.Warnf("invalid table name: %s, table name must contain only alphanumeric characters, underscores and dots", m)
+	}
 	p.table = m
 	return p
 }
