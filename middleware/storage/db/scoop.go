@@ -685,13 +685,22 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		}
 	}
 
-	insertSQL := "INSERT "
+	// Build INSERT statement with IGNORE support for different databases
+	var insertSQL string
 	if p.ignore {
-		if p.clientType == MySQL {
-			insertSQL += "IGNORE "
+		switch p.clientType {
+		case MySQL:
+			insertSQL = "INSERT IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
+		case Sqlite:
+			insertSQL = "INSERT OR IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
+		case Postgres:
+			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ") ON CONFLICT DO NOTHING"
+		default:
+			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
 		}
+	} else {
+		insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
 	}
-	insertSQL += "INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(placeholders, ", ") + ")"
 
 	start := time.Now()
 	// Use Session with PrepareStmt disabled for raw SQL
@@ -898,13 +907,22 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 			allPlaceholders = append(allPlaceholders, "("+strings.Join(rowPlaceholders, ", ")+")")
 		}
 
-		insertSQL := "INSERT "
+		// Build INSERT statement with IGNORE support for different databases
+		var insertSQL string
 		if p.ignore {
-			if p.clientType == MySQL {
-				insertSQL += "IGNORE "
+			switch p.clientType {
+			case MySQL:
+				insertSQL = "INSERT IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
+			case Sqlite:
+				insertSQL = "INSERT OR IGNORE INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
+			case Postgres:
+				insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ") + " ON CONFLICT DO NOTHING"
+			default:
+				insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
 			}
+		} else {
+			insertSQL = "INSERT INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
 		}
-		insertSQL += "INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
 
 		start := time.Now()
 		// Use Session with PrepareStmt disabled for raw SQL
