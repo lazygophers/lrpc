@@ -992,6 +992,11 @@ func (p *Scoop) Delete() *DeleteResult {
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw.String(), res.RowsAffected
 	}, res.Error)
+
+	if res.Error != nil {
+		log.Errorf("err:%v", res.Error)
+	}
+
 	return &DeleteResult{
 		RowsAffected: res.RowsAffected,
 		Error:        res.Error,
@@ -1076,17 +1081,25 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
 	}, res.Error)
-	if res.Error != nil && res.Error == gorm.ErrDuplicatedKey {
-		log.Errorf("err:%v", res.Error)
+
+	err := res.Error
+	if err != nil {
+		log.Errorf("err:%v", err)
+		if err == gorm.ErrDuplicatedKey {
+			return &UpdateResult{
+				RowsAffected: res.RowsAffected,
+				Error:        p.getDuplicatedKeyError(),
+			}
+		}
 		return &UpdateResult{
 			RowsAffected: res.RowsAffected,
-			Error:        p.getDuplicatedKeyError(),
+			Error:        err,
 		}
 	}
 
 	return &UpdateResult{
 		RowsAffected: res.RowsAffected,
-		Error:        res.Error,
+		Error:        nil,
 	}
 }
 
