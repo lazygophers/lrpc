@@ -725,10 +725,16 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 			var lastInsertID int64
 			var queryErr error
 
-			if p.clientType == Sqlite {
+			switch p.clientType {
+			case Sqlite:
 				queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
-			} else if p.clientType == MySQL {
+			case MySQL:
 				queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
+			case Postgres:
+				// For Postgres, query the current value of the sequence
+				// Assumes the sequence name follows the pattern: tablename_id_seq
+				sequenceName := p.table + "_id_seq"
+				queryErr = session.Raw("SELECT currval(?)", sequenceName).Scan(&lastInsertID).Error
 			}
 
 			if queryErr != nil {
