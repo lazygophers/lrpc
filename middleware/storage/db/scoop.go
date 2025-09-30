@@ -606,6 +606,13 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	p.inc()
 	defer p.dec()
 
+	// Check for nil database connection
+	if p._db == nil {
+		return &CreateResult{
+			Error: errors.New("database connection is nil"),
+		}
+	}
+
 	vv := reflect.ValueOf(value)
 	for vv.Kind() == reflect.Ptr {
 		vv = vv.Elem()
@@ -746,6 +753,13 @@ type CreateInBatchesResult struct {
 func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatchesResult {
 	p.inc()
 	defer p.dec()
+
+	// Check for nil database connection
+	if p._db == nil {
+		return &CreateInBatchesResult{
+			Error: errors.New("database connection is nil"),
+		}
+	}
 
 	// value should be a slice
 	vv := reflect.ValueOf(value)
