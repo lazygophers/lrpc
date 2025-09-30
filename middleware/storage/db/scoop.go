@@ -339,8 +339,12 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 			Error: err,
 		}
 	}
-	defer rows.Close()
-	
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			log.Errorf("err:%v", closeErr)
+		}
+	}()
+
 	if err = rows.Err(); err != nil {
 		return &FindResult{
 			Error: err,
@@ -516,8 +520,12 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 			Error: err,
 		}
 	}
-	defer rows.Close()
-	
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			log.Errorf("err:%v", closeErr)
+		}
+	}()
+
 	if err = rows.Err(); err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, -1
