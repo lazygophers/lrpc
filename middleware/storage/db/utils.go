@@ -28,6 +28,22 @@ func EnsureIsSliceOrArray(obj interface{}) (res reflect.Value) {
 }
 
 func EscapeMysqlString(sql string) string {
+	// Fast path: check if escaping is needed
+	needsEscape := false
+	for i := 0; i < len(sql); i++ {
+		c := sql[i]
+		if c == 0 || c == '\n' || c == '\r' || c == '\\' || c == '\'' || c == '"' || c == '\032' {
+			needsEscape = true
+			break
+		}
+	}
+
+	// Return original string if no escaping needed
+	if !needsEscape {
+		return sql
+	}
+
+	// Slow path: perform escaping
 	dest := make([]byte, 0, 2*len(sql))
 	var escape byte
 	for i := 0; i < len(sql); i++ {
