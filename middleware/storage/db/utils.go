@@ -192,40 +192,31 @@ func getTableName(elem reflect.Type) string {
 	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elem.Elem().Name(), "Model"))
 }
 
-func hasDeletedAt(elem reflect.Type) bool {
+// hasField checks if the given type has a field with the specified name.
+// It unwraps pointer types before checking.
+func hasField(elem reflect.Type, fieldName string) bool {
 	for elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
 	}
 
-	_, ok := elem.FieldByName("DeletedAt")
+	_, ok := elem.FieldByName(fieldName)
 	return ok
+}
+
+func hasDeletedAt(elem reflect.Type) bool {
+	return hasField(elem, "DeletedAt")
 }
 
 func hasCreatedAt(elem reflect.Type) bool {
-	for elem.Kind() == reflect.Ptr {
-		elem = elem.Elem()
-	}
-
-	_, ok := elem.FieldByName("CreatedAt")
-	return ok
+	return hasField(elem, "CreatedAt")
 }
 
 func hasUpdatedAt(elem reflect.Type) bool {
-	for elem.Kind() == reflect.Ptr {
-		elem = elem.Elem()
-	}
-
-	_, ok := elem.FieldByName("UpdatedAt")
-	return ok
+	return hasField(elem, "UpdatedAt")
 }
 
 func hasId(elem reflect.Type) bool {
-	for elem.Kind() == reflect.Ptr {
-		elem = elem.Elem()
-	}
-
-	_, ok := elem.FieldByName("Id")
-	return ok
+	return hasField(elem, "Id")
 }
 
 func Camel2UnderScore(name string) string {
