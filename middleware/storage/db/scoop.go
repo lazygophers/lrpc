@@ -699,6 +699,11 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	elem := vv.Type()
 	if p.table == "" {
 		p.table = getTableName(elem)
+		if p.table == "" {
+			return &CreateResult{
+				Error: errors.New("table name is empty"),
+			}
+		}
 	}
 
 	// Parse struct to get fields and values
@@ -885,6 +890,11 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 	if p.table == "" {
 		p.table = getTableName(elem)
+		if p.table == "" {
+			return &CreateInBatchesResult{
+				Error: errors.New("table name is empty"),
+			}
+		}
 	}
 
 	// Get first element to parse schema
