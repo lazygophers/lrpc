@@ -47,6 +47,13 @@ var (
 	// Cache for field name conversions from snake_case to CamelCase
 	fieldNameCache = make(map[string]string)
 	fieldNameMutex sync.RWMutex
+
+	// Pool for gorm.Statement objects to reduce allocations
+	statementPool = sync.Pool{
+		New: func() interface{} {
+			return &gorm.Statement{}
+		},
+	}
 )
 
 // gormTagInfo stores parsed information about updatable fields
@@ -377,6 +384,29 @@ func (p *Scoop) Ignore(b ...bool) *Scoop {
 }
 
 // ——————————操作——————————
+
+// getStatement gets a Statement from the pool and initializes it
+func getStatement(db *gorm.DB, table string, model interface{}) *gorm.Statement {
+	stmt := statementPool.Get().(*gorm.Statement)
+	stmt.DB = db
+	stmt.Table = table
+	stmt.Model = model
+	if db.Statement != nil {
+		stmt.TableExpr = db.Statement.TableExpr
+	}
+	return stmt
+}
+
+// putStatement resets and returns a Statement to the pool
+func putStatement(stmt *gorm.Statement) {
+	// Reset statement fields to avoid memory leaks
+	stmt.DB = nil
+	stmt.Table = ""
+	stmt.Model = nil
+	stmt.Schema = nil
+	stmt.TableExpr = nil
+	statementPool.Put(stmt)
+}
 
 // getCachedFieldName converts snake_case to CamelCase with caching.
 // This significantly improves performance when scanning database rows.
@@ -835,14 +865,8 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	// Parse struct to get fields and values
-	stmt := &gorm.Statement{
-		DB:    p._db,
-		Table: p.table,
-		Model: value,
-	}
-	if p._db.Statement != nil {
-		stmt.TableExpr = p._db.Statement.TableExpr
-	}
+	stmt := getStatement(p._db, p.table, value)
+	defer putStatement(stmt)
 
 	err := stmt.ParseWithSpecialTableName(value, stmt.Table)
 	if err != nil {
@@ -1013,14 +1037,8 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		firstElem = firstElem.Elem()
 	}
 
-	stmt := &gorm.Statement{
-		DB:    p._db,
-		Table: p.table,
-		Model: firstElem.Interface(),
-	}
-	if p._db.Statement != nil {
-		stmt.TableExpr = p._db.Statement.TableExpr
-	}
+	stmt := getStatement(p._db, p.table, firstElem.Interface())
+	defer putStatement(stmt)
 
 	err := stmt.ParseWithSpecialTableName(firstElem.Interface(), stmt.Table)
 	if err != nil {
