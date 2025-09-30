@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
@@ -37,7 +39,8 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	var d gorm.Dialector
 	switch c.Type {
 	case Sqlite:
-		d = newSqlite(c)
+		log.Infof("sqlite3://%s.db", filepath.ToSlash(filepath.Join(c.Address, c.Name)))
+		d = sqlite.Open(c.DSN())
 
 	case MySQL:
 		log.Infof("mysql://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)

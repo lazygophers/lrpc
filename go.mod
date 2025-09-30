@@ -12,7 +12,6 @@ require (
 	github.com/gookit/color v1.6.0
 	github.com/lazygophers/log v0.0.0-20250921073910-e5ecde8b16f4
 	github.com/lazygophers/utils v0.0.0-20250921112619-79845ced89f1
-	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
@@ -28,7 +27,6 @@ require (
 	google.golang.org/protobuf v1.36.9
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.6.0
-	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.0
 	gotest.tools/v3 v3.5.2
 )
@@ -94,7 +92,6 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.5 // indirect
-	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.21.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
