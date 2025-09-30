@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func EnsureIsSliceOrArray(obj interface{}) (res reflect.Value) {
+func EnsureIsSliceOrArray(obj interface{}) reflect.Value {
 	vo := reflect.ValueOf(obj)
 	for vo.Kind() == reflect.Ptr || vo.Kind() == reflect.Interface {
 		vo = vo.Elem()
@@ -23,8 +23,7 @@ func EnsureIsSliceOrArray(obj interface{}) (res reflect.Value) {
 	if k != reflect.Slice && k != reflect.Array {
 		panic(fmt.Sprintf("obj required slice or array type, but got %v", vo.Type()))
 	}
-	res = vo
-	return
+	return vo
 }
 
 func EscapeMysqlString(sql string) string {
@@ -101,7 +100,7 @@ func UniqueSlice(s interface{}) interface{} {
 	}
 
 	res := reflect.MakeSlice(t, 0, vo.Len())
-	m := map[interface{}]struct{}{}
+	m := make(map[interface{}]struct{}, vo.Len())
 	for i := 0; i < vo.Len(); i++ {
 		el := vo.Index(i)
 		eli := el.Interface()
@@ -138,13 +137,16 @@ func scanComplexType(field reflect.Value, col []byte, isPtr bool) error {
 }
 
 func decode(field reflect.Value, col []byte) error {
+	// Convert []byte to string once for types that need it
+	colStr := string(col)
+
 	switch field.Kind() {
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
 		reflect.Int32,
 		reflect.Int64:
-		val, err := strconv.ParseInt(string(col), 10, 64)
+		val, err := strconv.ParseInt(colStr, 10, 64)
 		if err != nil {
 			log.Errorf("parse %s err:%s", col, err)
 			return err
@@ -155,7 +157,7 @@ func decode(field reflect.Value, col []byte) error {
 		reflect.Uint16,
 		reflect.Uint32,
 		reflect.Uint64:
-		val, err := strconv.ParseUint(string(col), 10, 64)
+		val, err := strconv.ParseUint(colStr, 10, 64)
 		if err != nil {
 			log.Errorf("err:%s", err)
 			return err
@@ -163,33 +165,29 @@ func decode(field reflect.Value, col []byte) error {
 		field.SetUint(val)
 	case reflect.Float32,
 		reflect.Float64:
-		val, err := strconv.ParseFloat(string(col), 64)
+		val, err := strconv.ParseFloat(colStr, 64)
 		if err != nil {
 			log.Errorf("err:%s", err)
 			return err
 		}
 		field.SetFloat(val)
 	case reflect.String:
-		field.SetString(string(col))
+		field.SetString(colStr)
 	case reflect.Bool:
-		switch strings.ToLower(string(col)) {
+		switch strings.ToLower(colStr) {
 		case "true", "1":
 			field.SetBool(true)
 		case "false", "0":
 			field.SetBool(false)
 		default:
-			return fmt.Errorf("invalid bool value: %s", string(col))
+			return fmt.Errorf("invalid bool value: %s", colStr)
 		}
-	case reflect.Struct:
-		return scanComplexType(field, col, false)
-	case reflect.Slice:
-		return scanComplexType(field, col, false)
-	case reflect.Map:
+	case reflect.Struct, reflect.Slice, reflect.Map:
 		return scanComplexType(field, col, false)
 	case reflect.Ptr:
 		return scanComplexType(field, col, true)
 	default:
-		log.Errorf("unsupported column: %s", string(col))
+		log.Errorf("unsupported column: %s", colStr)
 		return fmt.Errorf("invalid type: %s", field.Kind().String())
 	}
 
@@ -213,7 +211,9 @@ func getTableName(elem reflect.Type) string {
 		tableName = parts[2]
 	}
 
-	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elem.Elem().Name(), "Model"))
+	// Get element name safely without calling Elem() on non-pointer types
+	elemName := elem.Name()
+	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elemName, "Model"))
 }
 
 // hasField checks if the given type has a field with the specified name.
@@ -244,6 +244,10 @@ func hasId(elem reflect.Type) bool {
 }
 
 func Camel2UnderScore(name string) string {
+	if name == "" {
+		return ""
+	}
+
 	// Preallocate posList with estimated capacity (typically 1/4 of string length)
 	posList := make([]int, 0, len(name)/4+1)
 	i := 1
@@ -280,14 +284,16 @@ func FormatSql(sql string, values ...interface{}) string {
 	defer log.PutBuffer(out)
 
 	var i int
+	lastIdx := 0
 	for {
-		idx := strings.Index(sql, "?")
+		idx := strings.IndexByte(sql[lastIdx:], '?')
 		if idx < 0 {
 			break
 		}
+		idx += lastIdx
 
-		out.WriteString(sql[:idx])
-		sql = sql[idx+1:]
+		out.WriteString(sql[lastIdx:idx])
+		lastIdx = idx + 1
 
 		if i >= len(values) {
 			out.WriteString("?")
@@ -306,11 +312,14 @@ func FormatSql(sql string, values ...interface{}) string {
 		i++
 	}
 
-	out.WriteString(sql)
+	out.WriteString(sql[lastIdx:])
 	return out.String()
 }
 
 func IsUniqueIndexConflictErr(err error) bool {
+	if err == nil {
+		return false
+	}
 	// Check for "Duplicate entry" which covers both:
 	// - "Error 1062: Duplicate entry" (MySQL error format)
 	// - "Duplicate entry" (shorter format)
