@@ -26,6 +26,7 @@ require (
 	golang.org/x/text v0.29.0
 	google.golang.org/protobuf v1.36.9
 	gopkg.in/yaml.v3 v3.0.1
+	gorm.io/driver/clickhouse v0.7.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
@@ -34,6 +35,8 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/ClickHouse/ch-go v0.61.5 // indirect
+	github.com/ClickHouse/clickhouse-go/v2 v2.30.0 // indirect
 	github.com/FZambia/go-sentinel v0.0.0-20171204085413-76bd05e8e22f // indirect
 	github.com/abcum/lcp v0.0.0-20201209214815-7a3f3840be81 // indirect
 	github.com/agiledragon/gomonkey/v2 v2.13.0 // indirect
@@ -50,6 +53,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
+	github.com/go-faster/city v1.0.1 // indirect
+	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -66,6 +71,7 @@ require (
 	github.com/hashicorp/go-msgpack/v2 v2.1.2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.0 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/memberlist v0.5.1 // indirect
@@ -84,12 +90,16 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/paulmach/orb v0.11.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/robertkrimen/otto v0.5.1 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tidwall/resp v0.1.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -97,6 +107,8 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.5 // indirect
+	go.opentelemetry.io/otel v1.37.0 // indirect
+	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.21.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect

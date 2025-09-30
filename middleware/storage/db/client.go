@@ -11,6 +11,7 @@ import (
 	"github.com/lazygophers/utils/candy"
 
 	mysqlC "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/clickhouse"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -71,6 +72,48 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 	case Postgres:
 		log.Infof("connecting to postgres: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		d = postgres.New(postgres.Config{
+			DSN:                  c.DSN(),
+			PreferSimpleProtocol: true,
+		})
+
+	case ClickHouse:
+		log.Infof("connecting to clickhouse: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		d = clickhouse.Open(c.DSN())
+
+	case TiDB:
+		log.Infof("connecting to tidb: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		// TiDB is MySQL-compatible, use MySQL driver
+		d = mysql.New(mysql.Config{
+			DSN: c.DSN(),
+			DSNConfig: &mysqlC.Config{
+				Timeout:                 time.Second * 5,
+				ReadTimeout:             time.Second * 30,
+				WriteTimeout:            time.Second * 30,
+				AllowAllFiles:           true,
+				AllowCleartextPasswords: true,
+				AllowNativePasswords:    true,
+				AllowOldPasswords:       true,
+				CheckConnLiveness:       true,
+				ClientFoundRows:         true,
+				ColumnsWithAlias:        true,
+				InterpolateParams:       true,
+				MultiStatements:         true,
+				ParseTime:               true,
+			},
+			DefaultStringSize: 500,
+		})
+
+		if c.Debug {
+			err := mysqlC.SetLogger(&mysqlLogger{})
+			if err != nil {
+				log.Errorf("failed to set tidb logger: %v", err)
+			}
+		}
+
+	case GaussDB:
+		log.Infof("connecting to gaussdb: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		// GaussDB is PostgreSQL-compatible, use PostgreSQL driver
 		d = postgres.New(postgres.Config{
 			DSN:                  c.DSN(),
 			PreferSimpleProtocol: true,
