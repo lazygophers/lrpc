@@ -311,7 +311,10 @@ func FormatSql(sql string, values ...interface{}) string {
 }
 
 func IsUniqueIndexConflictErr(err error) bool {
-	return strings.Contains(err.Error(), "Error 1062: Duplicate entry") || strings.Contains(err.Error(), "Duplicate entry")
+	// Check for "Duplicate entry" which covers both:
+	// - "Error 1062: Duplicate entry" (MySQL error format)
+	// - "Duplicate entry" (shorter format)
+	return strings.Contains(err.Error(), "Duplicate entry")
 }
 
 var ErrBatchesStop = errors.New("batches stop")
