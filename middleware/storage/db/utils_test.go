@@ -3,11 +3,16 @@ package db
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 
 	"gotest.tools/v3/assert"
 	"gorm.io/gorm/clause"
 )
+
+// ============================================================================
+// Unit Tests
+// ============================================================================
 
 func TestEnsureIsSliceOrArray(t *testing.T) {
 	t.Run("valid slice", func(t *testing.T) {
@@ -647,5 +652,1065 @@ func TestHasId(t *testing.T) {
 		typ := reflect.TypeOf(NoId{})
 		result := hasId(typ)
 		assert.Assert(t, !result)
+	})
+}
+
+// ============================================================================
+// Concurrent Tests
+// ============================================================================
+
+// TestConcurrentGetTableName tests thread safety of getTableName with caching
+func TestConcurrentGetTableName(t *testing.T) {
+	type TestModel1 struct {
+		ID   int64
+		Name string
+	}
+	type TestModel2 struct {
+		ID    int64
+		Email string
+	}
+
+	typ1 := reflect.TypeOf(TestModel1{})
+	typ2 := reflect.TypeOf(TestModel2{})
+
+	const goroutines = 100
+	const iterations = 1000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	// Test concurrent access to cached types
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				if id%2 == 0 {
+					_ = getTableName(typ1)
+				} else {
+					_ = getTableName(typ2)
+				}
+			}
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+// TestConcurrentHasField tests thread safety of hasField with caching
+func TestConcurrentHasField(t *testing.T) {
+	type TestStruct struct {
+		ID        int64
+		Name      string
+		DeletedAt int64
+		CreatedAt int64
+		UpdatedAt int64
+	}
+
+	typ := reflect.TypeOf(TestStruct{})
+
+	const goroutines = 100
+	const iterations = 1000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	fields := []string{"ID", "Name", "DeletedAt", "CreatedAt", "UpdatedAt", "NonExistent"}
+
+	// Test concurrent access to cached field lookups
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				fieldName := fields[j%len(fields)]
+				_ = hasField(typ, fieldName)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+// TestConcurrentDecode tests thread safety of decode function
+func TestConcurrentDecode(t *testing.T) {
+	const goroutines = 100
+	const iterations = 1000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	// Test concurrent decoding of different types
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				switch j % 5 {
+				case 0: // int
+					var result int
+					field := reflect.ValueOf(&result).Elem()
+					_ = decode(field, []byte("123"))
+				case 1: // string
+					var result string
+					field := reflect.ValueOf(&result).Elem()
+					_ = decode(field, []byte("test"))
+				case 2: // bool
+					var result bool
+					field := reflect.ValueOf(&result).Elem()
+					_ = decode(field, []byte("1"))
+				case 3: // float64
+					var result float64
+					field := reflect.ValueOf(&result).Elem()
+					_ = decode(field, []byte("3.14"))
+				case 4: // uint64
+					var result uint64
+					field := reflect.ValueOf(&result).Elem()
+					_ = decode(field, []byte("999"))
+				}
+			}
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+// Test race conditions with -race flag
+func TestRaceConditionGetTableName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping race condition test in short mode")
+	}
+
+	type RaceModel struct {
+		ID int64
+	}
+	typ := reflect.TypeOf(RaceModel{})
+
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func() {
+			for j := 0; j < 100; j++ {
+				_ = getTableName(typ)
+			}
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+}
+
+func TestRaceConditionHasField(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping race condition test in short mode")
+	}
+
+	type RaceStruct struct {
+		ID   int64
+		Name string
+	}
+	typ := reflect.TypeOf(RaceStruct{})
+
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func() {
+			for j := 0; j < 100; j++ {
+				_ = hasField(typ, "Name")
+			}
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+}
+
+// Stress test with high concurrency
+func TestHighConcurrencyStress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping stress test in short mode")
+	}
+
+	type StressModel struct {
+		ID        int64
+		Name      string
+		DeletedAt int64
+		CreatedAt int64
+		UpdatedAt int64
+	}
+	typ := reflect.TypeOf(StressModel{})
+
+	const goroutines = 1000
+	const iterations = 10000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	errors := make(chan error, goroutines*iterations)
+
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				// Mix different operations
+				switch (id + j) % 5 {
+				case 0:
+					_ = getTableName(typ)
+				case 1:
+					_ = hasField(typ, "DeletedAt")
+				case 2:
+					_ = hasDeletedAt(typ)
+				case 3:
+					_ = hasCreatedAt(typ)
+				case 4:
+					_ = hasUpdatedAt(typ)
+				}
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	if len(errors) > 0 {
+		t.Fatalf("Encountered %d errors during stress test", len(errors))
+	}
+}
+
+// Verify cache effectiveness
+func TestCacheEffectiveness(t *testing.T) {
+	type CacheTestModel struct {
+		ID int64
+	}
+	typ := reflect.TypeOf(CacheTestModel{})
+
+	// Clear caches
+	tableNameCacheMu.Lock()
+	tableNameCache = make(map[reflect.Type]string)
+	tableNameCacheMu.Unlock()
+
+	hasFieldCacheMu.Lock()
+	hasFieldCache = make(map[fieldCacheKey]bool)
+	hasFieldCacheMu.Unlock()
+
+	// First call - cache miss
+	name1 := getTableName(typ)
+
+	// Second call - should hit cache
+	name2 := getTableName(typ)
+
+	if name1 != name2 {
+		t.Errorf("Cache returned different values: %s vs %s", name1, name2)
+	}
+
+	// Verify cache was populated
+	tableNameCacheMu.RLock()
+	_, exists := tableNameCache[typ]
+	tableNameCacheMu.RUnlock()
+
+	if !exists {
+		t.Error("Cache was not populated after getTableName call")
+	}
+
+	// Test hasField cache
+	has1 := hasField(typ, "ID")
+	has2 := hasField(typ, "ID")
+
+	if has1 != has2 {
+		t.Errorf("hasField cache returned different values: %v vs %v", has1, has2)
+	}
+
+	key := fieldCacheKey{typ: typ, fieldName: "ID"}
+	hasFieldCacheMu.RLock()
+	_, exists = hasFieldCache[key]
+	hasFieldCacheMu.RUnlock()
+
+	if !exists {
+		t.Error("hasField cache was not populated")
+	}
+}
+
+// Test concurrent cache growth
+func TestConcurrentCacheGrowth(t *testing.T) {
+	const numTypes = 100
+	const goroutines = 50
+
+	// Create many different types
+	types := make([]reflect.Type, numTypes)
+	for i := 0; i < numTypes; i++ {
+		// Create a struct type with a unique field
+		structFields := []reflect.StructField{
+			{Name: fmt.Sprintf("Field%d", i), Type: reflect.TypeOf(int64(0))},
+		}
+		types[i] = reflect.StructOf(structFields)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < numTypes; j++ {
+				typ := types[(id+j)%numTypes]
+				_ = getTableName(typ)
+				_ = hasField(typ, fmt.Sprintf("Field%d", (id+j)%numTypes))
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Verify all types were cached
+	tableNameCacheMu.RLock()
+	cacheSize := len(tableNameCache)
+	tableNameCacheMu.RUnlock()
+
+	if cacheSize == 0 {
+		t.Error("Cache should contain entries")
+	}
+
+	t.Logf("Cache contains %d entries after concurrent operations", cacheSize)
+}
+
+// ============================================================================
+// Benchmark Tests
+// ============================================================================
+
+// Benchmark for EscapeMysqlString - tests the optimized lookup table approach
+
+func BenchmarkEscapeMysqlString_NoEscape(b *testing.B) {
+	sql := "SELECT * FROM users WHERE id = 123 AND name = test"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EscapeMysqlString(sql)
+	}
+}
+
+func BenchmarkEscapeMysqlString_WithEscape(b *testing.B) {
+	sql := "SELECT * FROM users WHERE name = 'test' AND desc = \"description\""
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EscapeMysqlString(sql)
+	}
+}
+
+func BenchmarkEscapeMysqlString_MixedContent(b *testing.B) {
+	sql := "INSERT INTO logs VALUES ('error', \"message\nwith\nnewlines\", 'quote\\'test')"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EscapeMysqlString(sql)
+	}
+}
+
+func BenchmarkEscapeMysqlString_LargeString(b *testing.B) {
+	// Simulate large SQL query with 1000 characters
+	sql := ""
+	for i := 0; i < 20; i++ {
+		sql += "SELECT * FROM table WHERE field = 'value' AND "
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EscapeMysqlString(sql)
+	}
+}
+
+// Benchmark for UniqueSlice - tests reflection-based deduplication
+
+func BenchmarkUniqueSlice_IntSmall(b *testing.B) {
+	input := []int{1, 2, 3, 2, 4, 1, 5}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = UniqueSlice(input)
+	}
+}
+
+func BenchmarkUniqueSlice_IntLarge(b *testing.B) {
+	input := make([]int, 1000)
+	for i := 0; i < 1000; i++ {
+		input[i] = i % 100 // 10x duplicates
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = UniqueSlice(input)
+	}
+}
+
+func BenchmarkUniqueSlice_StringSmall(b *testing.B) {
+	input := []string{"a", "b", "c", "b", "d", "a", "e"}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = UniqueSlice(input)
+	}
+}
+
+func BenchmarkUniqueSlice_StringLarge(b *testing.B) {
+	input := make([]string, 1000)
+	for i := 0; i < 1000; i++ {
+		input[i] = string(rune('a' + (i % 26))) // 26 unique values
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = UniqueSlice(input)
+	}
+}
+
+func BenchmarkUniqueSlice_NoDuplicates(b *testing.B) {
+	input := make([]int, 100)
+	for i := 0; i < 100; i++ {
+		input[i] = i
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = UniqueSlice(input)
+	}
+}
+
+// Benchmark for Camel2UnderScore - tests string transformation
+
+func BenchmarkCamel2UnderScore_Simple(b *testing.B) {
+	input := "CamelCase"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Camel2UnderScore(input)
+	}
+}
+
+func BenchmarkCamel2UnderScore_NoUpperCase(b *testing.B) {
+	input := "alllowercase"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Camel2UnderScore(input)
+	}
+}
+
+func BenchmarkCamel2UnderScore_Consecutive(b *testing.B) {
+	input := "HTTPSConnection"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Camel2UnderScore(input)
+	}
+}
+
+func BenchmarkCamel2UnderScore_Long(b *testing.B) {
+	input := "VeryLongCamelCaseStringWithManyWordsToConvert"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Camel2UnderScore(input)
+	}
+}
+
+// Benchmark for FormatSql - tests SQL placeholder replacement
+
+func BenchmarkFormatSql_NoPlaceholders(b *testing.B) {
+	sql := "SELECT * FROM users WHERE id = 123"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FormatSql(sql)
+	}
+}
+
+func BenchmarkFormatSql_SinglePlaceholder(b *testing.B) {
+	sql := "SELECT * FROM users WHERE id = ?"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FormatSql(sql, 123)
+	}
+}
+
+func BenchmarkFormatSql_MultiplePlaceholders(b *testing.B) {
+	sql := "SELECT * FROM users WHERE id = ? AND name = ? AND age = ? AND city = ?"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FormatSql(sql, 123, "John", 30, "NYC")
+	}
+}
+
+func BenchmarkFormatSql_ManyPlaceholders(b *testing.B) {
+	sql := "INSERT INTO table VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	values := []interface{}{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FormatSql(sql, values...)
+	}
+}
+
+// Benchmark for decode - tests type conversion performance
+
+func BenchmarkDecode_Int(b *testing.B) {
+	var result int
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("12345")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+func BenchmarkDecode_Int64(b *testing.B) {
+	var result int64
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("9223372036854775807")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+func BenchmarkDecode_String(b *testing.B) {
+	var result string
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("test string value")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+func BenchmarkDecode_Bool(b *testing.B) {
+	var result bool
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("true")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+func BenchmarkDecode_Float64(b *testing.B) {
+	var result float64
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("3.141592653589793")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+func BenchmarkDecode_Uint64(b *testing.B) {
+	var result uint64
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte("18446744073709551615")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = decode(field, data)
+	}
+}
+
+// Benchmark for scanComplexType - tests JSON deserialization
+
+func BenchmarkScanComplexType_Struct(b *testing.B) {
+	type TestStruct struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+	var result TestStruct
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte(`{"name":"John","age":30}`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = scanComplexType(field, data, false)
+	}
+}
+
+func BenchmarkScanComplexType_Slice(b *testing.B) {
+	var result []int
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte(`[1,2,3,4,5,6,7,8,9,10]`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = scanComplexType(field, data, false)
+	}
+}
+
+func BenchmarkScanComplexType_Map(b *testing.B) {
+	var result map[string]interface{}
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte(`{"key1":"value1","key2":123,"key3":true}`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = scanComplexType(field, data, false)
+	}
+}
+
+func BenchmarkScanComplexType_LargeStruct(b *testing.B) {
+	type LargeStruct struct {
+		Field1  string `json:"field1"`
+		Field2  int    `json:"field2"`
+		Field3  bool   `json:"field3"`
+		Field4  string `json:"field4"`
+		Field5  int    `json:"field5"`
+		Field6  bool   `json:"field6"`
+		Field7  string `json:"field7"`
+		Field8  int    `json:"field8"`
+		Field9  bool   `json:"field9"`
+		Field10 string `json:"field10"`
+	}
+	var result LargeStruct
+	field := reflect.ValueOf(&result).Elem()
+	data := []byte(`{"field1":"value1","field2":123,"field3":true,"field4":"value4","field5":456,"field6":false,"field7":"value7","field8":789,"field9":true,"field10":"value10"}`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = scanComplexType(field, data, false)
+	}
+}
+
+// Benchmark for getTableName - tests caching effectiveness
+
+func BenchmarkGetTableName_FirstCall(b *testing.B) {
+	type BenchModel struct {
+		ID   int64
+		Name string
+	}
+	typ := reflect.TypeOf(BenchModel{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Clear cache to simulate first call
+		tableNameCache = make(map[reflect.Type]string)
+		_ = getTableName(typ)
+	}
+}
+
+func BenchmarkGetTableName_CachedCall(b *testing.B) {
+	type CachedModel struct {
+		ID   int64
+		Name string
+	}
+	typ := reflect.TypeOf(CachedModel{})
+
+	// Warm up cache
+	_ = getTableName(typ)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = getTableName(typ)
+	}
+}
+
+func BenchmarkGetTableName_WithTabler(b *testing.B) {
+	typ := reflect.TypeOf(TestModel{})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tableNameCache = make(map[reflect.Type]string)
+		_ = getTableName(typ)
+	}
+}
+
+// Benchmark for hasField - tests field existence checking
+
+func BenchmarkHasField_Exists(b *testing.B) {
+	type TestStruct struct {
+		ID        int64
+		Name      string
+		DeletedAt int64
+		CreatedAt int64
+		UpdatedAt int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasField(typ, "Name")
+	}
+}
+
+func BenchmarkHasField_NotExists(b *testing.B) {
+	type TestStruct struct {
+		ID   int64
+		Name string
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasField(typ, "NonExistent")
+	}
+}
+
+func BenchmarkHasDeletedAt(b *testing.B) {
+	type TestStruct struct {
+		DeletedAt int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasDeletedAt(typ)
+	}
+}
+
+func BenchmarkHasCreatedAt(b *testing.B) {
+	type TestStruct struct {
+		CreatedAt int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasCreatedAt(typ)
+	}
+}
+
+func BenchmarkHasUpdatedAt(b *testing.B) {
+	type TestStruct struct {
+		UpdatedAt int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasUpdatedAt(typ)
+	}
+}
+
+func BenchmarkHasId(b *testing.B) {
+	type TestStruct struct {
+		Id int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasId(typ)
+	}
+}
+
+// Benchmark for EnsureIsSliceOrArray - tests reflection validation
+
+func BenchmarkEnsureIsSliceOrArray_Slice(b *testing.B) {
+	slice := []int{1, 2, 3, 4, 5}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EnsureIsSliceOrArray(slice)
+	}
+}
+
+func BenchmarkEnsureIsSliceOrArray_Array(b *testing.B) {
+	array := [5]int{1, 2, 3, 4, 5}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EnsureIsSliceOrArray(array)
+	}
+}
+
+func BenchmarkEnsureIsSliceOrArray_PointerToSlice(b *testing.B) {
+	slice := []int{1, 2, 3, 4, 5}
+	ptr := &slice
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = EnsureIsSliceOrArray(ptr)
+	}
+}
+
+// Benchmark for IsUniqueIndexConflictErr - tests error checking
+
+func BenchmarkIsUniqueIndexConflictErr_True(b *testing.B) {
+	err := fmt.Errorf("Error 1062: Duplicate entry 'test' for key 'unique_key'")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = IsUniqueIndexConflictErr(err)
+	}
+}
+
+func BenchmarkIsUniqueIndexConflictErr_False(b *testing.B) {
+	err := fmt.Errorf("Table 'test.users' doesn't exist")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = IsUniqueIndexConflictErr(err)
+	}
+}
+
+func BenchmarkIsUniqueIndexConflictErr_Nil(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = IsUniqueIndexConflictErr(nil)
+	}
+}
+
+// Benchmark concurrent getTableName
+func BenchmarkConcurrentGetTableName(b *testing.B) {
+	type BenchModel struct {
+		ID   int64
+		Name string
+	}
+	typ := reflect.TypeOf(BenchModel{})
+
+	// Warm up cache
+	_ = getTableName(typ)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = getTableName(typ)
+		}
+	})
+}
+
+// Benchmark concurrent getTableName with multiple types
+func BenchmarkConcurrentGetTableName_MultipleTypes(b *testing.B) {
+	types := make([]reflect.Type, 10)
+	for i := 0; i < 10; i++ {
+		// Create distinct types dynamically
+		switch i {
+		case 0:
+			type T0 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T0{})
+		case 1:
+			type T1 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T1{})
+		case 2:
+			type T2 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T2{})
+		case 3:
+			type T3 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T3{})
+		case 4:
+			type T4 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T4{})
+		case 5:
+			type T5 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T5{})
+		case 6:
+			type T6 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T6{})
+		case 7:
+			type T7 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T7{})
+		case 8:
+			type T8 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T8{})
+		case 9:
+			type T9 struct{ ID int64 }
+			types[i] = reflect.TypeOf(T9{})
+		}
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			_ = getTableName(types[i%len(types)])
+			i++
+		}
+	})
+}
+
+// Benchmark concurrent hasField
+func BenchmarkConcurrentHasField(b *testing.B) {
+	type TestStruct struct {
+		ID        int64
+		Name      string
+		DeletedAt int64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	// Warm up cache
+	_ = hasField(typ, "DeletedAt")
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = hasField(typ, "DeletedAt")
+		}
+	})
+}
+
+// Benchmark concurrent hasField with cache misses
+func BenchmarkConcurrentHasField_MultipleFields(b *testing.B) {
+	type TestStruct struct {
+		Field1  string
+		Field2  int
+		Field3  bool
+		Field4  float64
+		Field5  uint64
+		Field6  string
+		Field7  int
+		Field8  bool
+		Field9  float64
+		Field10 uint64
+	}
+	typ := reflect.TypeOf(TestStruct{})
+
+	fields := []string{"Field1", "Field2", "Field3", "Field4", "Field5",
+		"Field6", "Field7", "Field8", "Field9", "Field10"}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			_ = hasField(typ, fields[i%len(fields)])
+			i++
+		}
+	})
+}
+
+// Benchmark concurrent decode
+func BenchmarkConcurrentDecode_Int(b *testing.B) {
+	data := []byte("12345")
+
+	b.RunParallel(func(pb *testing.PB) {
+		var result int
+		field := reflect.ValueOf(&result).Elem()
+		for pb.Next() {
+			_ = decode(field, data)
+		}
+	})
+}
+
+func BenchmarkConcurrentDecode_String(b *testing.B) {
+	data := []byte("test string value")
+
+	b.RunParallel(func(pb *testing.PB) {
+		var result string
+		field := reflect.ValueOf(&result).Elem()
+		for pb.Next() {
+			_ = decode(field, data)
+		}
+	})
+}
+
+func BenchmarkConcurrentDecode_Bool(b *testing.B) {
+	data := []byte("1")
+
+	b.RunParallel(func(pb *testing.PB) {
+		var result bool
+		field := reflect.ValueOf(&result).Elem()
+		for pb.Next() {
+			_ = decode(field, data)
+		}
+	})
+}
+
+func BenchmarkConcurrentDecode_Float64(b *testing.B) {
+	data := []byte("3.141592653589793")
+
+	b.RunParallel(func(pb *testing.PB) {
+		var result float64
+		field := reflect.ValueOf(&result).Elem()
+		for pb.Next() {
+			_ = decode(field, data)
+		}
+	})
+}
+
+// Benchmark concurrent operations with mixed types
+func BenchmarkConcurrentMixedOperations(b *testing.B) {
+	type TestModel struct {
+		ID        int64
+		Name      string
+		DeletedAt int64
+	}
+	typ := reflect.TypeOf(TestModel{})
+
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			switch i % 3 {
+			case 0:
+				_ = getTableName(typ)
+			case 1:
+				_ = hasField(typ, "DeletedAt")
+			case 2:
+				var result int
+				field := reflect.ValueOf(&result).Elem()
+				_ = decode(field, []byte("123"))
+			}
+			i++
+		}
+	})
+}
+
+// Benchmark to compare before/after optimization
+func BenchmarkGetTableName_Serial(b *testing.B) {
+	type SerialModel struct {
+		ID int64
+	}
+	typ := reflect.TypeOf(SerialModel{})
+
+	// Warm up
+	_ = getTableName(typ)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = getTableName(typ)
+	}
+}
+
+func BenchmarkHasField_Serial(b *testing.B) {
+	type SerialStruct struct {
+		ID        int64
+		DeletedAt int64
+	}
+	typ := reflect.TypeOf(SerialStruct{})
+
+	// Warm up
+	_ = hasField(typ, "DeletedAt")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = hasField(typ, "DeletedAt")
+	}
+}
+
+func BenchmarkUnsafeString(b *testing.B) {
+	data := []byte("test string for unsafe conversion")
+
+	b.Run("unsafeString", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = unsafeString(data)
+		}
+	})
+
+	b.Run("string()", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = string(data)
+		}
+	})
+}
+
+func BenchmarkDecode_WithAndWithoutUnsafe(b *testing.B) {
+	data := []byte("12345")
+
+	b.Run("decode_int_optimized", func(b *testing.B) {
+		var result int
+		field := reflect.ValueOf(&result).Elem()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = decode(field, data)
+		}
+	})
+}
+
+// Benchmark memory allocations
+func BenchmarkDecodeAllocations(b *testing.B) {
+	data := []byte("12345")
+
+	b.Run("int_with_unsafe", func(b *testing.B) {
+		var result int
+		field := reflect.ValueOf(&result).Elem()
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = decode(field, data)
+		}
+	})
+
+	b.Run("string_with_copy", func(b *testing.B) {
+		var result string
+		field := reflect.ValueOf(&result).Elem()
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = decode(field, data)
+		}
+	})
+
+	b.Run("bool_optimized", func(b *testing.B) {
+		data := []byte("1")
+		var result bool
+		field := reflect.ValueOf(&result).Elem()
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = decode(field, data)
+		}
 	})
 }
