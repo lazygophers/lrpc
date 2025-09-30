@@ -176,17 +176,11 @@ func getTableName(elem reflect.Type) string {
 	}
 
 	tableName := elem.PkgPath()
-	idx := strings.Index(tableName, "/")
-	if idx > 0 {
-		tableName = tableName[idx+1:]
-		idx = strings.Index(tableName, "/")
-		if idx > 0 {
-			tableName = tableName[idx+1:]
-			idx = strings.Index(tableName, "/")
-			if idx > 0 {
-				tableName = tableName[:idx]
-			}
-		}
+	// Extract the third level component from path like "github.com/user/project/package"
+	// Use SplitN to limit splits and avoid unnecessary work
+	parts := strings.SplitN(tableName, "/", 4)
+	if len(parts) >= 3 {
+		tableName = parts[2]
 	}
 
 	return stringx.Camel2Snake(tableName + strings.TrimPrefix(elem.Elem().Name(), "Model"))
