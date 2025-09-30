@@ -84,6 +84,29 @@ func UniqueSlice(s interface{}) interface{} {
 	return res.Interface()
 }
 
+// scanComplexType handles scanning for Struct, Slice, Map, and Ptr types using utils.Scan
+func scanComplexType(field reflect.Value, col []byte, isPtr bool) error {
+	var val reflect.Value
+	if isPtr {
+		val = reflect.New(field.Type().Elem())
+	} else {
+		val = reflect.New(field.Type())
+	}
+
+	err := utils.Scan(col, val.Interface())
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	if isPtr {
+		field.Set(val)
+	} else {
+		field.Set(val.Elem())
+	}
+	return nil
+}
+
 func decode(field reflect.Value, col []byte) error {
 	switch field.Kind() {
 	case reflect.Int,
@@ -128,43 +151,13 @@ func decode(field reflect.Value, col []byte) error {
 			return fmt.Errorf("invalid bool value: %s", string(col))
 		}
 	case reflect.Struct:
-		val := reflect.New(field.Type())
-		err := utils.Scan(col, val.Interface())
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return err
-		}
-		field.Set(val.Elem())
+		return scanComplexType(field, col, false)
 	case reflect.Slice:
-		// []byte 类型
-		//if field.Type().Elem().Name() == "uint8" {
-		//	field.Set(reflect.ValueOf(col))
-		//} else {
-		val := reflect.New(field.Type())
-		err := utils.Scan(col, val.Interface())
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return err
-		}
-		field.Set(val.Elem())
-		//}
-
+		return scanComplexType(field, col, false)
 	case reflect.Map:
-		val := reflect.New(field.Type())
-		err := utils.Scan(col, val.Interface())
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return err
-		}
-		field.Set(val.Elem())
+		return scanComplexType(field, col, false)
 	case reflect.Ptr:
-		val := reflect.New(field.Type().Elem())
-		err := utils.Scan(col, val.Interface())
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return err
-		}
-		field.Set(val)
+		return scanComplexType(field, col, true)
 	default:
 		log.Errorf("unsupported column: %s", string(col))
 		return fmt.Errorf("invalid type: %s", field.Kind().String())
@@ -236,7 +229,8 @@ func hasId(elem reflect.Type) bool {
 }
 
 func Camel2UnderScore(name string) string {
-	var posList []int
+	// Preallocate posList with estimated capacity (typically 1/4 of string length)
+	posList := make([]int, 0, len(name)/4+1)
 	i := 1
 	for i < len(name) {
 		if name[i] >= 'A' && name[i] <= 'Z' {
@@ -253,7 +247,9 @@ func Camel2UnderScore(name string) string {
 	if len(posList) == 0 {
 		return lower
 	}
-	b := strings.Builder{}
+	// Preallocate Builder capacity: original length + underscores
+	var b strings.Builder
+	b.Grow(len(name) + len(posList))
 	left := 0
 	for _, right := range posList {
 		b.WriteString(lower[left:right])
