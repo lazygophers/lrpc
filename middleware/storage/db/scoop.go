@@ -884,7 +884,11 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		insertSQL += "INTO " + p.table + " (" + strings.Join(columns, ", ") + ") VALUES " + strings.Join(allPlaceholders, ", ")
 
 		start := time.Now()
-		res := p._db.Exec(insertSQL, allValues...)
+		// Use Session with PrepareStmt disabled for raw SQL
+		session := p._db.Session(&gorm.Session{
+			PrepareStmt: false,
+		})
+		res := session.Exec(insertSQL, allValues...)
 
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return insertSQL, res.RowsAffected
