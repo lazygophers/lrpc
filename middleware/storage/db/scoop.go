@@ -17,6 +17,26 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// Field name constants for common database fields
+const (
+	fieldDeletedAt = "deleted_at"
+	fieldCreatedAt = "created_at"
+	fieldUpdatedAt = "updated_at"
+	fieldID        = "id"
+)
+
+// SQL condition constants
+const (
+	condNotDeleted = "deleted_at = 0"
+)
+
+// Field name constants for Go struct fields
+const (
+	structFieldDeletedAt = "DeletedAt"
+	structFieldCreatedAt = "CreatedAt"
+	structFieldUpdatedAt = "UpdatedAt"
+)
+
 type Scoop struct {
 	clientType string
 	_db        *gorm.DB
@@ -350,7 +370,7 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	}
 
 	if !p.unscoped && (p.hasDeletedAt || hasDeletedAt(elem)) {
-		p.cond.whereRaw("deleted_at = 0")
+		p.cond.whereRaw(condNotDeleted)
 	}
 
 	p.inc()
@@ -722,7 +742,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		fieldValue := vv.FieldByName(field.Name)
 
 		// Handle soft delete field - insert 0 for nil *time.Time
-		if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr {
+		if field.Name == structFieldDeletedAt && fieldValue.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				columns = append(columns, field.DBName)
 				placeholders = append(placeholders, "?")
@@ -941,7 +961,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 			// Check if this is DeletedAt field
 			fieldValue := firstRowInBatch.FieldByName(field.Name)
-			if field.Name == "DeletedAt" && fieldValue.Kind() == reflect.Ptr {
+			if field.Name == structFieldDeletedAt && fieldValue.Kind() == reflect.Ptr {
 				info.isDeletedAt = true
 			}
 
@@ -1133,15 +1153,15 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	}
 
 	if p.hasUpdatedAt {
-		updateMap["updated_at"] = time.Now().Unix()
+		updateMap[fieldUpdatedAt] = time.Now().Unix()
 	}
 
 	//if p.hasCreatedAt {
 	//	switch p.clientType {
 	//	case Sqlite:
-	//		updateMap["created_at"] = gorm.Expr("IIF(created_at > 0,created_at,?)", time.Now().Unix())
+	//		updateMap[fieldCreatedAt] = gorm.Expr("IIF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	default:
-	//		updateMap["created_at"] = gorm.Expr("IF(created_at > 0,created_at,?)", time.Now().Unix())
+	//		updateMap[fieldCreatedAt] = gorm.Expr("IF(created_at > 0,created_at,?)", time.Now().Unix())
 	//	}
 	//}
 
@@ -1323,7 +1343,7 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 		}
 
 		switch fieldName {
-		case "created_at", "updated_at":
+		case fieldCreatedAt, fieldUpdatedAt:
 			continue
 		}
 
