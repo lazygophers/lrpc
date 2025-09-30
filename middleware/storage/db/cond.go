@@ -17,13 +17,28 @@ type Cond struct {
 
 	// 标记跳过请求，用于一些逻辑上就不需要进行请求的场景
 	skip bool
+
+	// clientType for database-specific quoting
+	clientType string
 }
 
-func quoteFieldName(name string) string {
-	if !strings.HasPrefix(name, "`") {
-		name = fmt.Sprintf("`%s`", name)
+// quoteFieldName quotes a field name with the appropriate quote character for the database type.
+// MySQL uses backticks (`), PostgreSQL and SQLite use double quotes (").
+func quoteFieldName(name string, clientType string) string {
+	// Check if already quoted
+	if strings.HasPrefix(name, "`") || strings.HasPrefix(name, "\"") {
+		return name
 	}
-	return name
+
+	switch clientType {
+	case MySQL:
+		return fmt.Sprintf("`%s`", name)
+	case Postgres, Sqlite:
+		return fmt.Sprintf("\"%s\"", name)
+	default:
+		// Default to double quotes for unknown types
+		return fmt.Sprintf("\"%s\"", name)
+	}
 }
 
 func quoteStr(s string) string {
@@ -115,7 +130,7 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 	valStr := simpleTypeToStr(val, true)
 	var cond string
 	if p.tablePrefix == "" {
-		cond = fmt.Sprintf("(%s %s %s)", quoteFieldName(fieldName), op, valStr)
+		cond = fmt.Sprintf("(%s %s %s)", quoteFieldName(fieldName, p.clientType), op, valStr)
 	} else {
 		cond = fmt.Sprintf("(%s.%s %s %s)", p.tablePrefix, fieldName, op, valStr)
 	}
@@ -452,12 +467,12 @@ func (p *Cond) NotRightLike(column string, value string) *Cond {
 }
 
 func (p *Cond) Between(column string, min, max interface{}) *Cond {
-	p.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
+	p.whereRaw(quoteFieldName(column, p.clientType)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 
 func (p *Cond) NotBetween(column string, min, max interface{}) *Cond {
-	p.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
+	p.whereRaw(quoteFieldName(column, p.clientType)+" NOT BETWEEN ? AND ?", min, max)
 	return p
 }
 

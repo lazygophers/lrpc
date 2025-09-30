@@ -15,15 +15,18 @@ type ModelScoop[M any] struct {
 	m M
 }
 
-func NewModelScoop[M any](db *gorm.DB) *ModelScoop[M] {
+func NewModelScoop[M any](db *gorm.DB, clientType string) *ModelScoop[M] {
 	scoop := &ModelScoop[M]{
 		Scoop: Scoop{
+			clientType: clientType,
 			_db: db.Session(&gorm.Session{
 				Initialized: true,
 			}),
 		},
 	}
 
+	// Set clientType in cond for proper field quoting
+	scoop.cond.clientType = clientType
 	scoop.inc()
 
 	return scoop
@@ -124,12 +127,12 @@ func (p *ModelScoop[M]) NotRightLike(column string, value string) *ModelScoop[M]
 }
 
 func (p *ModelScoop[M]) Between(column string, min, max interface{}) *ModelScoop[M] {
-	p.cond.whereRaw(quoteFieldName(column)+" BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column, p.clientType)+" BETWEEN ? AND ?", min, max)
 	return p
 }
 
 func (p *ModelScoop[M]) NotBetween(column string, min, max interface{}) *ModelScoop[M] {
-	p.cond.whereRaw(quoteFieldName(column)+" NOT BETWEEN ? AND ?", min, max)
+	p.cond.whereRaw(quoteFieldName(column, p.clientType)+" NOT BETWEEN ? AND ?", min, max)
 	return p
 }
 

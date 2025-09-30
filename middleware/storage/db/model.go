@@ -70,13 +70,11 @@ func (p *Model[M]) NewScoop(tx ...*Scoop) *ModelScoop[M] {
 		db = tx[0]._db
 	}
 
-	scoop := NewModelScoop[M](db)
+	scoop := NewModelScoop[M](db, p.db.clientType)
 
 	scoop.hasCreatedAt = p.hasCreatedAt
 	scoop.hasUpdatedAt = p.hasUpdatedAt
 	scoop.hasDeletedAt = p.hasDeletedAt
-
-	scoop.clientType = p.db.clientType
 	scoop.hasId = p.hasId
 	scoop.table = p.table
 	scoop.notFoundError = p.notFoundError
