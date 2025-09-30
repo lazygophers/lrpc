@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/lazygophers/lrpc/middleware/storage/db"
@@ -532,7 +533,7 @@ func TestScoopJoin(t *testing.T) {
 			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
 			Where("test_products.deleted_at", 0)
 
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -543,7 +544,7 @@ func TestScoopJoin(t *testing.T) {
 			LeftJoin("test_categories", "test_products.category_id = test_categories.id").
 			Where("test_products.deleted_at", 0)
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -553,7 +554,7 @@ func TestScoopJoin(t *testing.T) {
 			Select("test_products.*").
 			RightJoin("test_categories", "test_products.category_id = test_categories.id")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -563,7 +564,7 @@ func TestScoopJoin(t *testing.T) {
 			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
 			LeftJoin("test_another_table", "test_products.id = test_another_table.product_id")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -572,7 +573,7 @@ func TestScoopJoin(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			CrossJoin("test_categories")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -589,7 +590,7 @@ func TestScoopHaving(t *testing.T) {
 			Group("category_id").
 			Having("COUNT(*) > ?", 1)
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -601,7 +602,7 @@ func TestScoopHaving(t *testing.T) {
 			Having("SUM(price) > ?", 100).
 			Having("COUNT(*) > ?", 1)
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -614,7 +615,7 @@ func TestScoopHaving(t *testing.T) {
 			Having("AVG(price) > ?", 150).
 			Order("avg_price DESC")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -650,7 +651,7 @@ func TestScoopComplexQuery(t *testing.T) {
 			Having("COUNT(*) > ?", 0).
 			Order("product_count DESC")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -664,7 +665,7 @@ func TestScoopComplexQuery(t *testing.T) {
 			Having("SUM(test_products.price) > ?", 200).
 			Limit(10)
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
@@ -693,8 +694,172 @@ func TestScoopJoinBackwardCompatibility(t *testing.T) {
 			Group("category_id").
 			Order("count DESC")
 		
-		sqlStr := sql.ToSQL()
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
+	})
+}
+
+// TestScoopToSQLOperations tests ToSQL method for various operations
+func TestScoopToSQLOperations(t *testing.T) {
+	client := setupTestDBForScoop(t)
+	insertTestProducts(t, client)
+
+	t.Run("SELECT operation", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Select("id", "name", "price").
+			Where("price > ?", 100).
+			Order("price DESC").
+			Limit(10)
+
+		sqlStr := sql.ToSQL(db.SQLOperationSelect)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "SELECT"))
+		assert.Assert(t, strings.Contains(sqlStr, "test_products"))
+		assert.Assert(t, strings.Contains(sqlStr, "price"))
+	})
+
+	t.Run("INSERT operation - single", func(t *testing.T) {
+		product := &TestProduct{
+			Name:        "Test Product",
+			Description: "Test Description",
+			Price:       99.99,
+			Stock:       100,
+			CategoryId:  1,
+			IsActive:    true,
+		}
+
+		sql := client.NewScoop().Table("test_products")
+		sqlStr := sql.ToSQL(db.SQLOperationInsert, product)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "INSERT INTO"))
+		assert.Assert(t, strings.Contains(sqlStr, "test_products"))
+		assert.Assert(t, strings.Contains(sqlStr, "Test Product"))
+	})
+
+	t.Run("INSERT operation - batch", func(t *testing.T) {
+		products := []*TestProduct{
+			{Name: "Product A", Price: 10.0, Stock: 5, CategoryId: 1, IsActive: true},
+			{Name: "Product B", Price: 20.0, Stock: 10, CategoryId: 2, IsActive: true},
+		}
+
+		sql := client.NewScoop().Table("test_products")
+		sqlStr := sql.ToSQL(db.SQLOperationInsert, products)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "INSERT INTO"))
+		assert.Assert(t, strings.Contains(sqlStr, "Product A"))
+		assert.Assert(t, strings.Contains(sqlStr, "Product B"))
+	})
+
+	t.Run("INSERT IGNORE operation", func(t *testing.T) {
+		product := &TestProduct{
+			Name:     "Duplicate Product",
+			Price:    50.0,
+			Stock:    10,
+			IsActive: true,
+		}
+
+		sql := client.NewScoop().Table("test_products").Ignore()
+		sqlStr := sql.ToSQL(db.SQLOperationInsert, product)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "INSERT"))
+		assert.Assert(t, strings.Contains(sqlStr, "IGNORE") || strings.Contains(sqlStr, "OR IGNORE"))
+	})
+
+	t.Run("UPDATE operation - map", func(t *testing.T) {
+		updateData := map[string]interface{}{
+			"name":  "Updated Name",
+			"price": 199.99,
+			"stock": 50,
+		}
+
+		sql := client.NewScoop().Table("test_products").
+			Where("id", 1)
+
+		sqlStr := sql.ToSQL(db.SQLOperationUpdate, updateData)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "UPDATE"))
+		assert.Assert(t, strings.Contains(sqlStr, "test_products"))
+		assert.Assert(t, strings.Contains(sqlStr, "Updated Name"))
+		assert.Assert(t, strings.Contains(sqlStr, "WHERE"))
+	})
+
+	t.Run("UPDATE operation - struct", func(t *testing.T) {
+		updateData := &TestProduct{
+			Name:  "Updated via Struct",
+			Price: 299.99,
+			Stock: 75,
+		}
+
+		sql := client.NewScoop().Table("test_products").
+			Where("category_id", 1)
+
+		sqlStr := sql.ToSQL(db.SQLOperationUpdate, updateData)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "UPDATE"))
+		assert.Assert(t, strings.Contains(sqlStr, "test_products"))
+		assert.Assert(t, strings.Contains(sqlStr, "WHERE"))
+	})
+
+	t.Run("DELETE operation - soft delete", func(t *testing.T) {
+		sql := client.NewScoop().Model(&TestProduct{}).
+			Where("id", 1)
+
+		sqlStr := sql.ToSQL(db.SQLOperationDelete)
+		t.Logf("Generated SQL: %s", sqlStr)
+		// Soft delete should be UPDATE with deleted_at
+		assert.Assert(t, strings.Contains(sqlStr, "UPDATE"))
+		assert.Assert(t, strings.Contains(sqlStr, "deleted_at"))
+		assert.Assert(t, strings.Contains(sqlStr, "WHERE"))
+	})
+
+	t.Run("DELETE operation - hard delete", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Unscoped().
+			Where("id", 1)
+
+		sqlStr := sql.ToSQL(db.SQLOperationDelete)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "DELETE FROM"))
+		assert.Assert(t, strings.Contains(sqlStr, "test_products"))
+		assert.Assert(t, strings.Contains(sqlStr, "WHERE"))
+	})
+
+	t.Run("DELETE operation - with multiple conditions", func(t *testing.T) {
+		sql := client.NewScoop().Table("test_products").
+			Where("price < ?", 50).
+			Where("stock", 0).
+			Unscoped()
+
+		sqlStr := sql.ToSQL(db.SQLOperationDelete)
+		t.Logf("Generated SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "DELETE FROM"))
+		assert.Assert(t, strings.Contains(sqlStr, "WHERE"))
+	})
+
+	t.Run("Error cases", func(t *testing.T) {
+		// No table name for DELETE
+		sql := client.NewScoop()
+		sqlStr := sql.ToSQL(db.SQLOperationDelete)
+		t.Logf("No table DELETE SQL: %s", sqlStr)
+		assert.Assert(t, strings.Contains(sqlStr, "ERROR"))
+
+		// INSERT without value
+		sql2 := client.NewScoop().Table("test_products")
+		sqlStr2 := sql2.ToSQL(db.SQLOperationInsert)
+		t.Logf("INSERT without value SQL: %s", sqlStr2)
+		assert.Assert(t, strings.Contains(sqlStr2, "ERROR"))
+
+		// UPDATE without value
+		sql3 := client.NewScoop().Table("test_products")
+		sqlStr3 := sql3.ToSQL(db.SQLOperationUpdate)
+		t.Logf("UPDATE without value SQL: %s", sqlStr3)
+		assert.Assert(t, strings.Contains(sqlStr3, "ERROR"))
+
+		// Unknown operation
+		sql4 := client.NewScoop().Table("test_products")
+		sqlStr4 := sql4.ToSQL("UNKNOWN")
+		t.Logf("Unknown operation SQL: %s", sqlStr4)
+		assert.Assert(t, strings.Contains(sqlStr4, "ERROR"))
 	})
 }
