@@ -676,9 +676,11 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	// Build INSERT SQL
-	var columns []string
-	var placeholders []string
-	var values []interface{}
+	// Pre-allocate slices with estimated capacity based on field count
+	fieldCount := len(stmt.Schema.Fields)
+	columns := make([]string, 0, fieldCount)
+	placeholders := make([]string, 0, fieldCount)
+	values := make([]interface{}, 0, fieldCount)
 
 	for _, field := range stmt.Schema.Fields {
 		if field.AutoCreateTime != 0 && vv.FieldByName(field.Name).IsZero() {
@@ -865,9 +867,12 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		}
 
 		// Build INSERT SQL for this batch
-		var columns []string
-		var allPlaceholders []string
-		var allValues []interface{}
+		// Pre-allocate slices with estimated capacity
+		batchRowCount := end - i
+		fieldCount := len(stmt.Schema.Fields)
+		columns := make([]string, 0, fieldCount)
+		allPlaceholders := make([]string, 0, batchRowCount)
+		allValues := make([]interface{}, 0, batchRowCount*fieldCount)
 
 		// Build columns from first row
 		firstRowInBatch := vv.Index(i)
@@ -904,7 +909,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 				rowValue = rowValue.Elem()
 			}
 
-			var rowPlaceholders []string
+			rowPlaceholders := make([]string, 0, len(columns))
 			for _, field := range stmt.Schema.Fields {
 				if field.AutoCreateTime != 0 && rowValue.FieldByName(field.Name).IsZero() {
 					// Set auto create time for CreatedAt/UpdatedAt
@@ -1098,7 +1103,8 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 
 	sqlRaw.WriteString(" SET ")
 	var i int
-	var values []interface{}
+	// Pre-allocate values slice with capacity based on updateMap size
+	values := make([]interface{}, 0, len(updateMap))
 	for k, v := range updateMap {
 		if i > 0 {
 			sqlRaw.WriteString(", ")
