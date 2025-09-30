@@ -1,5 +1,5 @@
-//go:build sqlite_cgo
-// +build sqlite_cgo
+//go:build cgo
+// +build cgo
 
 package db
 
@@ -9,7 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// newSqliteCGODialector creates a SQLite dialector with CGO support (SQLCipher encryption)
-func newSqliteCGODialector(dsn string) gorm.Dialector {
+// hasCGOSupport indicates whether CGO is available
+const hasCGOSupport = true
+
+// newSqliteDialector creates a SQLite dialector with CGO support (SQLCipher encryption)
+func newSqliteDialector(dsn string) gorm.Dialector {
 	return sqlite.Open(dsn)
 }

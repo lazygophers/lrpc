@@ -13,7 +13,6 @@ import (
 
 const (
 	Sqlite        = "sqlite"
-	SqliteCGO     = "sqlite-cgo"
 	MySQL         = "mysql"
 	Postgres      = "postgres"
 	ClickHouse    = "clickhouse"
@@ -91,19 +90,6 @@ func (c *Config) apply() {
 	case Sqlite, "sqlite3":
 		c.Type = Sqlite
 
-		if c.Address == "" {
-			c.Address, _ = os.Executable()
-		}
-
-		if !strings.HasPrefix(c.Address, "file:") {
-			c.Address = "file:" + c.Address
-		}
-
-		if c.Name == "" {
-			c.Name = app.Name + ".db"
-		}
-
-	case SqliteCGO:
 		if c.Address == "" {
 			c.Address, _ = os.Executable()
 		}
@@ -220,45 +206,20 @@ func (c *Config) DSN() string {
 		query.Set("_sync", "3")
 		query.Set("_timeout", "9999999")
 
-		if c.Username != "" && c.Password != "" {
-			query.Set("_auth", "1")
-
-			if c.Username != "" {
-				query.Set("_auth_user", c.Username)
-			}
-
-			if c.Password != "" {
-				query.Set("_auth_pass", c.Password)
-			}
-
-			query.Set("_auth_crypt", "sha512")
-			query.Set("_auth_salt", app.Name)
-		}
-
-		for key, value := range c.Extras {
-			query.Set(key, value)
-		}
-
-		return dsn + "?" + query.Encode()
-
-	case SqliteCGO:
-		query := &url.Values{}
-
-		dsn := fmt.Sprintf("%s.db", filepath.ToSlash(filepath.Join(c.Address, c.Name)))
-
-		query.Set("_vacuum", "2")
-		query.Set("_journal", "delete")
-		query.Set("_locking_mode", "exclusive")
-		query.Set("mode", "rwc")
-		query.Set("_sync", "3")
-		query.Set("_timeout", "9999999")
-
-		// SQLCipher encryption parameters
+		// If password is set, use SQLCipher parameters (only effective with CGO)
 		if c.Password != "" {
 			query.Set("_key", c.Password)
-			// SQLCipher 4.x compatible settings
 			query.Set("_cipher", "sqlcipher")
 			query.Set("_kdf_iter", "256000")
+		}
+
+		// Legacy auth support (glebarez/sqlite)
+		if c.Username != "" && c.Password != "" {
+			query.Set("_auth", "1")
+			query.Set("_auth_user", c.Username)
+			query.Set("_auth_pass", c.Password)
+			query.Set("_auth_crypt", "sha512")
+			query.Set("_auth_salt", app.Name)
 		}
 
 		for key, value := range c.Extras {

@@ -1,14 +1,17 @@
-//go:build !sqlite_cgo
-// +build !sqlite_cgo
+//go:build !cgo
+// +build !cgo
 
 package db
 
 import (
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
-// newSqliteCGODialector is a no-op for builds without sqlite_cgo tag
-// This will panic if SqliteCGO type is used without the proper build tag
-func newSqliteCGODialector(dsn string) gorm.Dialector {
-	panic("sqlite-cgo requires CGO to be enabled. Please rebuild with: go build -tags sqlite_cgo")
+// hasCGOSupport indicates whether CGO is available
+const hasCGOSupport = false
+
+// newSqliteDialector returns glebarez/sqlite when CGO is not available
+func newSqliteDialector(dsn string) gorm.Dialector {
+	return sqlite.Open(dsn)
 }

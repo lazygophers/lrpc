@@ -460,7 +460,7 @@ func (p *Scoop) buildInsertSQL(columns []string, placeholders string) string {
 		case MySQL, TiDB:
 			// MySQL and TiDB use INSERT IGNORE
 			return "INSERT IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
-		case Sqlite, SqliteCGO:
+		case Sqlite:
 			// SQLite uses INSERT OR IGNORE
 			return "INSERT OR IGNORE INTO " + p.table + " (" + columnsStr + ") VALUES " + placeholders
 		case Postgres, GaussDB:
@@ -1000,7 +1000,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 				var queryErr error
 
 				switch p.clientType {
-				case Sqlite, SqliteCGO:
+				case Sqlite:
 					queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
 				case MySQL, TiDB:
 					queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
