@@ -14,6 +14,7 @@ import (
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 type Scoop struct {
