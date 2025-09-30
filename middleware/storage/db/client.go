@@ -272,12 +272,19 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 			// 通过事务创建
 			log.Infof("rebuilding index %s on table %s due to column changes", dbIndex.Name, tabler.TableName())
 			tx := session.Begin()
+
+			// 检查事务是否成功开始
+			if tx.Error != nil {
+				log.Errorf("failed to begin transaction: %v", tx.Error)
+				return tx.Error
+			}
+
 			err = tx.Migrator().DropIndex(table, index.Name())
 			if err != nil {
 				if rbErr := tx.Rollback().Error; rbErr != nil {
 					log.Errorf("rollback failed: %v", rbErr)
 				}
-				log.Errorf("err:%v", err)
+				log.Errorf("failed to drop index: %v", err)
 				return err
 			}
 
@@ -286,13 +293,17 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 				if rbErr := tx.Rollback().Error; rbErr != nil {
 					log.Errorf("rollback failed: %v", rbErr)
 				}
-				log.Errorf("err:%v", err)
+				log.Errorf("failed to create index: %v", err)
 				return err
 			}
 
 			err = tx.Commit().Error
 			if err != nil {
-				log.Errorf("err:%v", err)
+				// Commit 失败时尝试回滚
+				if rbErr := tx.Rollback().Error; rbErr != nil {
+					log.Errorf("rollback after commit failure: %v", rbErr)
+				}
+				log.Errorf("failed to commit transaction: %v", err)
 				return err
 			}
 
