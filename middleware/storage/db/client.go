@@ -3,13 +3,12 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"path/filepath"
+	"fmt"
 	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/candy"
-	"github.com/lazygophers/utils/routine"
 
 	mysqlC "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
@@ -37,11 +36,11 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	var d gorm.Dialector
 	switch c.Type {
 	case Sqlite:
-		log.Infof("sqlite3://%s.db", filepath.ToSlash(filepath.Join(c.Address, c.Name)))
+		log.Infof("connecting to sqlite: %s", c.DSN())
 		d = sqlite.Open(c.DSN())
 
 	case MySQL:
-		log.Infof("mysql://%s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
+		log.Infof("connecting to mysql: %s:******@%s:%d/%s", c.Username, c.Address, c.Port, c.Name)
 		d = mysql.New(mysql.Config{
 			DSN: c.DSN(),
 			DSNConfig: &mysqlC.Config{
@@ -67,7 +66,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		}
 
 	default:
-		return nil, errors.New("unknown database")
+		return nil, fmt.Errorf("unknown database type: %s", c.Type)
 	}
 
 	var err error
@@ -83,15 +82,13 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		DisableForeignKeyConstraintWhenMigrating: true,
 		IgnoreRelationshipsWhenMigrating:         true,
 
-		DisableNestedTransaction: false,
-
 		AllowGlobalUpdate: true,
 		CreateBatchSize:   100,
 		TranslateError:    true,
 
 		PropagateUnscoped: true,
 
-		Logger: c.GormLogger,
+		Logger: c.Logger,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -99,7 +96,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 	}
 
 	if c.Debug {
-		p.db.Logger = c.Logger
 		p.db = p.db.Debug()
 	}
 
@@ -109,21 +105,16 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		return nil, err
 	}
 
-	routine.GoWithMustSuccess(func() (err error) {
-		switch c.Type {
-		case Sqlite:
-			// 自动减少存储文件大小
-			err = p.db.Session(&gorm.Session{
-				Initialized: true,
-			}).Exec("PRAGMA auto_vacuum = 1").Error
-			if err != nil {
-				log.Errorf("err:%v", err)
-				return err
-			}
+	// SQLite 特定优化：启用自动减少存储文件大小
+	if c.Type == Sqlite {
+		err = p.db.Session(&gorm.Session{
+			Initialized: true,
+		}).Exec("PRAGMA auto_vacuum = 1").Error
+		if err != nil {
+			log.Errorf("failed to set PRAGMA auto_vacuum: %v", err)
+			// 不返回错误，因为这是优化设置，失败不应阻止初始化
 		}
-
-		return nil
-	})
+	}
 
 	return p, nil
 }
@@ -143,7 +134,7 @@ func (p *Client) AutoMigrates(dst ...interface{}) (err error) {
 func (p *Client) AutoMigrate(table interface{}) (err error) {
 	tabler, ok := table.(Tabler)
 	if !ok {
-		return errors.New("table is not Tabler")
+		return fmt.Errorf("table type %T does not implement Tabler interface", table)
 	}
 
 	log.Infof("auto migrate %s", tabler.TableName())
@@ -171,6 +162,7 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		Table: tabler.TableName(),
 		Model: table,
 	}
+	// 复用现有 session 的 TableExpr（如果存在）
 	if session.Statement != nil {
 		stmt.TableExpr = session.Statement.TableExpr
 	}
@@ -181,16 +173,16 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		return err
 	}
 
+	if stmt.Schema == nil {
+		log.Errorf("stmt.Schema is nil for table %s", tabler.TableName())
+		return errors.New("stmt.Schema is nil")
+	}
+
 	// 对齐一下字段
 	columnTypeList, err := migrator.ColumnTypes(tabler)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
-	}
-
-	if len(columnTypeList) == 0 {
-		// 表中没有字段，跳过字段对齐
-		return nil
 	}
 
 	columnTypeMap := make(map[string]gorm.ColumnType, len(columnTypeList))
@@ -223,6 +215,11 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 		return err
 	}
 
+	if len(indexList) == 0 && len(stmt.Schema.ParseIndexes()) == 0 {
+		// 表和 Schema 都没有索引，跳过索引对齐
+		return nil
+	}
+
 	indexMap := make(map[string]gorm.Index, len(indexList))
 	for _, index := range indexList {
 		indexMap[index.Name()] = index
@@ -238,17 +235,22 @@ func (p *Client) AutoMigrate(table interface{}) (err error) {
 			}
 
 			// 通过事务创建
+			log.Infof("rebuilding index %s on table %s due to column changes", dbIndex.Name, tabler.TableName())
 			tx := session.Begin()
 			err = tx.Migrator().DropIndex(table, index.Name())
 			if err != nil {
-				tx.Rollback()
+				if rbErr := tx.Rollback().Error; rbErr != nil {
+					log.Errorf("rollback failed: %v", rbErr)
+				}
 				log.Errorf("err:%v", err)
 				return err
 			}
 
 			err = tx.Migrator().CreateIndex(table, dbIndex.Name)
 			if err != nil {
-				tx.Rollback()
+				if rbErr := tx.Rollback().Error; rbErr != nil {
+					log.Errorf("rollback failed: %v", rbErr)
+				}
 				log.Errorf("err:%v", err)
 				return err
 			}
