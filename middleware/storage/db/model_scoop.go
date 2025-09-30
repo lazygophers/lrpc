@@ -151,6 +151,13 @@ func (p *ModelScoop[M]) Desc(fields ...string) *ModelScoop[M] {
 	return p
 }
 
+func (p *ModelScoop[M]) Asc(fields ...string) *ModelScoop[M] {
+	p.orders = append(p.orders, candy.Map(fields, func(s string) string {
+		return s + " ASC"
+	})...)
+	return p
+}
+
 func (p *ModelScoop[M]) Ignore(b ...bool) *ModelScoop[M] {
 	if len(b) == 0 {
 		p.ignore = true
@@ -383,8 +390,27 @@ func (p *ModelScoop[M]) Chunk(size uint64, fc func(tx *Scoop, out []*M, offset u
 
 	var out []*M
 	return p.Scoop.Chunk(&out, size, func(tx *Scoop, offset uint64) error {
-		return fc(tx, out, offset)
+		// Create a copy of the slice to avoid issues when the callback holds a reference
+		// The underlying Scoop.Chunk resets the slice on each iteration
+		batch := make([]*M, len(out))
+		copy(batch, out)
+		return fc(tx, batch, offset)
 	})
+}
+
+func (p *ModelScoop[M]) CreateInBatches(values []*M, batchSize int) *CreateInBatchesResult {
+	if values == nil {
+		err := fmt.Errorf("CreateInBatches failed: input parameter values is nil")
+		log.Errorf("err:%v", err)
+		return &CreateInBatchesResult{
+			Error: err,
+		}
+	}
+
+	p.inc()
+	defer p.dec()
+
+	return p.Scoop.CreateInBatches(values, batchSize)
 }
 
 type CreateOrUpdateResult[M any] struct {
