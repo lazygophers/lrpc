@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -31,10 +32,43 @@ type Pack struct {
 	lang string
 	code *LanguageCode
 
+	mu     sync.RWMutex
 	corpus map[string]string
 }
 
+// Register 追加注册指定 key 的文本信息
+// 如果 key 已存在，将会覆盖原有值
+func (p *Pack) Register(key string, value string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.corpus[key] = value
+}
+
+// RegisterBatch 批量追加注册多个 key 的文本信息
+// 如果 key 已存在，将会覆盖原有值
+func (p *Pack) RegisterBatch(data map[string]any) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.parseInternal(nil, data)
+}
+
+// Get 获取指定 key 的文本信息
+func (p *Pack) Get(key string) (string, bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	value, ok := p.corpus[key]
+	return value, ok
+}
+
+// parse 对外调用的解析方法，会加锁
 func (p *Pack) parse(prefixs []string, m map[string]any) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.parseInternal(prefixs, m)
+}
+
+// parseInternal 内部解析方法，不加锁（需要调用者确保线程安全）
+func (p *Pack) parseInternal(prefixs []string, m map[string]any) {
 	for k, v := range m {
 		keys := make([]string, len(prefixs)+1)
 		copy(keys, prefixs)
@@ -78,7 +112,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 			}
 
 		case map[string]interface{}:
-			p.parse(keys, x)
+			p.parseInternal(keys, x)
 
 		case map[int64]interface{}:
 			mm := make(map[string]interface{}, len(x))
@@ -86,7 +120,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 				mm[strconv.FormatInt(k, 10)] = v
 			}
 
-			p.parse(keys, mm)
+			p.parseInternal(keys, mm)
 
 		case map[float64]interface{}:
 			mm := make(map[string]interface{}, len(x))
@@ -94,7 +128,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 				mm[strconv.FormatFloat(k, 'f', -1, 64)] = v
 			}
 
-			p.parse(keys, mm)
+			p.parseInternal(keys, mm)
 
 		case map[any]any:
 			mm := make(map[string]interface{}, len(x))
@@ -102,7 +136,7 @@ func (p *Pack) parse(prefixs []string, m map[string]any) {
 				mm[candy.ToString(k)] = v
 			}
 
-			p.parse(keys, mm)
+			p.parseInternal(keys, mm)
 
 		default:
 			log.Panicf("unsupported type %T", x)
@@ -119,6 +153,7 @@ func NewPack(lang string) *Pack {
 }
 
 type I18n struct {
+	mu      sync.RWMutex
 	packMap map[string]*Pack
 
 	templateFunc template.FuncMap
@@ -129,16 +164,59 @@ func (p *I18n) AddTemplateFunc(key string, a any) {
 	p.templateFunc[key] = a
 }
 
+// Register 追加注册指定语言指定 key 的文本信息
+// 如果语言包不存在，将自动创建
+// 如果 key 已存在，将会覆盖原有值
+func (p *I18n) Register(lang string, key string, value string) {
+	lang = strings.ToLower(lang)
+
+	p.mu.Lock()
+	pack, ok := p.packMap[lang]
+	if !ok {
+		pack = NewPack(lang)
+		p.packMap[lang] = pack
+	}
+	p.mu.Unlock()
+
+	pack.Register(key, value)
+}
+
+// RegisterBatch 批量追加注册指定语言的多个 key 的文本信息
+// 如果语言包不存在，将自动创建
+// 如果 key 已存在，将会覆盖原有值
+func (p *I18n) RegisterBatch(lang string, data map[string]any) {
+	lang = strings.ToLower(lang)
+
+	p.mu.Lock()
+	pack, ok := p.packMap[lang]
+	if !ok {
+		pack = NewPack(lang)
+		p.packMap[lang] = pack
+	}
+	p.mu.Unlock()
+
+	pack.RegisterBatch(data)
+}
+
 func (p *I18n) localize(lang string, key string) (string, bool) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	if lang != "" {
 		lang = strings.ToLower(lang)
 		if pack, ok := p.packMap[lang]; ok {
-			return pack.corpus[key], true
+			value, ok := pack.Get(key)
+			if ok {
+				return value, true
+			}
 		}
 
 		if strings.Contains(lang, "-") {
 			if pack, ok := p.packMap[lang[:strings.Index(lang, "-")]]; ok {
-				return pack.corpus[key], true
+				value, ok := pack.Get(key)
+				if ok {
+					return value, true
+				}
 			}
 		}
 	}
@@ -146,12 +224,18 @@ func (p *I18n) localize(lang string, key string) (string, bool) {
 	defaultLang := p.defaultLang.Load()
 
 	if pack, ok := p.packMap[defaultLang]; ok {
-		return pack.corpus[key], true
+		value, ok := pack.Get(key)
+		if ok {
+			return value, true
+		}
 	}
 
 	if strings.Contains(defaultLang, "-") {
 		if pack, ok := p.packMap[defaultLang[:strings.Index(defaultLang, "-")]]; ok {
-			return pack.corpus[key], true
+			value, ok := pack.Get(key)
+			if ok {
+				return value, true
+			}
 		}
 	}
 
@@ -216,7 +300,9 @@ func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
 
 		pack.parse(nil, m)
 
+		p.mu.Lock()
 		p.packMap[lang] = pack
+		p.mu.Unlock()
 	}
 
 	return nil

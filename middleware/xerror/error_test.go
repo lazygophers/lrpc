@@ -16,7 +16,7 @@ func (m *mockI18n) Localize(key int32, langs ...string) (string, bool) {
 	if m.messages == nil {
 		return "", false
 	}
-	
+
 	for _, lang := range langs {
 		if langMap, exists := m.messages[key]; exists {
 			if msg, found := langMap[lang]; found {
@@ -24,15 +24,37 @@ func (m *mockI18n) Localize(key int32, langs ...string) (string, bool) {
 			}
 		}
 	}
-	
+
 	// Check for default language (empty string key)
 	if langMap, exists := m.messages[key]; exists {
 		if msg, found := langMap[""]; found {
 			return msg, true
 		}
 	}
-	
+
 	return "", false
+}
+
+func (m *mockI18n) Register(lang string, code int32, msg string) {
+	if m.messages == nil {
+		m.messages = make(map[int32]map[string]string)
+	}
+	if m.messages[code] == nil {
+		m.messages[code] = make(map[string]string)
+	}
+	m.messages[code][lang] = msg
+}
+
+func (m *mockI18n) RegisterBatch(lang string, data map[int32]string) {
+	if m.messages == nil {
+		m.messages = make(map[int32]map[string]string)
+	}
+	for code, msg := range data {
+		if m.messages[code] == nil {
+			m.messages[code] = make(map[string]string)
+		}
+		m.messages[code][lang] = msg
+	}
 }
 
 func TestError_Error(t *testing.T) {
@@ -729,4 +751,118 @@ func TestBackwardCompatibility(t *testing.T) {
 		assert.Equal(t, err1.Code, err2.Code)
 		assert.Equal(t, err1.Msg, err2.Msg)
 	})
+}
+func TestI18n_Register(t *testing.T) {
+	mock := &mockI18n{}
+
+	// Test registering single translation
+	mock.Register("en", 1001, "Invalid parameter")
+	msg, found := mock.Localize(1001, "en")
+	assert.True(t, found)
+	assert.Equal(t, "Invalid parameter", msg)
+
+	// Test overwriting existing translation
+	mock.Register("en", 1001, "Invalid param")
+	msg, found = mock.Localize(1001, "en")
+	assert.True(t, found)
+	assert.Equal(t, "Invalid param", msg)
+
+	// Test registering for multiple languages
+	mock.Register("zh", 1001, "参数无效")
+	mock.Register("fr", 1001, "Paramètre invalide")
+
+	msgEn, foundEn := mock.Localize(1001, "en")
+	msgZh, foundZh := mock.Localize(1001, "zh")
+	msgFr, foundFr := mock.Localize(1001, "fr")
+
+	assert.True(t, foundEn)
+	assert.True(t, foundZh)
+	assert.True(t, foundFr)
+	assert.Equal(t, "Invalid param", msgEn)
+	assert.Equal(t, "参数无效", msgZh)
+	assert.Equal(t, "Paramètre invalide", msgFr)
+}
+
+func TestI18n_RegisterBatch(t *testing.T) {
+	mock := &mockI18n{}
+
+	// Test batch registration
+	enErrors := map[int32]string{
+		1001: "Invalid parameter",
+		1002: "Unauthorized",
+		1003: "Not found",
+		1004: "Conflict",
+	}
+
+	mock.RegisterBatch("en", enErrors)
+
+	// Verify all errors were registered
+	for code, expectedMsg := range enErrors {
+		msg, found := mock.Localize(code, "en")
+		assert.True(t, found, "Error code %d not found", code)
+		assert.Equal(t, expectedMsg, msg, "Error code %d has wrong message", code)
+	}
+
+	// Test batch registration for another language
+	zhErrors := map[int32]string{
+		1001: "参数无效",
+		1002: "未授权",
+		1003: "未找到",
+	}
+
+	mock.RegisterBatch("zh", zhErrors)
+
+	// Verify Chinese translations
+	for code, expectedMsg := range zhErrors {
+		msg, found := mock.Localize(code, "zh")
+		assert.True(t, found, "Error code %d not found in Chinese", code)
+		assert.Equal(t, expectedMsg, msg, "Error code %d has wrong Chinese message", code)
+	}
+
+	// Verify language fallback still works
+	msg, found := mock.Localize(1001, "zh", "en")
+	assert.True(t, found)
+	assert.Equal(t, "参数无效", msg) // Should use Chinese
+
+	msg, found = mock.Localize(1004, "zh", "en")
+	assert.True(t, found)
+	assert.Equal(t, "Conflict", msg) // Should fallback to English
+}
+
+func TestI18n_RegisterWithNew(t *testing.T) {
+	// Clear global i18n first
+	originalI18n := i18n
+	defer func() { i18n = originalI18n }()
+
+	mock := &mockI18n{}
+	SetI18n(mock)
+
+	// Register translations
+	mock.Register("en", 5001, "Custom Error")
+	mock.Register("zh", 5001, "自定义错误")
+
+	// Test using New with i18n
+	errEn := New(5001, "en")
+	assert.Equal(t, int32(5001), errEn.Code)
+	assert.Equal(t, "Custom Error", errEn.Msg)
+
+	errZh := New(5001, "zh")
+	assert.Equal(t, int32(5001), errZh.Code)
+	assert.Equal(t, "自定义错误", errZh.Msg)
+
+	// Test fallback
+	errFr := New(5001, "fr", "en")
+	assert.Equal(t, int32(5001), errFr.Code)
+	assert.Equal(t, "Custom Error", errFr.Msg)
+}
+
+func TestI18n_RegisterEmpty(t *testing.T) {
+	mock := &mockI18n{}
+
+	// Register empty batch should not panic
+	mock.RegisterBatch("en", map[int32]string{})
+
+	// Verify no errors exist
+	_, found := mock.Localize(9999, "en")
+	assert.False(t, found)
 }

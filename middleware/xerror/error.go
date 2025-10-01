@@ -59,15 +59,18 @@ const (
 var errMap = map[int32]*Error{}
 
 // I18n 国际化接口，用于实现多语言错误消息
-// 实现此接口可以根据错误码和语言返回对应的错误消息
+// 实现此接口可以根据错误码和语言返回对应的错误消息，并支持动态注册翻译
 //
 // 示例实现：
 //
 //	type MyI18n struct {
+//	    mu       sync.RWMutex
 //	    messages map[int32]map[string]string
 //	}
 //
 //	func (m *MyI18n) Localize(key int32, langs ...string) (string, bool) {
+//	    m.mu.RLock()
+//	    defer m.mu.RUnlock()
 //	    for _, lang := range langs {
 //	        if msg, ok := m.messages[key][lang]; ok {
 //	            return msg, true
@@ -75,8 +78,43 @@ var errMap = map[int32]*Error{}
 //	    }
 //	    return "", false
 //	}
+//
+//	func (m *MyI18n) Register(lang string, code int32, msg string) {
+//	    m.mu.Lock()
+//	    defer m.mu.Unlock()
+//	    if m.messages[code] == nil {
+//	        m.messages[code] = make(map[string]string)
+//	    }
+//	    m.messages[code][lang] = msg
+//	}
+//
+//	func (m *MyI18n) RegisterBatch(lang string, data map[int32]string) {
+//	    m.mu.Lock()
+//	    defer m.mu.Unlock()
+//	    for code, msg := range data {
+//	        if m.messages[code] == nil {
+//	            m.messages[code] = make(map[string]string)
+//	        }
+//	        m.messages[code][lang] = msg
+//	    }
+//	}
 type I18n interface {
+	// Localize 根据错误码和语言返回对应的错误消息
+	// key: 错误码
+	// langs: 语言列表，按优先级排序
+	// 返回: (消息文本, 是否找到)
 	Localize(key int32, langs ...string) (string, bool)
+
+	// Register 追加注册指定语言的错误码翻译
+	// lang: 语言代码（如 "en", "zh"）
+	// code: 错误码
+	// msg: 翻译文本
+	Register(lang string, code int32, msg string)
+
+	// RegisterBatch 批量追加注册指定语言的多个错误码翻译
+	// lang: 语言代码（如 "en", "zh"）
+	// data: 错误码到翻译文本的映射
+	RegisterBatch(lang string, data map[int32]string)
 }
 
 // i18n 全局国际化实例
