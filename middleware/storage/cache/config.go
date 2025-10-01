@@ -13,6 +13,7 @@ const (
 	Bbolt   string = "bbolt"
 	SugarDB string = "sugardb"
 	Bitcask string = "bitcask"
+	LevelDB string = "leveldb"
 )
 
 type Config struct {
@@ -62,6 +63,11 @@ func (c *Config) apply() {
 			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
 		}
 	case Bitcask:
+		if c.DataDir == "" {
+			c.DataDir, _ = os.Executable()
+			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
+		}
+	case LevelDB:
 		if c.DataDir == "" {
 			c.DataDir, _ = os.Executable()
 			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
