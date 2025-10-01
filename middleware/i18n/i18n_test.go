@@ -270,11 +270,11 @@ func TestI18n_localize(t *testing.T) {
 			wantOK: true,
 		},
 		{
-			name:   "key not found returns empty string",
+			name:   "key not found returns key itself",
 			lang:   "en",
 			key:    "missing",
-			want:   "",
-			wantOK: true,
+			want:   "missing",
+			wantOK: false,
 		},
 		{
 			name:   "empty language uses default",
@@ -706,12 +706,12 @@ func TestLocalizeWithHeaders(t *testing.T) {
 			expected: "Test Message",
 		},
 		{
-			name: "missing key returns key",
+			name: "missing key returns key itself",
 			headers: http.Header{
 				"Accept-Language": []string{"en"},
 			},
 			key:      "missing",
-			expected: "",
+			expected: "missing",
 		},
 		{
 			name: "headers without Accept-Language",
@@ -780,7 +780,7 @@ func TestI18n_localizeWithDefaultFallback(t *testing.T) {
 
 	// Test fallback to default with hyphen parsing
 	value, found := i18n.localize("fr", "test")
-	assert.Equal(t, "", value)
+	assert.Equal(t, "Default", value)
 	assert.True(t, found)
 	
 	// Test default language with hyphen
@@ -793,29 +793,204 @@ func TestI18n_LoadLocalizesWithFs_SpecificErrors(t *testing.T) {
 	t.Run("file read error in actual function", func(t *testing.T) {
 		i18n := NewI18n()
 		mockFs := newMockFs()
-		
+
 		// Create a directory entry but no corresponding file
 		mockFs.dirs["test"] = []fs.DirEntry{
 			&mockDirEntry{name: "en.json"},
 		}
 		// Intentionally don't add the file to trigger ReadFile error
-		
+
 		err := i18n.LoadLocalizesWithFs("test", mockFs)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "file not found")
 	})
-	
+
 	t.Run("json unmarshal error in actual function", func(t *testing.T) {
 		i18n := NewI18n()
 		mockFs := newMockFs()
-		
+
 		// Create malformed JSON that will cause unmarshal error
 		mockFs.dirs["test"] = []fs.DirEntry{
 			&mockDirEntry{name: "bad.json"},
 		}
 		mockFs.files["test/bad.json"] = []byte(`{"key": value without quotes}`)
-		
+
 		err := i18n.LoadLocalizesWithFs("test", mockFs)
 		assert.Error(t, err)
 	})
+}
+
+func TestPack_Register(t *testing.T) {
+	pack := NewPack("en")
+
+	// Test registering new key
+	pack.Register("hello", "Hello World")
+	value, ok := pack.Get("hello")
+	assert.True(t, ok)
+	assert.Equal(t, "Hello World", value)
+
+	// Test overwriting existing key
+	pack.Register("hello", "Hi World")
+	value, ok = pack.Get("hello")
+	assert.True(t, ok)
+	assert.Equal(t, "Hi World", value)
+
+	// Test multiple keys
+	pack.Register("goodbye", "Goodbye")
+	pack.Register("welcome", "Welcome")
+
+	value1, ok1 := pack.Get("goodbye")
+	value2, ok2 := pack.Get("welcome")
+	assert.True(t, ok1)
+	assert.True(t, ok2)
+	assert.Equal(t, "Goodbye", value1)
+	assert.Equal(t, "Welcome", value2)
+}
+
+func TestPack_RegisterBatch(t *testing.T) {
+	pack := NewPack("en")
+
+	// Test registering batch
+	data := map[string]any{
+		"hello": "Hello",
+		"world": "World",
+		"nested": map[string]interface{}{
+			"key": "Nested Value",
+		},
+	}
+
+	pack.RegisterBatch(data)
+
+	value1, ok1 := pack.Get("hello")
+	value2, ok2 := pack.Get("world")
+	value3, ok3 := pack.Get("nested.key")
+
+	assert.True(t, ok1)
+	assert.True(t, ok2)
+	assert.True(t, ok3)
+	assert.Equal(t, "Hello", value1)
+	assert.Equal(t, "World", value2)
+	assert.Equal(t, "Nested Value", value3)
+}
+
+func TestPack_Get(t *testing.T) {
+	pack := NewPack("en")
+	pack.Register("existing", "value")
+
+	// Test getting existing key
+	value, ok := pack.Get("existing")
+	assert.True(t, ok)
+	assert.Equal(t, "value", value)
+
+	// Test getting non-existing key
+	value, ok = pack.Get("nonexistent")
+	assert.False(t, ok)
+	assert.Equal(t, "", value)
+}
+
+func TestI18n_Register(t *testing.T) {
+	i18n := NewI18n()
+
+	// Test registering to new language pack
+	i18n.Register("en", "hello", "Hello")
+	value, ok := i18n.localize("en", "hello")
+	assert.True(t, ok)
+	assert.Equal(t, "Hello", value)
+
+	// Test registering to existing language pack
+	i18n.Register("en", "world", "World")
+	value, ok = i18n.localize("en", "world")
+	assert.True(t, ok)
+	assert.Equal(t, "World", value)
+
+	// Test overwriting existing key
+	i18n.Register("en", "hello", "Hi")
+	value, ok = i18n.localize("en", "hello")
+	assert.True(t, ok)
+	assert.Equal(t, "Hi", value)
+
+	// Test multiple languages
+	i18n.Register("zh", "hello", "你好")
+	value, ok = i18n.localize("zh", "hello")
+	assert.True(t, ok)
+	assert.Equal(t, "你好", value)
+
+	// Test language normalization (uppercase to lowercase)
+	i18n.Register("FR", "hello", "Bonjour")
+	value, ok = i18n.localize("fr", "hello")
+	assert.True(t, ok)
+	assert.Equal(t, "Bonjour", value)
+}
+
+func TestI18n_RegisterBatch(t *testing.T) {
+	i18n := NewI18n()
+
+	// Test batch registration
+	data := map[string]any{
+		"greeting": "Hello",
+		"farewell": "Goodbye",
+		"messages": map[string]interface{}{
+			"welcome": "Welcome",
+			"error":   "Error occurred",
+		},
+	}
+
+	i18n.RegisterBatch("en", data)
+
+	tests := []struct {
+		key      string
+		expected string
+	}{
+		{"greeting", "Hello"},
+		{"farewell", "Goodbye"},
+		{"messages.welcome", "Welcome"},
+		{"messages.error", "Error occurred"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			value, ok := i18n.localize("en", tt.key)
+			assert.True(t, ok)
+			assert.Equal(t, tt.expected, value)
+		})
+	}
+
+	// Test batch registration to new language
+	i18n.RegisterBatch("zh", map[string]any{
+		"greeting": "你好",
+		"farewell": "再见",
+	})
+
+	value, ok := i18n.localize("zh", "greeting")
+	assert.True(t, ok)
+	assert.Equal(t, "你好", value)
+}
+
+func TestI18n_Register_ConcurrentAccess(t *testing.T) {
+	i18n := NewI18n()
+
+	// Test concurrent registration
+	done := make(chan bool, 10)
+	for i := 0; i < 10; i++ {
+		go func(idx int) {
+			key := fmt.Sprintf("key%d", idx)
+			value := fmt.Sprintf("value%d", idx)
+			i18n.Register("en", key, value)
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	// Verify all keys were registered
+	for i := 0; i < 10; i++ {
+		key := fmt.Sprintf("key%d", i)
+		expectedValue := fmt.Sprintf("value%d", i)
+		value, ok := i18n.localize("en", key)
+		assert.True(t, ok)
+		assert.Equal(t, expectedValue, value)
+	}
 }
