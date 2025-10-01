@@ -125,6 +125,9 @@ func New(c *Config) (Cache, error) {
 	case Bitcask:
 		return NewBitcask(c)
 
+	case LevelDB:
+		return NewLevelDB(c)
+
 	default:
 		return nil, errors.New("cache type not support")
 	}
