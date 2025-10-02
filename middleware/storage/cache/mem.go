@@ -674,6 +674,10 @@ func (p *CacheMem) Reset() error {
 	return nil
 }
 
+func (p *CacheMem) Ping() error {
+	return nil
+}
+
 func NewMem() Cache {
 	p := &CacheMem{
 		data: make(map[string]*Item),

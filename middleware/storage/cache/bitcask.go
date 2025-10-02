@@ -585,6 +585,15 @@ func (p *CacheBitcask) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
+func (p *CacheBitcask) Ping() error {
+	err := p.cli.Sync()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func NewBitcask(c *Config) (Cache, error) {
 	var err error
 	p := &CacheBitcask{}

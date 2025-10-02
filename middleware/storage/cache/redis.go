@@ -469,3 +469,12 @@ func (p *CacheRedis) Close() error {
 	}
 	return nil
 }
+
+func (p *CacheRedis) Ping() error {
+	_, err := p.cli.Ping()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}

@@ -590,6 +590,15 @@ func (p *CacheLevelDB) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
+func (p *CacheLevelDB) Ping() error {
+	_, err := p.db.GetProperty("leveldb.stats")
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func NewLevelDB(c *Config) (Cache, error) {
 	var err error
 	p := &CacheLevelDB{}

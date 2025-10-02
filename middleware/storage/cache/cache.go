@@ -57,6 +57,8 @@ type BaseCache interface {
 
 	Clean() error
 	Close() error
+
+	Ping() error
 }
 
 type Cache interface {
