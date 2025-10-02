@@ -339,6 +339,16 @@ func (p *CacheSugarDB) Close() error {
 	return nil
 }
 
+func (p *CacheSugarDB) Ping() error {
+	// SugarDB doesn't have Ping method, use DBSize as health check
+	_, err := p.cli.DBSize()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func NewSugarDB(c *Config) (Cache, error) {
 	ec := sugardb.DefaultConfig()
 	if c.DataDir != "" {

@@ -797,6 +797,17 @@ func (p *CacheBbolt) Reset() error {
 	})
 }
 
+func (p *CacheBbolt) Ping() error {
+	err := p.conn.View(func(tx *bbolt.Tx) error {
+		return nil
+	})
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {
 	prefix := app.Name
 	if prefix == "" {

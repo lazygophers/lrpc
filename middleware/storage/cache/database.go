@@ -241,6 +241,15 @@ func (p *Database) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
+func (p *Database) Ping() error {
+	err := p.db.Ping()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func NewDatabase(db *sql.DB, tableName string) (Cache, error) {
 	p := &Database{
 		db:        db,
