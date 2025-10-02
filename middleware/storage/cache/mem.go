@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"math/rand"
 	"strconv"
-
-	"github.com/beefsack/go-rate"
-	"gorm.io/gorm/utils"
-
 	"sync"
 	"time"
+
+	"github.com/beefsack/go-rate"
+	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/atexit"
+	"gorm.io/gorm/utils"
 )
 
 type CacheMem struct {
@@ -683,6 +684,14 @@ func NewMem() Cache {
 		data: make(map[string]*Item),
 		rt:   rate.New(2, time.Minute),
 	}
+
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
 
 	return newBaseCache(p)
 }

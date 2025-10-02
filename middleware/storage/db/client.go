@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
 
 	mysqlC "github.com/go-sql-driver/mysql"
@@ -160,6 +161,14 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		return nil, err
 	}
 
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
+
 	if c.Debug {
 		p.db = p.db.Debug()
 	}
@@ -182,6 +191,15 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 			// 不返回错误，因为这是优化设置，失败不应阻止初始化
 		}
 	}
+
+	// 注册退出时自动关闭数据库连接
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
 
 	return p, nil
 }
@@ -408,6 +426,22 @@ func (p *Client) Ping() error {
 	}
 
 	err = sqlDB.Ping()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (p *Client) Close() error {
+	sqlDB, err := p.db.DB()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	err = sqlDB.Close()
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
