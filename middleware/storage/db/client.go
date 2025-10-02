@@ -164,19 +164,6 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		p.db = p.db.Debug()
 	}
 
-	// 验证数据库连接
-	sqlDB, err := p.db.DB()
-	if err != nil {
-		log.Errorf("failed to get sql.DB: %v", err)
-		return nil, err
-	}
-
-	err = sqlDB.Ping()
-	if err != nil {
-		log.Errorf("failed to ping database: %v", err)
-		return nil, err
-	}
-
 	err = p.AutoMigrates(tables...)
 	if err != nil {
 		log.Errorf("err:%v", err)
