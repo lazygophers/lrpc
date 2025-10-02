@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	Sqlite        = "sqlite"
-	MySQL         = "mysql"
-	Postgres      = "postgres"
-	ClickHouse    = "clickhouse"
-	TiDB          = "tidb"
-	GaussDB       = "gaussdb"
+	Sqlite     = "sqlite"
+	MySQL      = "mysql"
+	Postgres   = "postgres"
+	ClickHouse = "clickhouse"
+	TiDB       = "tidb"
+	GaussDB    = "gaussdb"
 )
 
 type Config struct {
@@ -201,10 +201,14 @@ func (c *Config) DSN() string {
 
 		query.Set("_vacuum", "2")
 		query.Set("_journal", "delete")
-		query.Set("_locking_mode", "exclusive")
 		query.Set("mode", "rwc")
+		query.Set("_synchronous", "3")
+		query.Set("cache", "shared")
 		query.Set("_sync", "3")
+		query.Set("_mutex", "full")
 		query.Set("_timeout", "9999999")
+		query.Set("_busy_timeout", "9999999")
+		query.Set("_auto_vacuum", "1")
 
 		// If password is set, use SQLCipher parameters (only effective with CGO)
 		if c.Password != "" {
