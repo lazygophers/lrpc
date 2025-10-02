@@ -161,6 +161,14 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		return nil, err
 	}
 
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
+
 	if c.Debug {
 		p.db = p.db.Debug()
 	}
