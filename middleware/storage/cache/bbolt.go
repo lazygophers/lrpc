@@ -8,6 +8,7 @@ import (
 	"github.com/beefsack/go-rate"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/app"
+	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
@@ -830,6 +831,14 @@ func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {
 	})
 
 	p.conn = conn
+
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
 
 	return newBaseCache(p), nil
 }

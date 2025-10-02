@@ -6,6 +6,7 @@ import (
 
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
 )
 
@@ -374,6 +375,14 @@ func NewSugarDB(c *Config) (Cache, error) {
 	p := &CacheSugarDB{
 		cli: cli,
 	}
+
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
 
 	return newBaseCache(p), nil
 }
