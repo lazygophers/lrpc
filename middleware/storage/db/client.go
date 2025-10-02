@@ -412,3 +412,19 @@ func (p *Client) NewScoop() *Scoop {
 	}
 	return NewScoop(p.db, p.clientType)
 }
+
+func (p *Client) Ping() error {
+	sqlDB, err := p.db.DB()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	err = sqlDB.Ping()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	return nil
+}
