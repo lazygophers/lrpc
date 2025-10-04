@@ -1023,49 +1023,20 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
+	// Use GORM's Scan to properly handle serializers
 	scope := p._db.Raw(sqlRaw)
-	rows, err := scope.Rows()
+	err := scope.Scan(out).Error
+
 	if err != nil {
-		return &FindResult{
-			Error: err,
-		}
-	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			log.Errorf("err:%v", closeErr)
-		}
-	}()
-
-	if err = rows.Err(); err != nil {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, scope.RowsAffected
+		}, err)
 		return &FindResult{
 			Error: err,
 		}
 	}
 
-	var rawsAffected int64
-	// 把数据写回到out
-	for rows.Next() {
-		rawsAffected++
-
-		var v reflect.Value
-		if elem.Elem().Kind() == reflect.Ptr {
-			v = reflect.New(elem.Elem().Elem())
-		} else {
-			v = reflect.New(elem.Elem())
-		}
-
-		err = scanRowsInto(rows, v.Elem(), sqlRaw, start, p.depth)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, rawsAffected
-			}, err)
-			return &FindResult{
-				Error: err,
-			}
-		}
-
-		vv.Set(reflect.Append(vv, v))
-	}
+	var rawsAffected int64 = scope.RowsAffected
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rawsAffected
@@ -1585,7 +1556,21 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 				rowPlaceholders = append(rowPlaceholders, "?")
 				if fieldValue.IsValid() {
-					allValues = append(allValues, fieldValue.Interface())
+					// Use GORM's field value method to apply serializers if configured
+					var fieldVal interface{}
+					if info.field.Serializer != nil {
+						serializedValue, serErr := info.field.Serializer.Value(stmt.Context, info.field, rowValue, fieldValue.Interface())
+						if serErr != nil {
+							log.Errorf("err:%v", serErr)
+							return &CreateInBatchesResult{
+								Error: fmt.Errorf("CreateInBatches failed: failed to serialize field %s: %w", info.field.Name, serErr),
+							}
+						}
+						fieldVal = serializedValue
+					} else {
+						fieldVal = fieldValue.Interface()
+					}
+					allValues = append(allValues, fieldVal)
 				} else {
 					allValues = append(allValues, nil)
 				}
@@ -1848,6 +1833,18 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 		}
 	}
 
+	// Get GORM schema to check for serializers
+	stmt := getStatement(p._db, p.table, m)
+	defer putStatement(stmt)
+
+	err := stmt.ParseWithSpecialTableName(m, p.table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return &UpdateResult{
+			Error: fmt.Errorf("Updates failed: unable to parse schema: %w", err),
+		}
+	}
+
 	// Use cached tag information for better performance
 	tagInfo := parseGormTags(mType)
 	valMap := make(map[string]interface{}, len(tagInfo.updatableFields))
@@ -1859,7 +1856,22 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 			continue
 		}
 
-		valMap[dbName] = fieldVal.Interface()
+		// Check if field has a serializer
+		var finalValue interface{}
+		if field, ok := stmt.Schema.FieldsByDBName[dbName]; ok && field.Serializer != nil {
+			serializedValue, serErr := field.Serializer.Value(stmt.Context, field, mVal, fieldVal.Interface())
+			if serErr != nil {
+				log.Errorf("err:%v", serErr)
+				return &UpdateResult{
+					Error: fmt.Errorf("Updates failed: failed to serialize field %s: %w", fieldName, serErr),
+				}
+			}
+			finalValue = serializedValue
+		} else {
+			finalValue = fieldVal.Interface()
+		}
+
+		valMap[dbName] = finalValue
 	}
 
 	if len(valMap) == 0 {

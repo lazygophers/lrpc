@@ -22,7 +22,6 @@ func init() {
 func ensureSerializerRegistered() {
 	serializerOnce.Do(func() {
 		schema.RegisterSerializer("json", &JsonSerializer{})
-		log.Debugf("JSON serializer registered")
 	})
 }
 
@@ -30,8 +29,6 @@ type JsonSerializer struct {
 }
 
 func (p *JsonSerializer) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) (err error) {
-	log.Debugf("JsonSerializer.Scan called for field: %s, dbValue type: %T", field.Name, dbValue)
-
 	fieldValue := reflect.New(field.FieldType)
 
 	if dbValue != nil {
@@ -63,8 +60,6 @@ func (p *JsonSerializer) Scan(ctx context.Context, field *schema.Field, dst refl
 }
 
 func (p *JsonSerializer) Value(ctx context.Context, field *schema.Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
-	log.Debugf("JsonSerializer.Value called for field: %s, fieldValue type: %T", field.Name, fieldValue)
-
 	if fieldValue == nil {
 		return "", nil
 	}
@@ -75,7 +70,5 @@ func (p *JsonSerializer) Value(ctx context.Context, field *schema.Field, dst ref
 		return nil, err
 	}
 
-	result := string(buffer)
-	log.Debugf("JsonSerializer.Value returning: %s", result)
-	return result, nil
+	return string(buffer), nil
 }
