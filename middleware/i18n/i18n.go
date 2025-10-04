@@ -22,11 +22,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type LocalizeFs interface {
-	ReadFile(name string) ([]byte, error)
-	ReadDir(name string) ([]fs.DirEntry, error)
-}
-
 // Pack 语言包
 type Pack struct {
 	lang string
@@ -264,8 +259,8 @@ func (p *I18n) Localize(key string, args ...interface{}) string {
 	return p.LocalizeWithLang(GetLanguage(), key, args...)
 }
 
-func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
-	dirs, err := embedFs.ReadDir(dirPath)
+func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs fs.FS) error {
+	dirs, err := fs.ReadDir(embedFs, dirPath)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
@@ -285,7 +280,7 @@ func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
 
 		pack := NewPack(lang)
 
-		buf, err := embedFs.ReadFile(filepath.ToSlash(filepath.Join(dirPath, dir.Name())))
+		buf, err := fs.ReadFile(embedFs, filepath.ToSlash(filepath.Join(dirPath, dir.Name())))
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return err
@@ -308,7 +303,7 @@ func (p *I18n) LoadLocalizesWithFs(dirPath string, embedFs LocalizeFs) error {
 	return nil
 }
 
-func (p *I18n) LoadLocalizes(embedFs LocalizeFs) error {
+func (p *I18n) LoadLocalizes(embedFs fs.FS) error {
 	return p.LoadLocalizesWithFs("localize", embedFs)
 }
 
@@ -471,6 +466,6 @@ func Localize(key string, args ...interface{}) string {
 	return localize("", key, args...)
 }
 
-func LoadLocalizes(embedFs LocalizeFs) error {
+func LoadLocalizes(embedFs fs.FS) error {
 	return DefaultI18n.LoadLocalizes(embedFs)
 }
