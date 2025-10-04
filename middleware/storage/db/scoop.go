@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -864,6 +865,9 @@ func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.
 		return err
 	}
 
+	// Note: This function uses the custom decode logic.
+	// For fields with GORM serializers, use GORM's native Scan method instead (see First/Find methods)
+
 	for i, col := range values {
 		if col == nil {
 			continue
@@ -874,6 +878,10 @@ func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.
 			log.Debugf("invalid field: %s", fieldName)
 			continue
 		}
+
+		// Check if the field has a serializer configured
+		// This requires access to GORM schema which we don't have here
+		// For now, use decode which handles basic types
 		err = decode(field, col)
 		if err != nil {
 			return err
@@ -1170,48 +1178,35 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
+	// Use GORM's Scan to properly handle serializers
 	scope := p._db.Raw(sqlRaw)
-	rows, err := scope.Rows()
+	err := scope.Scan(out).Error
+
 	if err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
+			return sqlRaw, scope.RowsAffected
 		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			log.Errorf("err:%v", closeErr)
-		}
-	}()
 
-	if err = rows.Err(); err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-
-	// 把数据写回到out
-	var rowAffected int64
-	for rows.Next() {
-		rowAffected++
-
-		if rowAffected != 1 {
-			continue
-		}
-
-		err = scanRowsInto(rows, vv.Elem(), sqlRaw, start, p.depth)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, 1
-			}, err)
+		// Check if it's a "record not found" error
+		if errors.Is(err, gorm.ErrRecordNotFound) || scope.RowsAffected == 0 {
 			return &FirstResult{
-				Error: err,
+				Error: p.getNotFoundError(),
 			}
+		}
+
+		return &FirstResult{
+			Error: err,
+		}
+	}
+
+	// Check if we got a result
+	var rowAffected int64 = scope.RowsAffected
+	if rowAffected == 0 {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, 0
+		}, p.getNotFoundError())
+		return &FirstResult{
+			Error: p.getNotFoundError(),
 		}
 	}
 
@@ -1320,7 +1315,22 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		placeholders = append(placeholders, "?")
 
 		if fieldValue.IsValid() {
-			values = append(values, fieldValue.Interface())
+			// Use GORM's field value method to apply serializers if configured
+			var fieldVal interface{}
+			if field.Serializer != nil {
+				// Call serializer's Value method
+				serializedValue, err := field.Serializer.Value(stmt.Context, field, vv, fieldValue.Interface())
+				if err != nil {
+					log.Errorf("err:%v", err)
+					return &CreateResult{
+						Error: fmt.Errorf("failed to serialize field %s: %w", field.Name, err),
+					}
+				}
+				fieldVal = serializedValue
+			} else {
+				fieldVal = fieldValue.Interface()
+			}
+			values = append(values, fieldVal)
 		} else {
 			values = append(values, nil)
 		}

@@ -24,7 +24,7 @@ func (TestModelWithJSON) TableName() string {
 
 // TestJSONSerializer tests the JSON serializer with map[string]any fields
 func TestJSONSerializer(t *testing.T) {
-	t.Run("test map[string]any JSON serialization", func(t *testing.T) {
+	t.Run("test map[string]any JSON serialization with Scoop", func(t *testing.T) {
 		// Create temporary directory for test database
 		tempDir, err := os.MkdirTemp("", "db_test_json_*")
 		assert.NilError(t, err)
@@ -42,6 +42,9 @@ func TestJSONSerializer(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, client != nil)
 
+		// Create model scoop
+		model := db.NewModel[TestModelWithJSON](client)
+
 		// Test data with map[string]any
 		testData := TestModelWithJSON{
 			Name: "test_user",
@@ -55,15 +58,15 @@ func TestJSONSerializer(t *testing.T) {
 			},
 		}
 
-		// Insert data
-		err = client.Database().Create(&testData).Error
+		// Insert data using Scoop
+		err = model.NewScoop().Create(&testData)
 		assert.NilError(t, err)
 		assert.Assert(t, testData.Id > 0)
 
-		// Query data back
-		var result TestModelWithJSON
-		err = client.Database().Where("id = ?", testData.Id).First(&result).Error
+		// Query data back using Scoop
+		result, err := model.NewScoop().Equal("id", testData.Id).First()
 		assert.NilError(t, err)
+		assert.Assert(t, result != nil)
 
 		// Verify the data
 		assert.Equal(t, testData.Name, result.Name)
@@ -78,7 +81,7 @@ func TestJSONSerializer(t *testing.T) {
 		assert.Equal(t, "value", nested["nested"])
 	})
 
-	t.Run("test empty map[string]any", func(t *testing.T) {
+	t.Run("test empty map[string]any with Scoop", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "db_test_json_empty_*")
 		assert.NilError(t, err)
 		defer os.RemoveAll(tempDir)
@@ -92,24 +95,25 @@ func TestJSONSerializer(t *testing.T) {
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
 
+		model := db.NewModel[TestModelWithJSON](client)
+
 		// Test with empty map
 		testData := TestModelWithJSON{
 			Name: "test_empty",
 			Raw:  map[string]any{},
 		}
 
-		err = client.Database().Create(&testData).Error
+		err = model.NewScoop().Create(&testData)
 		assert.NilError(t, err)
 
-		// Query back
-		var result TestModelWithJSON
-		err = client.Database().Where("id = ?", testData.Id).First(&result).Error
+		// Query back using Scoop
+		result, err := model.NewScoop().Equal("id", testData.Id).First()
 		assert.NilError(t, err)
 		assert.Assert(t, result.Raw != nil)
 		assert.Equal(t, 0, len(result.Raw))
 	})
 
-	t.Run("test update map[string]any", func(t *testing.T) {
+	t.Run("test update map[string]any with Scoop", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "db_test_json_update_*")
 		assert.NilError(t, err)
 		defer os.RemoveAll(tempDir)
@@ -123,6 +127,8 @@ func TestJSONSerializer(t *testing.T) {
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
 
+		model := db.NewModel[TestModelWithJSON](client)
+
 		// Insert initial data
 		testData := TestModelWithJSON{
 			Name: "test_update",
@@ -131,7 +137,7 @@ func TestJSONSerializer(t *testing.T) {
 			},
 		}
 
-		err = client.Database().Create(&testData).Error
+		err = model.NewScoop().Create(&testData)
 		assert.NilError(t, err)
 
 		// Update the map
@@ -140,12 +146,11 @@ func TestJSONSerializer(t *testing.T) {
 			"count":   42,
 		}
 
-		err = client.Database().Save(&testData).Error
-		assert.NilError(t, err)
+		updateResult := model.NewScoop().Updates(&testData)
+		assert.NilError(t, updateResult.Error)
 
-		// Query back and verify
-		var result TestModelWithJSON
-		err = client.Database().Where("id = ?", testData.Id).First(&result).Error
+		// Query back and verify using Scoop
+		result, err := model.NewScoop().Equal("id", testData.Id).First()
 		assert.NilError(t, err)
 
 		assert.Equal(t, "value", result.Raw["updated"])

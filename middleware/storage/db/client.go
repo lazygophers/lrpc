@@ -27,6 +27,9 @@ type Client struct {
 func New(c *Config, tables ...interface{}) (*Client, error) {
 	c.apply()
 
+	// 确保 JSON 序列化器已注册
+	ensureSerializerRegistered()
+
 	p := &Client{
 		clientType: c.Type,
 	}
