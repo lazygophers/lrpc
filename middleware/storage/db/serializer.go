@@ -52,5 +52,11 @@ func (p *JsonSerializer) Value(ctx context.Context, field *schema.Field, dst ref
 		return "", nil
 	}
 
-	return json.Marshal(fieldValue)
+	buffer, err := json.Marshal(fieldValue)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	return string(buffer), nil
 }
