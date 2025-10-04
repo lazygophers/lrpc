@@ -104,7 +104,6 @@ func New(c *Config) (Cache, error) {
 	case Bbolt:
 		return NewBbolt(c.Address, &bbolt.Options{
 			Timeout:      time.Second * 5,
-			ReadOnly:     false,
 			FreelistType: bbolt.FreelistArrayType,
 		})
 
