@@ -15,6 +15,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -157,8 +158,9 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		PropagateUnscoped: true,
 
-		// Do not set Logger here to avoid duplicate SQL logging
+		// Disable GORM's built-in logger to avoid duplicate SQL logging
 		// Our custom logger (GetDefaultLogger()) is used in Scoop methods instead
+		Logger: logger.Discard,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)

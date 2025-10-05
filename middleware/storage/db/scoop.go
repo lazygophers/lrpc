@@ -1344,7 +1344,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-		return insertSQL, res.RowsAffected
+		return FormatSql(insertSQL, values...), res.RowsAffected
 	}, res.Error)
 
 	if res.Error != nil {
@@ -1589,7 +1589,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		res := session.Exec(insertSQL, allValues...)
 
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return insertSQL, res.RowsAffected
+			return FormatSql(insertSQL, allValues...), res.RowsAffected
 		}, res.Error)
 
 		if res.Error != nil {
