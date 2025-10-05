@@ -1607,6 +1607,65 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		}
 
 		totalRowsAffected += res.RowsAffected
+
+		// Write back auto-generated IDs to the structs
+		if res.RowsAffected > 0 {
+			// Get the last inserted ID from the batch
+			var lastID int64
+			batchRowCount := end - i
+
+			// For databases that support retrieving the last inserted ID
+			switch p.clientType {
+			case Sqlite:
+				// SQLite's last_insert_rowid() returns the rowid of the last row inserted
+				// For batch inserts, this is the ID of the last row in the batch
+				err := session.Raw("SELECT last_insert_rowid()").Scan(&lastID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				}
+			case MySQL, TiDB:
+				// MySQL's LAST_INSERT_ID() returns the first ID of a batch insert
+				// So we need to handle it differently
+				var firstID int64
+				err := session.Raw("SELECT LAST_INSERT_ID()").Scan(&firstID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				} else {
+					// Convert first ID to last ID
+					lastID = firstID + int64(batchRowCount) - 1
+				}
+			case Postgres, GaussDB:
+				// PostgreSQL doesn't have a direct way to get the last insert ID for batch inserts
+				// Query the max ID from the table
+				var maxID int64
+				err := session.Raw("SELECT MAX(id) FROM " + p.table).Scan(&maxID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				} else {
+					lastID = maxID
+				}
+			case ClickHouse:
+				// ClickHouse doesn't support auto-increment IDs
+				log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+			}
+
+			// Set the IDs back to the structs
+			// Calculate the first ID based on the last ID and batch count
+			if lastID > 0 {
+				firstID := lastID - int64(batchRowCount) + 1
+				for j := i; j < end; j++ {
+					rowValue := vv.Index(j)
+					for rowValue.Kind() == reflect.Ptr {
+						rowValue = rowValue.Elem()
+					}
+
+					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+						field.SetInt(firstID)
+						firstID++
+					}
+				}
+			}
+		}
 	}
 
 	return &CreateInBatchesResult{
