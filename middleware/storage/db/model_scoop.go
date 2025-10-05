@@ -5,6 +5,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/candy"
 	"gorm.io/gorm"
 )
@@ -201,7 +202,12 @@ func (p *ModelScoop[M]) First() (*M, error) {
 	if err != nil {
 		errMsg := err.Error()
 		if errMsg == "" {
-			log.Errorf("err: (empty error message, type: %T, value: %#v)", err, err)
+			// 对于 xerror.Error 类型，如果消息为空，至少显示错误码
+			if xerr, ok := err.(*xerror.Error); ok {
+				log.Errorf("err: xerror code=%d (message is empty)", xerr.Code)
+			} else {
+				log.Errorf("err: (empty error message, type: %T, value: %#v)", err, err)
+			}
 		} else {
 			log.Errorf("err:%v", err)
 		}
