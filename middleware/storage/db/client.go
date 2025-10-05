@@ -157,7 +157,8 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		PropagateUnscoped: true,
 
-		Logger: c.Logger,
+		// Do not set Logger here to avoid duplicate SQL logging
+		// Our custom logger (GetDefaultLogger()) is used in Scoop methods instead
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)

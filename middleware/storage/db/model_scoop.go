@@ -199,7 +199,12 @@ func (p *ModelScoop[M]) First() (*M, error) {
 	var m M
 	err := p.Scoop.First(&m).Error
 	if err != nil {
-		log.Errorf("err:%v", err)
+		errMsg := err.Error()
+		if errMsg == "" {
+			log.Errorf("err: (empty error message, type: %T, value: %#v)", err, err)
+		} else {
+			log.Errorf("err:%v", err)
+		}
 		return nil, err
 	}
 
