@@ -5,7 +5,6 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/candy"
 	"gorm.io/gorm"
 )
@@ -200,17 +199,6 @@ func (p *ModelScoop[M]) First() (*M, error) {
 	var m M
 	err := p.Scoop.First(&m).Error
 	if err != nil {
-		errMsg := err.Error()
-		if errMsg == "" {
-			// 对于 xerror.Error 类型，如果消息为空，至少显示错误码
-			if xerr, ok := err.(*xerror.Error); ok {
-				log.Errorf("err: xerror code=%d (message is empty)", xerr.Code)
-			} else {
-				log.Errorf("err: (empty error message, type: %T, value: %#v)", err, err)
-			}
-		} else {
-			log.Errorf("err:%v", err)
-		}
 		return nil, err
 	}
 
@@ -224,7 +212,6 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 	var ms []*M
 	err := p.Scoop.Find(&ms).Error
 	if err != nil {
-		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -233,9 +220,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 
 func (p *ModelScoop[M]) Create(m *M) error {
 	if m == nil {
-		err := fmt.Errorf("Create failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
-		return err
+		return fmt.Errorf("create failed: input parameter m is nil")
 	}
 
 	p.inc()
@@ -257,10 +242,8 @@ type FirstOrCreateResult[M any] struct {
 
 func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 	if m == nil {
-		err := fmt.Errorf("FirstOrCreate failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
 		return &FirstOrCreateResult[M]{
-			Error: err,
+			Error: fmt.Errorf("FirstOrCreate failed: input parameter m is nil"),
 		}
 	}
 
@@ -322,10 +305,8 @@ type CreateIfNotExistsResult struct {
 
 func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
 	if m == nil {
-		err := fmt.Errorf("CreateIfNotExists failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
 		return &CreateIfNotExistsResult{
-			Error: err,
+			Error: fmt.Errorf("CreateIfNotExists failed: input parameter m is nil"),
 		}
 	}
 
