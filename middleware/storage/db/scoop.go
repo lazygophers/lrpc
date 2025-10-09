@@ -846,6 +846,79 @@ func handleAutoTimeField(field *schema.Field, fieldValue reflect.Value) bool {
 	return updated
 }
 
+// idFieldInfo contains information about the Id field type
+type idFieldInfo struct {
+	field      reflect.Value
+	isIntType  bool
+	isUintType bool
+	isZero     bool
+}
+
+// getIdFieldInfo extracts Id field information from a struct value
+func getIdFieldInfo(vv reflect.Value) *idFieldInfo {
+	field := vv.FieldByName("Id")
+	if !field.IsValid() || !field.CanSet() {
+		return nil
+	}
+
+	info := &idFieldInfo{
+		field: field,
+	}
+
+	switch field.Kind() {
+	case reflect.Int, reflect.Int64:
+		info.isIntType = true
+		info.isZero = field.Int() == 0
+	case reflect.Uint64:
+		info.isUintType = true
+		info.isZero = field.Uint() == 0
+	default:
+		return nil
+	}
+
+	return info
+}
+
+// setIdValue sets the Id field value based on its type
+func (info *idFieldInfo) setValue(id int64) {
+	if info.isIntType {
+		info.field.SetInt(id)
+	} else if info.isUintType {
+		info.field.SetUint(uint64(id))
+	}
+}
+
+// needsAutoIncrement checks if the field needs auto-increment ID retrieval
+func (info *idFieldInfo) needsAutoIncrement() bool {
+	return info != nil && info.isZero && (info.isIntType || info.isUintType)
+}
+
+// queryLastInsertID queries the last insert ID based on database type
+func (p *Scoop) queryLastInsertID(session *gorm.DB) (int64, error) {
+	var lastInsertID int64
+	var err error
+
+	switch p.clientType {
+	case Sqlite:
+		err = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
+	case MySQL, TiDB:
+		err = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
+	case ClickHouse:
+		// ClickHouse doesn't support auto-increment IDs in the traditional sense
+		log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+		return 0, nil
+	default:
+		return 0, nil
+	}
+
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+
+	return lastInsertID, nil
+}
+
 // buildInsertSQL constructs an INSERT statement with proper IGNORE/ON CONFLICT handling
 // based on the database type. It supports single-row and multi-row insertions.
 // columns: list of column names
@@ -1347,36 +1420,33 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		PrepareStmt: false,
 	})
 
-	// For PostgreSQL/GaussDB with auto-increment ID, use RETURNING clause for better performance
+	// Execute INSERT with RETURNING clause optimization for PostgreSQL/GaussDB
 	var lastInsertID int64
 	var res *gorm.DB
-	if p.clientType == Postgres || p.clientType == GaussDB {
-		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() {
-			isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
-			isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
-			if isIntType || isUintType {
-				// Check if id column was included in the insert
-				hasIdColumn := false
-				for _, col := range columns {
-					if col == "id" {
-						hasIdColumn = true
-						break
-					}
-				}
-				if !hasIdColumn {
-					// Use RETURNING clause to get the ID in one query
-					insertSQL += " RETURNING id"
-					res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
-				} else {
-					res = session.Exec(insertSQL, values...)
-				}
-			} else {
-				res = session.Exec(insertSQL, values...)
+
+	// Check if we need auto-increment ID and can use RETURNING clause
+	idInfo := getIdFieldInfo(vv)
+	useReturning := false
+
+	if (p.clientType == Postgres || p.clientType == GaussDB) && idInfo.needsAutoIncrement() {
+		// Check if id column was included in the insert
+		hasIdColumn := false
+		for _, col := range columns {
+			if col == "id" {
+				hasIdColumn = true
+				break
 			}
-		} else {
-			res = session.Exec(insertSQL, values...)
 		}
-	} else {
+
+		if !hasIdColumn {
+			// Use RETURNING clause to get the ID in one query
+			insertSQL += " RETURNING id"
+			useReturning = true
+			res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
+		}
+	}
+
+	if !useReturning {
 		res = session.Exec(insertSQL, values...)
 	}
 
@@ -1398,45 +1468,15 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	// Set the auto-generated ID back to the struct if applicable
-	if res.RowsAffected > 0 {
-		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() {
-			isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
-			isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
-
-			if isIntType || isUintType {
-				// For PostgreSQL/GaussDB, lastInsertID was already set via RETURNING clause
-				if (p.clientType == Postgres || p.clientType == GaussDB) && lastInsertID > 0 {
-					if isIntType {
-						field.SetInt(lastInsertID)
-					} else {
-						field.SetUint(uint64(lastInsertID))
-					}
-				} else {
-					// For MySQL/TiDB and SQLite, query the last insert ID
-					var queryErr error
-
-					switch p.clientType {
-					case Sqlite:
-						queryErr = session.Raw("SELECT last_insert_rowid()").Scan(&lastInsertID).Error
-					case MySQL, TiDB:
-						queryErr = session.Raw("SELECT LAST_INSERT_ID()").Scan(&lastInsertID).Error
-					case ClickHouse:
-						// ClickHouse doesn't support auto-increment IDs in the traditional sense
-						// IDs should be generated by the application or use UUID
-						// Log a warning and skip
-						log.Warnf("ClickHouse does not support auto-increment ID retrieval")
-					}
-
-					if queryErr != nil {
-						log.Errorf("err:%v", queryErr)
-					} else if lastInsertID > 0 {
-						if isIntType {
-							field.SetInt(lastInsertID)
-						} else {
-							field.SetUint(uint64(lastInsertID))
-						}
-					}
-				}
+	if res.RowsAffected > 0 && idInfo.needsAutoIncrement() {
+		// For PostgreSQL/GaussDB, lastInsertID was already set via RETURNING clause
+		if useReturning && lastInsertID > 0 {
+			idInfo.setValue(lastInsertID)
+		} else if !useReturning {
+			// For MySQL/TiDB and SQLite, query the last insert ID
+			lastInsertID, err := p.queryLastInsertID(session)
+			if err == nil && lastInsertID > 0 {
+				idInfo.setValue(lastInsertID)
 			}
 		}
 	}
