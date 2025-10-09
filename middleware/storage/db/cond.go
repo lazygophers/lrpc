@@ -24,9 +24,15 @@ type Cond struct {
 
 // quoteFieldName quotes a field name with the appropriate quote character for the database type.
 // MySQL/TiDB use backticks (`), PostgreSQL/SQLite/GaussDB use double quotes ("), ClickHouse uses backticks (`).
+// When clientType is empty, returns the field name without quotes.
 func quoteFieldName(name string, clientType string) string {
 	// Check if already quoted
 	if strings.HasPrefix(name, "`") || strings.HasPrefix(name, "\"") {
+		return name
+	}
+
+	// If no client type specified, return unquoted field name
+	if clientType == "" {
 		return name
 	}
 
@@ -38,8 +44,8 @@ func quoteFieldName(name string, clientType string) string {
 		// PostgreSQL, SQLite, and GaussDB use double quotes
 		return fmt.Sprintf("\"%s\"", name)
 	default:
-		// Default to double quotes for unknown types
-		return fmt.Sprintf("\"%s\"", name)
+		// Default to no quotes for unknown types
+		return name
 	}
 }
 
