@@ -144,9 +144,9 @@ func Register(errs ...*Error) {
 // Error 结构化错误类型，包含错误码和错误消息
 // 实现了 error 接口和 Go 1.13+ 的错误链接口
 type Error struct {
-	Code  int32  `json:"code,omitempty" yaml:"code,omitempty"`   // 错误码
-	Msg   string `json:"msg,omitempty" yaml:"msg,omitempty"`     // 错误消息
-	Cause error  `json:"-" yaml:"-"`                             // 底层错误（支持错误链）
+	Code  int32  `json:"code,omitempty" yaml:"code,omitempty"` // 错误码
+	Msg   string `json:"msg,omitempty" yaml:"msg,omitempty"`   // 错误消息
+	Cause error  `json:"-" yaml:"-"`                           // 底层错误（支持错误链）
 }
 
 // Error 实现 error 接口，返回错误消息
@@ -239,29 +239,21 @@ func GetMsg(err error) string {
 //	err1 := xerror.New(1001)                    // 使用已注册的错误消息
 //	err2 := xerror.New(1001, "en")              // 使用英文消息
 //	err3 := xerror.New(1001, "fr", "en", "zh")  // 尝试法语，回退到英语或中文
-func New(code int32, lang ...string) *Error {
+func New(code int32, args ...interface{}) *Error {
 	// 优先返回已注册的错误
 	if err, ok := errMap[code]; ok {
 		return err.Clone()
 	}
 
-	// 尝试使用国际化
-	if len(lang) > 0 && i18n != nil {
-		msg, ok := i18n.Localize(code, lang...)
-		if ok {
-			return &Error{Code: code, Msg: msg}
-		}
+	if len(args) > 0 {
+		return NewErrorWithMsg(code, fmt.Sprint(args...))
 	}
 
-	return &Error{Code: code}
-}
+	if msg, ok := i18n.Localize(code); ok {
+		return NewErrorWithMsg(code, msg)
+	}
 
-// NewError 已废弃：使用 New(code, lang...) 代替
-// 为了向后兼容保留此函数
-//
-// Deprecated: 使用 New 代替，功能完全相同
-func NewError(code int32, lang ...string) *Error {
-	return New(code, lang...)
+	return NewErrorWithMsg(code, "")
 }
 
 // NewErrorWithMsg 创建带有自定义消息的错误

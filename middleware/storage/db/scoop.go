@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -864,6 +865,9 @@ func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.
 		return err
 	}
 
+	// Note: This function uses the custom decode logic.
+	// For fields with GORM serializers, use GORM's native Scan method instead (see First/Find methods)
+
 	for i, col := range values {
 		if col == nil {
 			continue
@@ -874,6 +878,10 @@ func scanRowsInto(rows *sql.Rows, dest reflect.Value, sqlRaw string, start time.
 			log.Debugf("invalid field: %s", fieldName)
 			continue
 		}
+
+		// Check if the field has a serializer configured
+		// This requires access to GORM schema which we don't have here
+		// For now, use decode which handles basic types
 		err = decode(field, col)
 		if err != nil {
 			return err
@@ -1015,49 +1023,20 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
+	// Use GORM's Scan to properly handle serializers
 	scope := p._db.Raw(sqlRaw)
-	rows, err := scope.Rows()
+	err := scope.Scan(out).Error
+
 	if err != nil {
-		return &FindResult{
-			Error: err,
-		}
-	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			log.Errorf("err:%v", closeErr)
-		}
-	}()
-
-	if err = rows.Err(); err != nil {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, scope.RowsAffected
+		}, err)
 		return &FindResult{
 			Error: err,
 		}
 	}
 
-	var rawsAffected int64
-	// 把数据写回到out
-	for rows.Next() {
-		rawsAffected++
-
-		var v reflect.Value
-		if elem.Elem().Kind() == reflect.Ptr {
-			v = reflect.New(elem.Elem().Elem())
-		} else {
-			v = reflect.New(elem.Elem())
-		}
-
-		err = scanRowsInto(rows, v.Elem(), sqlRaw, start, p.depth)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, rawsAffected
-			}, err)
-			return &FindResult{
-				Error: err,
-			}
-		}
-
-		vv.Set(reflect.Append(vv, v))
-	}
+	var rawsAffected int64 = scope.RowsAffected
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rawsAffected
@@ -1170,48 +1149,35 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
+	// Use GORM's Scan to properly handle serializers
 	scope := p._db.Raw(sqlRaw)
-	rows, err := scope.Rows()
+	err := scope.Scan(out).Error
+
 	if err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
+			return sqlRaw, scope.RowsAffected
 		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			log.Errorf("err:%v", closeErr)
-		}
-	}()
 
-	if err = rows.Err(); err != nil {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, -1
-		}, err)
-		return &FirstResult{
-			Error: err,
-		}
-	}
-
-	// 把数据写回到out
-	var rowAffected int64
-	for rows.Next() {
-		rowAffected++
-
-		if rowAffected != 1 {
-			continue
-		}
-
-		err = scanRowsInto(rows, vv.Elem(), sqlRaw, start, p.depth)
-		if err != nil {
-			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-				return sqlRaw, 1
-			}, err)
+		// Check if it's a "record not found" error
+		if errors.Is(err, gorm.ErrRecordNotFound) || scope.RowsAffected == 0 {
 			return &FirstResult{
-				Error: err,
+				Error: p.getNotFoundError(),
 			}
+		}
+
+		return &FirstResult{
+			Error: err,
+		}
+	}
+
+	// Check if we got a result
+	var rowAffected int64 = scope.RowsAffected
+	if rowAffected == 0 {
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, 0
+		}, p.getNotFoundError())
+		return &FirstResult{
+			Error: p.getNotFoundError(),
 		}
 	}
 
@@ -1320,7 +1286,22 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 		placeholders = append(placeholders, "?")
 
 		if fieldValue.IsValid() {
-			values = append(values, fieldValue.Interface())
+			// Use GORM's field value method to apply serializers if configured
+			var fieldVal interface{}
+			if field.Serializer != nil {
+				// Call serializer's Value method
+				serializedValue, err := field.Serializer.Value(stmt.Context, field, vv, fieldValue.Interface())
+				if err != nil {
+					log.Errorf("err:%v", err)
+					return &CreateResult{
+						Error: fmt.Errorf("failed to serialize field %s: %w", field.Name, err),
+					}
+				}
+				fieldVal = serializedValue
+			} else {
+				fieldVal = fieldValue.Interface()
+			}
+			values = append(values, fieldVal)
 		} else {
 			values = append(values, nil)
 		}
@@ -1363,7 +1344,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	}
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-		return insertSQL, res.RowsAffected
+		return FormatSql(insertSQL, values...), res.RowsAffected
 	}, res.Error)
 
 	if res.Error != nil {
@@ -1575,7 +1556,21 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 				rowPlaceholders = append(rowPlaceholders, "?")
 				if fieldValue.IsValid() {
-					allValues = append(allValues, fieldValue.Interface())
+					// Use GORM's field value method to apply serializers if configured
+					var fieldVal interface{}
+					if info.field.Serializer != nil {
+						serializedValue, serErr := info.field.Serializer.Value(stmt.Context, info.field, rowValue, fieldValue.Interface())
+						if serErr != nil {
+							log.Errorf("err:%v", serErr)
+							return &CreateInBatchesResult{
+								Error: fmt.Errorf("CreateInBatches failed: failed to serialize field %s: %w", info.field.Name, serErr),
+							}
+						}
+						fieldVal = serializedValue
+					} else {
+						fieldVal = fieldValue.Interface()
+					}
+					allValues = append(allValues, fieldVal)
 				} else {
 					allValues = append(allValues, nil)
 				}
@@ -1594,7 +1589,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		res := session.Exec(insertSQL, allValues...)
 
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return insertSQL, res.RowsAffected
+			return FormatSql(insertSQL, allValues...), res.RowsAffected
 		}, res.Error)
 
 		if res.Error != nil {
@@ -1612,6 +1607,65 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		}
 
 		totalRowsAffected += res.RowsAffected
+
+		// Write back auto-generated IDs to the structs
+		if res.RowsAffected > 0 {
+			// Get the last inserted ID from the batch
+			var lastID int64
+			batchRowCount := end - i
+
+			// For databases that support retrieving the last inserted ID
+			switch p.clientType {
+			case Sqlite:
+				// SQLite's last_insert_rowid() returns the rowid of the last row inserted
+				// For batch inserts, this is the ID of the last row in the batch
+				err := session.Raw("SELECT last_insert_rowid()").Scan(&lastID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				}
+			case MySQL, TiDB:
+				// MySQL's LAST_INSERT_ID() returns the first ID of a batch insert
+				// So we need to handle it differently
+				var firstID int64
+				err := session.Raw("SELECT LAST_INSERT_ID()").Scan(&firstID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				} else {
+					// Convert first ID to last ID
+					lastID = firstID + int64(batchRowCount) - 1
+				}
+			case Postgres, GaussDB:
+				// PostgreSQL doesn't have a direct way to get the last insert ID for batch inserts
+				// Query the max ID from the table
+				var maxID int64
+				err := session.Raw("SELECT MAX(id) FROM " + p.table).Scan(&maxID).Error
+				if err != nil {
+					log.Errorf("err:%v", err)
+				} else {
+					lastID = maxID
+				}
+			case ClickHouse:
+				// ClickHouse doesn't support auto-increment IDs
+				log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+			}
+
+			// Set the IDs back to the structs
+			// Calculate the first ID based on the last ID and batch count
+			if lastID > 0 {
+				firstID := lastID - int64(batchRowCount) + 1
+				for j := i; j < end; j++ {
+					rowValue := vv.Index(j)
+					for rowValue.Kind() == reflect.Ptr {
+						rowValue = rowValue.Elem()
+					}
+
+					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+						field.SetInt(firstID)
+						firstID++
+					}
+				}
+			}
+		}
 	}
 
 	return &CreateInBatchesResult{
@@ -1838,6 +1892,18 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 		}
 	}
 
+	// Get GORM schema to check for serializers
+	stmt := getStatement(p._db, p.table, m)
+	defer putStatement(stmt)
+
+	err := stmt.ParseWithSpecialTableName(m, p.table)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return &UpdateResult{
+			Error: fmt.Errorf("Updates failed: unable to parse schema: %w", err),
+		}
+	}
+
 	// Use cached tag information for better performance
 	tagInfo := parseGormTags(mType)
 	valMap := make(map[string]interface{}, len(tagInfo.updatableFields))
@@ -1849,7 +1915,22 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 			continue
 		}
 
-		valMap[dbName] = fieldVal.Interface()
+		// Check if field has a serializer
+		var finalValue interface{}
+		if field, ok := stmt.Schema.FieldsByDBName[dbName]; ok && field.Serializer != nil {
+			serializedValue, serErr := field.Serializer.Value(stmt.Context, field, mVal, fieldVal.Interface())
+			if serErr != nil {
+				log.Errorf("err:%v", serErr)
+				return &UpdateResult{
+					Error: fmt.Errorf("Updates failed: failed to serialize field %s: %w", fieldName, serErr),
+				}
+			}
+			finalValue = serializedValue
+		} else {
+			finalValue = fieldVal.Interface()
+		}
+
+		valMap[dbName] = finalValue
 	}
 
 	if len(valMap) == 0 {

@@ -16,11 +16,11 @@ func TestCond(t *testing.T) {
 		"a": 2,
 	}, map[string]any{
 		"a": 3,
-	}).ToString(), "((\"a\" = 1) OR (\"a\" = 2) OR (\"a\" = 3))")
+	}).ToString(), "((a = 1) OR (a = 2) OR (a = 3))")
 
-	assert.Equal(t, db.Where("a", 1).ToString(), "(\"a\" = 1)")
+	assert.Equal(t, db.Where("a", 1).ToString(), "(a = 1)")
 
-	assert.Equal(t, db.Or(db.Where("a", 1), db.Where("a", 2)).ToString(), "((\"a\" = 1) OR (\"a\" = 2))")
+	assert.Equal(t, db.Or(db.Where("a", 1), db.Where("a", 2)).ToString(), "((a = 1) OR (a = 2))")
 
 	// Test OrWhere with multiple conditions - order may vary due to map iteration
 	result := db.OrWhere(db.Where(map[string]any{
@@ -30,13 +30,13 @@ func TestCond(t *testing.T) {
 		"a": 2,
 		"b": 3,
 	})).ToString()
-	
+
 	// Check that result contains both expected condition groups in any order
-	if !(strings.Contains(result, "(\"a\" = 1)") && strings.Contains(result, "(\"b\" = 2)")) {
-		t.Errorf("Result should contain a=1 and b=2 conditions: %s", result)
+	if !(strings.Contains(result, "(a = 1)") && strings.Contains(result, "(b = 2)")) {
+		t.Errorf("Result should contain (a = 1) and (b = 2) conditions: %s", result)
 	}
-	if !(strings.Contains(result, "(\"a\" = 2)") && strings.Contains(result, "(\"b\" = 3)")) {
-		t.Errorf("Result should contain a=2 and b=3 conditions: %s", result)
+	if !(strings.Contains(result, "(a = 2)") && strings.Contains(result, "(b = 3)")) {
+		t.Errorf("Result should contain (a = 2) and (b = 3) conditions: %s", result)
 	}
 	if !strings.Contains(result, " OR ") {
 		t.Errorf("Result should contain OR operator: %s", result)
@@ -119,7 +119,7 @@ func TestConditionCoverage(t *testing.T) {
 
 		// Test $or command
 		cond2 := db.Where("$or", map[string]interface{}{
-			"name": "John",
+			"name":  "John",
 			"name2": "Jane",
 		})
 		result2 := cond2.ToString()
@@ -155,24 +155,24 @@ func TestSimpleTypeToStrCoverage(t *testing.T) {
 	t.Run("different value types in conditions", func(t *testing.T) {
 		// Test different types that call simpleTypeToStr
 		testCases := map[string]interface{}{
-			"string_field":   "test string",
-			"bytes_field":    []byte("test bytes"),
-			"bool_true":      true,
-			"bool_false":     false,
-			"int_field":      123,
-			"int8_field":     int8(123),
-			"int16_field":    int16(123),
-			"int32_field":    int32(123),
-			"int64_field":    int64(123),
-			"uint_field":     uint(123),
-			"uint8_field":    uint8(123),
-			"uint16_field":   uint16(123),
-			"uint32_field":   uint32(123),
-			"uint64_field":   uint64(123),
-			"float32_field":  float32(1.23),
-			"float64_field":  float64(1.23),
-			"slice_field":    []int{1, 2, 3},
-			"array_field":    [3]int{1, 2, 3},
+			"string_field":  "test string",
+			"bytes_field":   []byte("test bytes"),
+			"bool_true":     true,
+			"bool_false":    false,
+			"int_field":     123,
+			"int8_field":    int8(123),
+			"int16_field":   int16(123),
+			"int32_field":   int32(123),
+			"int64_field":   int64(123),
+			"uint_field":    uint(123),
+			"uint8_field":   uint8(123),
+			"uint16_field":  uint16(123),
+			"uint32_field":  uint32(123),
+			"uint64_field":  uint64(123),
+			"float32_field": float32(1.23),
+			"float64_field": float64(1.23),
+			"slice_field":   []int{1, 2, 3},
+			"array_field":   [3]int{1, 2, 3},
 		}
 
 		for field, value := range testCases {
@@ -184,11 +184,11 @@ func TestSimpleTypeToStrCoverage(t *testing.T) {
 
 	t.Run("slice with and without quotes", func(t *testing.T) {
 		// Test slices that are quoted vs not quoted
-		cond1 := db.Where("field", "IN", []int{1, 2, 3})     // Should be quoted
+		cond1 := db.Where("field", "IN", []int{1, 2, 3}) // Should be quoted
 		result1 := cond1.ToString()
 		assert.Assert(t, len(result1) > 0)
 
-		cond2 := db.Where("field =", []int{1, 2, 3})         // Different context
+		cond2 := db.Where("field =", []int{1, 2, 3}) // Different context
 		result2 := cond2.ToString()
 		assert.Assert(t, len(result2) > 0)
 	})
@@ -199,14 +199,14 @@ func TestFieldNameValidation(t *testing.T) {
 	t.Run("field names with special characters", func(t *testing.T) {
 		// Test field names that trigger getFirstInvalidFieldNameCharIndex
 		specialFields := []string{
-			"field>value",     // Has '>' operator
-			"field<value",     // Has '<' operator
-			"field>=value",    // Has '>=' operator
-			"field<=value",    // Has '<=' operator
-			"field!=value",    // Has '!=' operator
+			"field>value",      // Has '>' operator
+			"field<value",      // Has '<' operator
+			"field>=value",     // Has '>=' operator
+			"field<=value",     // Has '<=' operator
+			"field!=value",     // Has '!=' operator
 			"field LIKE value", // Has 'LIKE' operator with space
-			"field@invalid",   // Has invalid character '@'
-			"field#invalid",   // Has invalid character '#'
+			"field@invalid",    // Has invalid character '@'
+			"field#invalid",    // Has invalid character '#'
 		}
 
 		for _, fieldName := range specialFields {

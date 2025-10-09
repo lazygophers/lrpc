@@ -199,7 +199,6 @@ func (p *ModelScoop[M]) First() (*M, error) {
 	var m M
 	err := p.Scoop.First(&m).Error
 	if err != nil {
-		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -213,7 +212,6 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 	var ms []*M
 	err := p.Scoop.Find(&ms).Error
 	if err != nil {
-		log.Errorf("err:%v", err)
 		return nil, err
 	}
 
@@ -222,9 +220,7 @@ func (p *ModelScoop[M]) Find() ([]*M, error) {
 
 func (p *ModelScoop[M]) Create(m *M) error {
 	if m == nil {
-		err := fmt.Errorf("Create failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
-		return err
+		return fmt.Errorf("create failed: input parameter m is nil")
 	}
 
 	p.inc()
@@ -246,10 +242,8 @@ type FirstOrCreateResult[M any] struct {
 
 func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 	if m == nil {
-		err := fmt.Errorf("FirstOrCreate failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
 		return &FirstOrCreateResult[M]{
-			Error: err,
+			Error: fmt.Errorf("FirstOrCreate failed: input parameter m is nil"),
 		}
 	}
 
@@ -311,10 +305,8 @@ type CreateIfNotExistsResult struct {
 
 func (p *ModelScoop[M]) CreateIfNotExists(m *M) *CreateIfNotExistsResult {
 	if m == nil {
-		err := fmt.Errorf("CreateIfNotExists failed: input parameter m is nil")
-		log.Errorf("err:%v", err)
 		return &CreateIfNotExistsResult{
-			Error: err,
+			Error: fmt.Errorf("CreateIfNotExists failed: input parameter m is nil"),
 		}
 	}
 

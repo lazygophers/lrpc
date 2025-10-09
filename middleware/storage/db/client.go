@@ -15,6 +15,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -26,6 +27,9 @@ type Client struct {
 
 func New(c *Config, tables ...interface{}) (*Client, error) {
 	c.apply()
+
+	// 确保 JSON 序列化器已注册
+	ensureSerializerRegistered()
 
 	p := &Client{
 		clientType: c.Type,
@@ -154,7 +158,9 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		PropagateUnscoped: true,
 
-		Logger: c.Logger,
+		// Disable GORM's built-in logger to avoid duplicate SQL logging
+		// Our custom logger (GetDefaultLogger()) is used in Scoop methods instead
+		Logger: logger.Discard,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)
