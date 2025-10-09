@@ -1351,7 +1351,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	var lastInsertID int64
 	var res *gorm.DB
 	if p.clientType == Postgres || p.clientType == GaussDB {
-		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0 {
 			// Check if id column was included in the insert
 			hasIdColumn := false
 			for _, col := range columns {
@@ -1393,7 +1393,7 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 
 	// Set the auto-generated ID back to the struct if applicable
 	if res.RowsAffected > 0 {
-		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+		if field := vv.FieldByName("Id"); field.IsValid() && field.CanSet() && (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0 {
 			// For PostgreSQL/GaussDB, lastInsertID was already set via RETURNING clause
 			if (p.clientType == Postgres || p.clientType == GaussDB) && lastInsertID > 0 {
 				field.SetInt(lastInsertID)
@@ -1690,7 +1690,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 						rowValue = rowValue.Elem()
 					}
 
-					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() && field.Kind() == reflect.Int && field.Int() == 0 {
+					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() && (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0 {
 						field.SetInt(firstID)
 						firstID++
 					}
