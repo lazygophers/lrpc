@@ -806,13 +806,44 @@ func getCachedFieldName(dbName string) string {
 // handleAutoTimeField sets auto timestamp fields (CreatedAt/UpdatedAt) if they are zero.
 // Returns true if the field was auto-set, false otherwise.
 func handleAutoTimeField(field *schema.Field, fieldValue reflect.Value) bool {
+	if !fieldValue.CanSet() {
+		return false
+	}
+
+	now := time.Now()
+	var updated bool
+
+	// Handle auto create time (only set if zero)
 	if field.AutoCreateTime != 0 && fieldValue.IsZero() {
-		if field.DataType == "int64" || field.DataType == "uint64" {
-			fieldValue.SetInt(time.Now().Unix())
-			return true
+		switch fieldValue.Kind() {
+		case reflect.Int64, reflect.Uint64:
+			fieldValue.SetInt(now.Unix())
+			updated = true
+		case reflect.Struct:
+			// Check if it's a time.Time type
+			if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+				fieldValue.Set(reflect.ValueOf(now))
+				updated = true
+			}
 		}
 	}
-	return false
+
+	// Handle auto update time (always set on create when zero)
+	if !updated && field.AutoUpdateTime != 0 && fieldValue.IsZero() {
+		switch fieldValue.Kind() {
+		case reflect.Int64, reflect.Uint64:
+			fieldValue.SetInt(now.Unix())
+			updated = true
+		case reflect.Struct:
+			// Check if it's a time.Time type
+			if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+				fieldValue.Set(reflect.ValueOf(now))
+				updated = true
+			}
+		}
+	}
+
+	return updated
 }
 
 // buildInsertSQL constructs an INSERT statement with proper IGNORE/ON CONFLICT handling
@@ -1517,7 +1548,7 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 			}
 
 			// Check if this is auto time field
-			if field.AutoCreateTime != 0 {
+			if field.AutoCreateTime != 0 || field.AutoUpdateTime != 0 {
 				info.isAutoTime = true
 			}
 
