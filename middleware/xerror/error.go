@@ -249,8 +249,10 @@ func New(code int32, args ...interface{}) *Error {
 		return NewErrorWithMsg(code, fmt.Sprint(args...))
 	}
 
-	if msg, ok := i18n.Localize(code); ok {
-		return NewErrorWithMsg(code, msg)
+	if i18n != nil {
+		if msg, ok := i18n.Localize(code); ok {
+			return NewErrorWithMsg(code, msg)
+		}
 	}
 
 	return NewErrorWithMsg(code, "")
