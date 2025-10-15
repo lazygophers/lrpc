@@ -16,6 +16,10 @@ type Ctx struct {
 	tranceId string
 
 	params map[string]string
+
+	// Middleware chain support
+	handlers []HandlerFunc
+	index    int
 }
 
 func newCtx() *Ctx {
@@ -29,6 +33,8 @@ func (p *Ctx) Reset() {
 	if len(p.params) > 0 {
 		p.params = make(map[string]string)
 	}
+	p.handlers = nil
+	p.index = -1
 }
 
 func (p *Ctx) Context() *fasthttp.RequestCtx {
@@ -214,4 +220,51 @@ func NewCtxTools() *Ctx {
 	p.init()
 
 	return p
+}
+
+// Next executes the next handler in the middleware chain
+func (p *Ctx) Next() error {
+	p.index++
+	if p.index < len(p.handlers) {
+		return p.handlers[p.index](p)
+	}
+	return nil
+}
+
+// SetParam sets a route parameter (for compatibility with new routing)
+func (p *Ctx) SetParam(key, value string) {
+	if p.params == nil {
+		p.params = make(map[string]string)
+	}
+	p.params[key] = value
+}
+
+// Param gets a route parameter by name
+func (p *Ctx) Param(key string) string {
+	if p.params == nil {
+		return ""
+	}
+	return p.params[key]
+}
+
+// AllParams returns all route parameters
+func (p *Ctx) AllParams() map[string]string {
+	if p.params == nil {
+		return make(map[string]string)
+	}
+	// Return a copy to prevent external modification
+	result := make(map[string]string, len(p.params))
+	for k, v := range p.params {
+		result[k] = v
+	}
+	return result
+}
+
+// executeChain executes the handler chain starting from index -1
+func (p *Ctx) executeChain() error {
+	if len(p.handlers) == 0 {
+		return nil
+	}
+	p.index = -1
+	return p.Next()
 }

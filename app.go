@@ -13,6 +13,10 @@ type App struct {
 
 	routes map[string]*SearchTree[HandlerFunc]
 
+	// New routing system
+	routers            map[string]*Router
+	globalMiddleware   []HandlerFunc // Global middleware for new routing
+
 	ctxPool sync.Pool
 
 	hook *Hooks
@@ -20,7 +24,8 @@ type App struct {
 
 func NewApp(c ...*Config) *App {
 	p := &App{
-		routes: make(map[string]*SearchTree[HandlerFunc]),
+		routes:  make(map[string]*SearchTree[HandlerFunc]),
+		routers: make(map[string]*Router),
 		ctxPool: sync.Pool{
 			New: func() any {
 				return newCtx()
