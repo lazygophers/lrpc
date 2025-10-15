@@ -6,6 +6,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/auth"
+	"github.com/lazygophers/lrpc/middleware/cache"
 	"github.com/lazygophers/lrpc/middleware/compress"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/health"
@@ -418,4 +419,33 @@ func BasicAuth(config auth.BasicAuthConfig) HandlerFunc {
 		}
 		return ctx.Next()
 	}
+}
+
+// Cache returns an HTTP caching middleware
+func Cache(config ...cache.CacheConfig) HandlerFunc {
+	cfg := cache.DefaultCacheConfig
+	if len(config) > 0 {
+		cfg = config[0]
+	}
+
+	return func(ctx *Ctx) error {
+		// Execute next handlers
+		err := ctx.Next()
+
+		// Set cache headers if no error
+		if err == nil {
+			cache.SetCacheHeaders(ctx.Context(), cfg)
+		}
+
+		return err
+	}
+}
+
+// CacheWithETag returns a caching middleware that uses ETags
+func CacheWithETag(maxAge int, weak bool) HandlerFunc {
+	return Cache(cache.CacheConfig{
+		MaxAge:   maxAge,
+		Public:   true,
+		WeakETag: weak,
+	})
 }
