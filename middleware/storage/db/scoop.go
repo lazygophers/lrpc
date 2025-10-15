@@ -517,18 +517,116 @@ func (p *Scoop) updateSql(m interface{}) string {
 		return "-- ERROR: table name is empty"
 	}
 
+	mVal := reflect.ValueOf(m)
+	mType := mVal.Type()
+
+	// Check if m is a slice (for ordered updates)
+	if mType.Kind() == reflect.Slice {
+		sliceLen := mVal.Len()
+
+		// Validate slice length is even
+		if sliceLen%2 != 0 {
+			return "-- ERROR: slice length must be even (key-value pairs)"
+		}
+
+		if sliceLen == 0 {
+			return "-- ERROR: no fields to update"
+		}
+
+		// Build ordered fields list
+		type orderedField struct {
+			key   string
+			value interface{}
+		}
+		fields := make([]orderedField, 0, sliceLen/2)
+
+		for i := 0; i < sliceLen; i += 2 {
+			elem := mVal.Index(i)
+			if !elem.CanInterface() {
+				return "-- ERROR: cannot access slice element"
+			}
+
+			// Check that keys (even indices) are strings
+			if elem.Kind() != reflect.String {
+				return "-- ERROR: key must be a string"
+			}
+
+			key := elem.Interface().(string)
+			valueElem := mVal.Index(i + 1)
+			if !valueElem.CanInterface() {
+				return "-- ERROR: cannot access value element"
+			}
+			value := valueElem.Interface()
+
+			fields = append(fields, orderedField{key: key, value: value})
+		}
+
+		// Add updated_at if needed and not already present
+		if p.hasUpdatedAt {
+			hasUpdatedAt := false
+			for _, f := range fields {
+				if f.key == fieldUpdatedAt {
+					hasUpdatedAt = true
+					break
+				}
+			}
+			if !hasUpdatedAt {
+				fields = append(fields, orderedField{key: fieldUpdatedAt, value: time.Now().Unix()})
+			}
+		}
+
+		sqlRaw := log.GetBuffer()
+		defer log.PutBuffer(sqlRaw)
+
+		sqlRaw.WriteString("UPDATE ")
+		sqlRaw.WriteString(p.table)
+		sqlRaw.WriteString(" SET ")
+
+		for i, field := range fields {
+			if i > 0 {
+				sqlRaw.WriteString(", ")
+			}
+			sqlRaw.WriteString(quoteFieldName(field.key, p.clientType))
+			sqlRaw.WriteString(" = ")
+
+			switch x := field.value.(type) {
+			case clause.Expr:
+				sqlRaw.WriteString(x.SQL)
+			default:
+				sqlRaw.WriteString(candy.ToString(x))
+			}
+		}
+
+		// Build WHERE conditions
+		conds := make([]string, 0, len(p.cond.conds))
+		if !p.unscoped && p.hasDeletedAt {
+			conds = append(conds, "deleted_at = 0")
+		}
+		conds = append(conds, p.cond.conds...)
+
+		if len(conds) > 0 {
+			sqlRaw.WriteString(" WHERE ")
+			sqlRaw.WriteString(conds[0])
+			for _, c := range conds[1:] {
+				sqlRaw.WriteString(" AND ")
+				sqlRaw.WriteString(c)
+			}
+		}
+
+		return sqlRaw.String()
+	}
+
 	// Convert input to map
 	var updateMap map[string]interface{}
 	if v, ok := m.(map[string]interface{}); ok {
 		updateMap = v
 	} else {
-		mVal := reflect.ValueOf(m)
 		if mVal.Type().Kind() == reflect.Ptr {
 			mVal = mVal.Elem()
 		}
 		mType := mVal.Type()
 		if mType.Kind() != reflect.Struct {
-			return "-- ERROR: expected struct or map"
+			return "-- ERROR: expected struct, map, or slice"
 		}
 
 		tagInfo := parseGormTags(mType)
@@ -1088,8 +1186,9 @@ type FindResult struct {
 // Returns FindResult containing any error that occurred.
 //
 // Example:
-//   var users []User
-//   result := scoop.Where("age > ?", 18).Find(&users)
+//
+//	var users []User
+//	result := scoop.Where("age > ?", 18).Find(&users)
 func (p *Scoop) Find(out interface{}) *FindResult {
 	if p.cond.skip {
 		return &FindResult{}
@@ -1220,8 +1319,9 @@ type FirstResult struct {
 // Returns FirstResult with Error set to ErrRecordNotFound if no row is found.
 //
 // Example:
-//   var user User
-//   result := scoop.Table("users").Where("id = ?", 1).First(&user)
+//
+//	var user User
+//	result := scoop.Table("users").Where("id = ?", 1).First(&user)
 func (p *Scoop) First(out interface{}) *FirstResult {
 	if p.cond.skip {
 		return &FirstResult{
@@ -1312,8 +1412,9 @@ type CreateResult struct {
 // Returns CreateResult with LastInsertId and RowsAffected.
 //
 // Example:
-//   user := &User{Name: "John", Age: 30}
-//   result := scoop.Table("users").Create(user)
+//
+//	user := &User{Name: "John", Age: 30}
+//	result := scoop.Table("users").Create(user)
 func (p *Scoop) Create(value interface{}) *CreateResult {
 	p.inc()
 	defer p.dec()
@@ -1499,8 +1600,9 @@ type CreateInBatchesResult struct {
 // Returns CreateInBatchesResult with total RowsAffected across all batches.
 //
 // Example:
-//   users := []User{{Name: "Alice"}, {Name: "Bob"}, {Name: "Charlie"}}
-//   result := scoop.Table("users").CreateInBatches(users, 100)
+//
+//	users := []User{{Name: "Alice"}, {Name: "Bob"}, {Name: "Charlie"}}
+//	result := scoop.Table("users").CreateInBatches(users, 100)
 func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatchesResult {
 	p.inc()
 	defer p.dec()
@@ -1784,10 +1886,11 @@ type DeleteResult struct {
 // Returns DeleteResult with RowsAffected count.
 //
 // Example:
-//   // Soft delete
-//   result := scoop.Table("users").Where("id = ?", 1).Delete()
-//   // Hard delete
-//   result := scoop.Table("users").Unscoped().Where("id = ?", 1).Delete()
+//
+//	// Soft delete
+//	result := scoop.Table("users").Where("id = ?", 1).Delete()
+//	// Hard delete
+//	result := scoop.Table("users").Unscoped().Where("id = ?", 1).Delete()
 func (p *Scoop) Delete() *DeleteResult {
 	if p.cond.skip {
 		return &DeleteResult{}
@@ -1851,6 +1954,127 @@ func (p *Scoop) Delete() *DeleteResult {
 type UpdateResult struct {
 	RowsAffected int64
 	Error        error
+}
+
+// updateWithOrder performs an UPDATE operation with ordered fields.
+// updateFields is a slice of [key, value, key, value, ...] pairs.
+// This preserves the order of fields in the UPDATE SET clause.
+func (p *Scoop) updateWithOrder(updateFields []interface{}) *UpdateResult {
+	if p.cond.skip {
+		return &UpdateResult{}
+	}
+	if len(updateFields) == 0 {
+		return &UpdateResult{
+			Error: fmt.Errorf("Update failed: updateFields is empty, no values to update"),
+		}
+	}
+
+	if p.table == "" {
+		return &UpdateResult{
+			Error: fmt.Errorf("Update failed: table name is empty, use Table() to specify table name"),
+		}
+	}
+
+	if !p.unscoped && p.hasDeletedAt {
+		p.cond.whereRaw("deleted_at = 0")
+	}
+
+	// Build ordered map for fields
+	// Using a slice of key-value pairs to preserve order
+	type orderedField struct {
+		key   string
+		value interface{}
+	}
+	fields := make([]orderedField, 0, len(updateFields)/2+1)
+
+	// Add update fields in order
+	for i := 0; i < len(updateFields); i += 2 {
+		key := updateFields[i].(string)
+		value := updateFields[i+1]
+		fields = append(fields, orderedField{key: key, value: value})
+	}
+
+	// Add updated_at if needed and not already present
+	if p.hasUpdatedAt {
+		hasUpdatedAt := false
+		for _, f := range fields {
+			if f.key == fieldUpdatedAt {
+				hasUpdatedAt = true
+				break
+			}
+		}
+		if !hasUpdatedAt {
+			fields = append(fields, orderedField{key: fieldUpdatedAt, value: time.Now().Unix()})
+		}
+	}
+
+	p.inc()
+	defer p.dec()
+
+	sqlRaw := log.GetBuffer()
+	defer log.PutBuffer(sqlRaw)
+
+	sqlRaw.WriteString("UPDATE ")
+	sqlRaw.WriteString(p.table)
+
+	sqlRaw.WriteString(" SET ")
+	// Pre-allocate values slice with capacity based on fields length
+	values := make([]interface{}, 0, len(fields))
+	for i, field := range fields {
+		if i > 0 {
+			sqlRaw.WriteString(", ")
+		}
+		sqlRaw.WriteString(quoteFieldName(field.key, p.clientType))
+		sqlRaw.WriteString("=")
+
+		// Handle clause.Expr with proper type assertion
+		switch x := field.value.(type) {
+		case clause.Expr:
+			// For expressions, use the SQL directly instead of placeholder
+			sqlRaw.WriteString(x.SQL)
+			// Append expression variables to values
+			values = append(values, x.Vars...)
+		default:
+			// For normal values, use placeholder
+			sqlRaw.WriteString("?")
+			values = append(values, candy.ToString(x))
+		}
+	}
+
+	if len(p.cond.conds) > 0 {
+		sqlRaw.WriteString(" WHERE ")
+		sqlRaw.WriteString(p.cond.conds[0])
+		for _, c := range p.cond.conds[1:] {
+			sqlRaw.WriteString(" AND ")
+			sqlRaw.WriteString(c)
+		}
+	}
+
+	start := time.Now()
+	res := p._db.Exec(sqlRaw.String(), values...)
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		return FormatSql(sqlRaw.String(), values...), res.RowsAffected
+	}, res.Error)
+
+	err := res.Error
+	if err != nil {
+		log.Errorf("err:%v", err)
+		if err == gorm.ErrDuplicatedKey {
+			return &UpdateResult{
+				RowsAffected: res.RowsAffected,
+				Error:        p.getDuplicatedKeyError(),
+			}
+		}
+		return &UpdateResult{
+			RowsAffected: res.RowsAffected,
+			Error:        err,
+		}
+	}
+
+	return &UpdateResult{
+		RowsAffected: res.RowsAffected,
+		Error:        nil,
+	}
 }
 
 func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
@@ -1958,17 +2182,27 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 }
 
 // Updates performs an UPDATE operation on matching rows.
-// The m parameter can be either a map[string]interface{} or a struct.
-// Only non-zero fields are updated. Use clause.Expr for SQL expressions.
+// The parameters can be:
+//   - map[string]interface{}: key-value pairs for update (order not preserved)
+//   - struct: non-zero fields are updated (order not preserved)
+//   - variadic args: key, value, key, value, ... pairs (order preserved)
+//   - argument count must be even
+//   - keys at even positions must be strings
+//   - values at odd positions can be any type
+//
+// Only non-zero fields are updated for structs. Use clause.Expr for SQL expressions.
 // Automatically updates UpdatedAt field if present.
 // Returns UpdateResult with RowsAffected count.
 //
 // Example:
-//   // Using map
-//   result := scoop.Table("users").Where("id = ?", 1).Updates(map[string]interface{}{"age": 25})
-//   // Using struct
-//   result := scoop.Table("users").Where("id = ?", 1).Updates(&User{Age: 25})
-func (p *Scoop) Updates(m interface{}) *UpdateResult {
+//
+//	// Using map (order not preserved)
+//	result := scoop.Table("users").Where("id = ?", 1).Updates(map[string]interface{}{"age": 25, "name": "John"})
+//	// Using struct (order not preserved)
+//	result := scoop.Table("users").Where("id = ?", 1).Updates(&User{Age: 25})
+//	// Using variadic args (order preserved)
+//	result := scoop.Table("users").Where("id = ?", 1).Updates("name", "John", "age", 25)
+func (p *Scoop) Updates(m interface{}, args ...interface{}) *UpdateResult {
 	if p.cond.skip {
 		return &UpdateResult{}
 	}
@@ -1976,17 +2210,84 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 	p.inc()
 	defer p.dec()
 
+	// Check if using variadic args (key, value, key, value, ...)
+	if len(args) > 0 {
+		// First argument m is the first key, args contains the rest
+		// Combine m and args into a single slice
+		allArgs := make([]interface{}, 0, len(args)+1)
+		allArgs = append(allArgs, m)
+		allArgs = append(allArgs, args...)
+
+		// Validate argument count is even
+		if len(allArgs)%2 != 0 {
+			return &UpdateResult{
+				Error: fmt.Errorf("Updates failed: argument count must be even (key-value pairs), got %d arguments", len(allArgs)),
+			}
+		}
+
+		// Validate keys are strings
+		for i := 0; i < len(allArgs); i += 2 {
+			if _, ok := allArgs[i].(string); !ok {
+				return &UpdateResult{
+					Error: fmt.Errorf("Updates failed: key at position %d must be a string, got %T", i, allArgs[i]),
+				}
+			}
+		}
+
+		return p.updateWithOrder(allArgs)
+	}
+
+	// Check if m is a map
 	if v, ok := m.(map[string]interface{}); ok {
 		return p.update(v)
 	}
+
 	mVal := reflect.ValueOf(m)
-	if mVal.Type().Kind() == reflect.Ptr {
-		mVal = mVal.Elem()
-	}
 	mType := mVal.Type()
+
+	// Check if m is a slice (for ordered updates)
+	if mType.Kind() == reflect.Slice {
+		sliceLen := mVal.Len()
+
+		// Validate slice length is even
+		if sliceLen%2 != 0 {
+			return &UpdateResult{
+				Error: fmt.Errorf("Updates failed: slice length must be even (key-value pairs), got length %d", sliceLen),
+			}
+		}
+
+		// Validate and convert to []interface{}
+		updateFields := make([]interface{}, sliceLen)
+		for i := 0; i < sliceLen; i++ {
+			elem := mVal.Index(i)
+			if !elem.CanInterface() {
+				return &UpdateResult{
+					Error: fmt.Errorf("Updates failed: cannot access slice element at index %d", i),
+				}
+			}
+
+			// Check that keys (even indices) are strings
+			if i%2 == 0 {
+				if elem.Kind() != reflect.String {
+					return &UpdateResult{
+						Error: fmt.Errorf("Updates failed: key at index %d must be a string, got %v", i, elem.Kind()),
+					}
+				}
+			}
+			updateFields[i] = elem.Interface()
+		}
+
+		return p.updateWithOrder(updateFields)
+	}
+
+	// Handle struct
+	if mType.Kind() == reflect.Ptr {
+		mVal = mVal.Elem()
+		mType = mVal.Type()
+	}
 	if mType.Kind() != reflect.Struct {
 		return &UpdateResult{
-			Error: fmt.Errorf("Updates failed: expected struct, got %v", mType.Kind()),
+			Error: fmt.Errorf("Updates failed: expected map, struct, or variadic args, got %v", mType.Kind()),
 		}
 	}
 
@@ -2044,7 +2345,8 @@ func (p *Scoop) Updates(m interface{}) *UpdateResult {
 // Returns the count and any error that occurred.
 //
 // Example:
-//   count, err := scoop.Table("users").Where("age > ?", 18).Count()
+//
+//	count, err := scoop.Table("users").Where("age > ?", 18).Count()
 func (p *Scoop) Count() (uint64, error) {
 	if p.cond.skip {
 		return 0, nil

@@ -193,6 +193,88 @@ func TestScoopUpdate(t *testing.T) {
 		assert.Equal(t, updated.Price, 250.0)
 		assert.Equal(t, updated.Stock, 25)
 	})
+
+	t.Run("update with variadic args - ordered fields", func(t *testing.T) {
+		// Test using variadic args to preserve field order in UPDATE statement
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[2].Id).Updates(
+			"name", "Updated Product 3",
+			"price", 350.0,
+			"stock", 35,
+		)
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[2].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Name, "Updated Product 3")
+		assert.Equal(t, updated.Price, 350.0)
+		assert.Equal(t, updated.Stock, 35)
+	})
+
+	t.Run("update with variadic args - single field", func(t *testing.T) {
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[3].Id).Updates(
+			"description", "Updated Description",
+		)
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[3].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Description, "Updated Description")
+	})
+
+	t.Run("update with variadic args - error: odd count", func(t *testing.T) {
+		// Odd argument count should return error
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[0].Id).Updates(
+			"name", "New Name",
+			"price", // Missing value
+		)
+		assert.Assert(t, result.Error != nil)
+		assert.Assert(t, strings.Contains(result.Error.Error(), "argument count must be even"))
+	})
+
+	t.Run("update with variadic args - error: non-string key", func(t *testing.T) {
+		// Key at even position must be string
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[0].Id).Updates(
+			123, "value", // Key is int, not string
+		)
+		assert.Assert(t, result.Error != nil)
+		assert.Assert(t, strings.Contains(result.Error.Error(), "must be a string"))
+	})
+
+	t.Run("update with variadic args - verify order preservation", func(t *testing.T) {
+		// First create a new scoop with mock data to test SQL generation
+		scoop := client.NewScoop().Model(&TestProduct{}).Equal("id", products[4].Id)
+
+		// Use variadic args to update
+		result := scoop.Updates(
+			"stock", 55,
+			"price", 550.0,
+			"name", "Product 5 Updated",
+		)
+		assert.NilError(t, result.Error)
+
+		// Verify the update worked
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[4].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Stock, 55)
+		assert.Equal(t, updated.Price, 550.0)
+		assert.Equal(t, updated.Name, "Product 5 Updated")
+	})
+
+	t.Run("update with slice - still supported", func(t *testing.T) {
+		// Slice syntax should still work for backward compatibility
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[1].Id).Updates([]interface{}{
+			"description", "Slice Update",
+		})
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[1].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Description, "Slice Update")
+	})
 }
 
 // TestScoopDelete tests the Delete method of Scoop
