@@ -1,4 +1,4 @@
-package lrpc
+package security
 
 import (
 	"strconv"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
-	"github.com/valyala/fasthttp"
 )
 
 // CORSConfig defines the config for CORS middleware
@@ -39,55 +38,6 @@ var DefaultCORSConfig = CORSConfig{
 	ExposeHeaders:    []string{},
 	AllowCredentials: false,
 	MaxAge:           3600,
-}
-
-// CORS returns a Cross-Origin Resource Sharing (CORS) middleware
-func CORS(config ...CORSConfig) HandlerFunc {
-	cfg := DefaultCORSConfig
-	if len(config) > 0 {
-		cfg = config[0]
-	}
-
-	allowOrigins := strings.Join(cfg.AllowOrigins, ", ")
-	allowMethods := strings.Join(cfg.AllowMethods, ", ")
-	allowHeaders := strings.Join(cfg.AllowHeaders, ", ")
-	exposeHeaders := strings.Join(cfg.ExposeHeaders, ", ")
-
-	return func(ctx *Ctx) error {
-		origin := ctx.Header(HeaderOrigin)
-
-		// Set CORS headers
-		if allowOrigins == "*" || contains(cfg.AllowOrigins, origin) {
-			if allowOrigins == "*" {
-				ctx.SetHeader(HeaderAccessControlAllowOrigin, "*")
-			} else {
-				ctx.SetHeader(HeaderAccessControlAllowOrigin, origin)
-			}
-		}
-
-		ctx.SetHeader(HeaderAccessControlAllowMethods, allowMethods)
-		ctx.SetHeader(HeaderAccessControlAllowHeaders, allowHeaders)
-
-		if len(exposeHeaders) > 0 {
-			ctx.SetHeader(HeaderAccessControlExposeHeaders, exposeHeaders)
-		}
-
-		if cfg.AllowCredentials {
-			ctx.SetHeader(HeaderAccessControlAllowCredentials, "true")
-		}
-
-		if cfg.MaxAge > 0 {
-			ctx.SetHeader(HeaderAccessControlMaxAge, strconv.Itoa(cfg.MaxAge))
-		}
-
-		// Handle preflight request
-		if ctx.Method() == "OPTIONS" {
-			ctx.Context().SetStatusCode(fasthttp.StatusNoContent)
-			return nil
-		}
-
-		return ctx.Next()
-	}
 }
 
 // SecurityHeadersConfig defines security headers configuration
@@ -127,55 +77,43 @@ var DefaultSecurityHeadersConfig = SecurityHeadersConfig{
 	ReferrerPolicy:        "strict-origin-when-cross-origin",
 }
 
-// SecurityHeaders returns a middleware that sets security headers
-func SecurityHeaders(config ...SecurityHeadersConfig) HandlerFunc {
-	cfg := DefaultSecurityHeadersConfig
-	if len(config) > 0 {
-		cfg = config[0]
+// GetSecurityHeaders returns security headers based on config
+func GetSecurityHeaders(cfg SecurityHeadersConfig) map[string]string {
+	headers := make(map[string]string)
+
+	if cfg.XSSProtection != "" {
+		headers["X-XSS-Protection"] = cfg.XSSProtection
 	}
 
-	return func(ctx *Ctx) error {
-		// X-XSS-Protection
-		if cfg.XSSProtection != "" {
-			ctx.SetHeader(HeaderXXSSProtection, cfg.XSSProtection)
-		}
-
-		// X-Content-Type-Options
-		if cfg.ContentTypeNosniff != "" {
-			ctx.SetHeader(HeaderXContentTypeOptions, cfg.ContentTypeNosniff)
-		}
-
-		// X-Frame-Options
-		if cfg.XFrameOptions != "" {
-			ctx.SetHeader(HeaderXFrameOptions, cfg.XFrameOptions)
-		}
-
-		// Strict-Transport-Security
-		if cfg.HSTSMaxAge > 0 {
-			hsts := "max-age=" + strconv.Itoa(cfg.HSTSMaxAge)
-			if cfg.HSTSIncludeSubdomains {
-				hsts += "; includeSubDomains"
-			}
-			ctx.SetHeader(HeaderStrictTransportSecurity, hsts)
-		}
-
-		// Content-Security-Policy
-		if cfg.ContentSecurityPolicy != "" {
-			ctx.SetHeader(HeaderContentSecurityPolicy, cfg.ContentSecurityPolicy)
-		}
-
-		// Referrer-Policy
-		if cfg.ReferrerPolicy != "" {
-			ctx.SetHeader(HeaderReferrerPolicy, cfg.ReferrerPolicy)
-		}
-
-		// Permissions-Policy
-		if cfg.PermissionsPolicy != "" {
-			ctx.SetHeader(HeaderPermissionsPolicy, cfg.PermissionsPolicy)
-		}
-
-		return ctx.Next()
+	if cfg.ContentTypeNosniff != "" {
+		headers["X-Content-Type-Options"] = cfg.ContentTypeNosniff
 	}
+
+	if cfg.XFrameOptions != "" {
+		headers["X-Frame-Options"] = cfg.XFrameOptions
+	}
+
+	if cfg.HSTSMaxAge > 0 {
+		hsts := "max-age=" + strconv.Itoa(cfg.HSTSMaxAge)
+		if cfg.HSTSIncludeSubdomains {
+			hsts += "; includeSubDomains"
+		}
+		headers["Strict-Transport-Security"] = hsts
+	}
+
+	if cfg.ContentSecurityPolicy != "" {
+		headers["Content-Security-Policy"] = cfg.ContentSecurityPolicy
+	}
+
+	if cfg.ReferrerPolicy != "" {
+		headers["Referrer-Policy"] = cfg.ReferrerPolicy
+	}
+
+	if cfg.PermissionsPolicy != "" {
+		headers["Permissions-Policy"] = cfg.PermissionsPolicy
+	}
+
+	return headers
 }
 
 // RateLimiter implements a simple token bucket rate limiter
@@ -240,49 +178,12 @@ type RateLimitConfig struct {
 
 	// Window is the time window for rate limiting
 	Window time.Duration
-
-	// KeyGenerator generates the key for rate limiting (default: IP address)
-	KeyGenerator func(ctx *Ctx) string
-
-	// Handler is called when rate limit is exceeded
-	Handler func(ctx *Ctx) error
 }
 
 // DefaultRateLimitConfig is the default rate limit configuration
 var DefaultRateLimitConfig = RateLimitConfig{
 	Rate:   100,
 	Window: 1 * time.Minute,
-	KeyGenerator: func(ctx *Ctx) string {
-		return ctx.Context().RemoteIP().String()
-	},
-	Handler: func(ctx *Ctx) error {
-		ctx.Context().SetStatusCode(fasthttp.StatusTooManyRequests)
-		return ctx.SendJson(map[string]interface{}{
-			"code":    fasthttp.StatusTooManyRequests,
-			"message": "Too Many Requests",
-		})
-	},
-}
-
-// RateLimit returns a rate limiting middleware
-func RateLimit(config ...RateLimitConfig) HandlerFunc {
-	cfg := DefaultRateLimitConfig
-	if len(config) > 0 {
-		cfg = config[0]
-	}
-
-	limiter := NewRateLimiter(cfg.Rate, cfg.Window)
-
-	return func(ctx *Ctx) error {
-		key := cfg.KeyGenerator(ctx)
-
-		if !limiter.Allow(key) {
-			log.Warnf("Rate limit exceeded for key: %s", key)
-			return cfg.Handler(ctx)
-		}
-
-		return ctx.Next()
-	}
 }
 
 // CSRFConfig defines CSRF protection configuration
@@ -326,11 +227,21 @@ var DefaultCSRFConfig = CSRFConfig{
 }
 
 // Helper function to check if a slice contains a string
-func contains(slice []string, item string) bool {
+func Contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
 			return true
 		}
 	}
 	return false
+}
+
+// JoinStrings joins strings with separator
+func JoinStrings(items []string, sep string) string {
+	return strings.Join(items, sep)
+}
+
+// LogRateLimitExceeded logs when rate limit is exceeded
+func LogRateLimitExceeded(key string) {
+	log.Warnf("Rate limit exceeded for key: %s", key)
 }
