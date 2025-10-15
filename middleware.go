@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/compress"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/health"
 	"github.com/lazygophers/lrpc/middleware/metrics"
@@ -311,4 +312,43 @@ func (app *App) AddMetricsEndpoint(path string, collector *metrics.Collector) er
 			},
 		})
 	})
+}
+
+// Compress returns a middleware that compresses HTTP responses
+func Compress(config ...compress.Config) HandlerFunc {
+	cfg := compress.DefaultConfig
+	if len(config) > 0 {
+		cfg = config[0]
+	}
+
+	return func(ctx *Ctx) error {
+		// Execute next handlers
+		err := ctx.Next()
+
+		// Compress response if applicable
+		compress.CompressResponse(ctx.Context(), cfg)
+
+		return err
+	}
+}
+
+// BodyLimit returns a middleware that limits request body size
+func BodyLimit(maxSize int) HandlerFunc {
+	return func(ctx *Ctx) error {
+		// Check body size
+		if ctx.Context().Request.Header.ContentLength() > maxSize {
+			ctx.Context().SetStatusCode(fasthttp.StatusRequestEntityTooLarge)
+			return ctx.SendJson(map[string]interface{}{
+				"code":    fasthttp.StatusRequestEntityTooLarge,
+				"message": "Request Entity Too Large",
+			})
+		}
+
+		return ctx.Next()
+	}
+}
+
+// Stream creates a stream writer for the context
+func (ctx *Ctx) Stream() *compress.StreamWriter {
+	return compress.NewStreamWriter(ctx.Context())
 }
