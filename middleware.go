@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/auth"
 	"github.com/lazygophers/lrpc/middleware/compress"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/health"
@@ -351,4 +352,70 @@ func BodyLimit(maxSize int) HandlerFunc {
 // Stream creates a stream writer for the context
 func (ctx *Ctx) Stream() *compress.StreamWriter {
 	return compress.NewStreamWriter(ctx.Context())
+}
+
+// JWT returns a JWT authentication middleware
+func JWT(config auth.JWTConfig) HandlerFunc {
+	// Set defaults
+	if config.SigningMethod == "" {
+		config.SigningMethod = auth.DefaultJWTConfig.SigningMethod
+	}
+	if config.TokenLookup == "" {
+		config.TokenLookup = auth.DefaultJWTConfig.TokenLookup
+	}
+	if config.AuthScheme == "" {
+		config.AuthScheme = auth.DefaultJWTConfig.AuthScheme
+	}
+	if config.ContextKey == "" {
+		config.ContextKey = auth.DefaultJWTConfig.ContextKey
+	}
+	if config.Claims == nil {
+		config.Claims = auth.DefaultJWTConfig.Claims
+	}
+
+	// Default error handler
+	if config.ErrorHandler == nil {
+		config.ErrorHandler = func(ctx *fasthttp.RequestCtx, err error) {
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			ctx.SetBodyString(`{"code":401,"message":"Unauthorized"}`)
+		}
+	}
+
+	return func(ctx *Ctx) error {
+		err := auth.ValidateJWT(ctx.Context(), config)
+		if err != nil {
+			config.ErrorHandler(ctx.Context(), err)
+			return err
+		}
+		return ctx.Next()
+	}
+}
+
+// BasicAuth returns a basic authentication middleware
+func BasicAuth(config auth.BasicAuthConfig) HandlerFunc {
+	// Set defaults
+	if config.Realm == "" {
+		config.Realm = auth.DefaultBasicAuthConfig.Realm
+	}
+	if config.ContextKey == "" {
+		config.ContextKey = auth.DefaultBasicAuthConfig.ContextKey
+	}
+
+	// Default error handler
+	if config.ErrorHandler == nil {
+		config.ErrorHandler = func(ctx *fasthttp.RequestCtx, err error) {
+			auth.SetWWWAuthenticate(ctx, config.Realm)
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			ctx.SetBodyString(`{"code":401,"message":"Unauthorized"}`)
+		}
+	}
+
+	return func(ctx *Ctx) error {
+		err := auth.ValidateBasicAuth(ctx.Context(), config)
+		if err != nil {
+			config.ErrorHandler(ctx.Context(), err)
+			return err
+		}
+		return ctx.Next()
+	}
 }
