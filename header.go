@@ -126,7 +126,7 @@ const (
 	HeaderXRobotsTag              = "X-Robots-Tag"
 	HeaderXUACompatible           = "X-UA-Compatible"
 
-	HeaderTrance = "X-Trance"
+	HeaderTrace = "X-Trace"
 	HeaderToken  = "X-Token"
 	HeaderTime   = "X-Time"
 )

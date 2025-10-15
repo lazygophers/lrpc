@@ -132,8 +132,7 @@ func (app *App) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	// Execute chain
 	if err := appCtx.executeChain(); err != nil {
 		// Error handling
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		ctx.SetBodyString(err.Error())
+		app.onError(appCtx, err)
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 type Ctx struct {
 	ctx *fasthttp.RequestCtx
 
-	tranceId string
+	traceID string
 
 	params map[string]string
 
@@ -73,7 +73,7 @@ func (p *Ctx) Query(key string) string {
 	return string(p.ctx.QueryArgs().Peek(key))
 }
 
-func (p *Ctx) Parame(key string) string {
+func (p *Ctx) Param(key string) string {
 	return p.params[key]
 }
 
@@ -171,25 +171,25 @@ func (p *Ctx) BodyParser(o any) (err error) {
 	return nil
 }
 
-func (p *Ctx) TranceId() string {
-	return p.tranceId
+func (p *Ctx) TraceID() string {
+	return p.traceID
 }
 
-func (p *Ctx) SetTranceId(tranceId ...string) {
-	if len(tranceId) > 0 {
-		p.tranceId = tranceId[0]
+func (p *Ctx) SetTraceID(traceID ...string) {
+	if len(traceID) > 0 {
+		p.traceID = traceID[0]
 	} else {
-		p.tranceId = log.GenTraceId()
+		p.traceID = log.GenTraceId()
 	}
 }
 
 func (p *Ctx) init() {
-	if p.Header(HeaderTrance) != "" {
-		p.tranceId = p.Header(HeaderTrance)
+	if p.Header(HeaderTrace) != "" {
+		p.traceID = p.Header(HeaderTrace)
 	}
 
-	if p.tranceId == "" {
-		p.tranceId = log.GetTrace()
+	if p.traceID == "" {
+		p.traceID = log.GetTrace()
 	}
 }
 
@@ -239,13 +239,6 @@ func (p *Ctx) SetParam(key, value string) {
 	p.params[key] = value
 }
 
-// Param gets a route parameter by name
-func (p *Ctx) Param(key string) string {
-	if p.params == nil {
-		return ""
-	}
-	return p.params[key]
-}
 
 // AllParams returns all route parameters
 func (p *Ctx) AllParams() map[string]string {

@@ -11,11 +11,9 @@ type App struct {
 
 	server *fasthttp.Server
 
-	routes map[string]*SearchTree[HandlerFunc]
-
-	// New routing system
-	routers            map[string]*Router
-	globalMiddleware   []HandlerFunc // Global middleware for new routing
+	// Routing system
+	routers          map[string]*Router
+	globalMiddleware []HandlerFunc
 
 	ctxPool sync.Pool
 
@@ -24,7 +22,6 @@ type App struct {
 
 func NewApp(c ...*Config) *App {
 	p := &App{
-		routes:  make(map[string]*SearchTree[HandlerFunc]),
 		routers: make(map[string]*Router),
 		ctxPool: sync.Pool{
 			New: func() any {
