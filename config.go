@@ -6,6 +6,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/lrpc/middleware/pool"
 	"github.com/lazygophers/lrpc/middleware/xerror"
 )
 
@@ -35,6 +36,9 @@ type Config struct {
 
 	// CompressionMinLength sets minimum response size to compress
 	CompressionMinLength int
+
+	// ServerPoolConfig configures the server connection pool
+	ServerPoolConfig *pool.ServerPoolConfig
 }
 
 var defaultOnError = func(ctx *Ctx, err error) {

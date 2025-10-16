@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/pool"
 	"github.com/lazygophers/utils/network"
 	"github.com/lazygophers/utils/runtime"
 	"github.com/valyala/fasthttp"
@@ -77,6 +78,11 @@ func (p *App) initServer() {
 		Logger:                             log.Clone(),
 		TLSConfig:                          nil,
 		FormValueFunc:                      nil,
+	}
+
+	// Apply server pool configuration if provided
+	if p.c.ServerPoolConfig != nil {
+		pool.ApplyServerPoolConfig(p.server, *p.c.ServerPoolConfig)
 	}
 }
 
