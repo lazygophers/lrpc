@@ -36,37 +36,6 @@ var DefaultRecoverConfig = RecoverConfig{
 	ErrorHandler: nil,
 }
 
-// RateLimitConfig defines rate limit configuration
-type RateLimitConfig struct {
-	// Rate is the number of requests allowed per window
-	Rate int
-
-	// Window is the time window for rate limiting
-	Window time.Duration
-
-	// KeyGenerator generates the key for rate limiting (default: IP address)
-	KeyGenerator func(ctx *Ctx) string
-
-	// Handler is called when rate limit is exceeded
-	Handler func(ctx *Ctx) error
-}
-
-// DefaultRateLimitConfig is the default rate limit configuration
-var DefaultRateLimitConfig = RateLimitConfig{
-	Rate:   100,
-	Window: 1 * time.Minute,
-	KeyGenerator: func(ctx *Ctx) string {
-		return ctx.Context().RemoteIP().String()
-	},
-	Handler: func(ctx *Ctx) error {
-		ctx.Context().SetStatusCode(fasthttp.StatusTooManyRequests)
-		return ctx.SendJson(map[string]interface{}{
-			"code":    fasthttp.StatusTooManyRequests,
-			"message": "Too Many Requests",
-		})
-	},
-}
-
 // Recover returns a middleware that recovers from panics
 func Recover(config ...RecoverConfig) HandlerFunc {
 	cfg := DefaultRecoverConfig
@@ -169,6 +138,37 @@ func SecurityHeaders(config ...security.SecurityHeadersConfig) HandlerFunc {
 	}
 }
 
+// RateLimitConfig defines rate limit configuration
+type RateLimitConfig struct {
+	// Rate is the number of requests allowed per window
+	Rate int
+
+	// Window is the time window for rate limiting
+	Window time.Duration
+
+	// KeyGenerator generates the key for rate limiting (default: IP address)
+	KeyGenerator func(ctx *Ctx) string
+
+	// Handler is called when rate limit is exceeded
+	Handler func(ctx *Ctx) error
+}
+
+// DefaultRateLimitConfig is the default rate limit configuration
+var DefaultRateLimitConfig = RateLimitConfig{
+	Rate:   100,
+	Window: 1 * time.Minute,
+	KeyGenerator: func(ctx *Ctx) string {
+		return ctx.Context().RemoteIP().String()
+	},
+	Handler: func(ctx *Ctx) error {
+		ctx.Context().SetStatusCode(fasthttp.StatusTooManyRequests)
+		return ctx.SendJson(map[string]interface{}{
+			"code":    fasthttp.StatusTooManyRequests,
+			"message": "Too Many Requests",
+		})
+	},
+}
+
 // RateLimit returns a rate limiting middleware
 func RateLimit(config ...RateLimitConfig) HandlerFunc {
 	cfg := DefaultRateLimitConfig
@@ -232,88 +232,6 @@ func SlowRequestLogger(config ...metrics.SlowRequestConfig) HandlerFunc {
 
 		return err
 	}
-}
-
-// AddHealthEndpoints adds standard health check endpoints to the app
-func (app *App) AddHealthEndpoints(prefix string, checker *health.Checker) error {
-	if prefix == "" {
-		prefix = "/"
-	}
-
-	// Liveness probe
-	err := app.GET(prefix+"health", func(ctx *Ctx) error {
-		ctx.Context().SetStatusCode(fasthttp.StatusOK)
-		return ctx.SendJson(map[string]interface{}{
-			"status": "ok",
-			"time":   time.Now().Unix(),
-		})
-	})
-	if err != nil {
-		return err
-	}
-
-	// Readiness probe
-	err = app.GET(prefix+"ready", func(ctx *Ctx) error {
-		if checker != nil && !checker.IsReady() {
-			ctx.Context().SetStatusCode(fasthttp.StatusServiceUnavailable)
-			return ctx.SendJson(map[string]interface{}{
-				"status": "not ready",
-				"time":   time.Now().Unix(),
-			})
-		}
-
-		ctx.Context().SetStatusCode(fasthttp.StatusOK)
-		return ctx.SendJson(map[string]interface{}{
-			"status": "ready",
-			"time":   time.Now().Unix(),
-		})
-	})
-	if err != nil {
-		return err
-	}
-
-	// Detailed health check endpoint
-	if checker != nil {
-		err = app.GET(prefix+"healthz", func(ctx *Ctx) error {
-			results := checker.RunChecks()
-
-			status := results["status"]
-			if status == health.StatusUnhealthy {
-				ctx.Context().SetStatusCode(fasthttp.StatusServiceUnavailable)
-			} else {
-				ctx.Context().SetStatusCode(fasthttp.StatusOK)
-			}
-
-			return ctx.SendJson(results)
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// AddMetricsEndpoint adds a metrics endpoint to the app
-func (app *App) AddMetricsEndpoint(path string, collector *metrics.Collector) error {
-	return app.GET(path, func(ctx *Ctx) error {
-		m := collector.GetMetrics()
-		return ctx.SendJson(map[string]interface{}{
-			"total_requests":     m.TotalRequests,
-			"total_responses":    m.TotalResponses,
-			"total_errors":       m.TotalErrors,
-			"total_panics":       m.TotalPanics,
-			"requests_in_flight": m.RequestsInFlight,
-			"by_method": map[string]interface{}{
-				"get":    m.GetRequests,
-				"post":   m.PostRequests,
-				"put":    m.PutRequests,
-				"delete": m.DeleteRequests,
-				"patch":  m.PatchRequests,
-				"other":  m.OtherRequests,
-			},
-		})
-	})
 }
 
 // Compress returns a middleware that compresses HTTP responses
@@ -447,5 +365,87 @@ func CacheWithETag(maxAge int, weak bool) HandlerFunc {
 		MaxAge:   maxAge,
 		Public:   true,
 		WeakETag: weak,
+	})
+}
+
+// AddHealthEndpoints adds standard health check endpoints to the app
+func (app *App) AddHealthEndpoints(prefix string, checker *health.Checker) error {
+	if prefix == "" {
+		prefix = "/"
+	}
+
+	// Liveness probe
+	err := app.GET(prefix+"health", func(ctx *Ctx) error {
+		ctx.Context().SetStatusCode(fasthttp.StatusOK)
+		return ctx.SendJson(map[string]interface{}{
+			"status": "ok",
+			"time":   time.Now().Unix(),
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	// Readiness probe
+	err = app.GET(prefix+"ready", func(ctx *Ctx) error {
+		if checker != nil && !checker.IsReady() {
+			ctx.Context().SetStatusCode(fasthttp.StatusServiceUnavailable)
+			return ctx.SendJson(map[string]interface{}{
+				"status": "not ready",
+				"time":   time.Now().Unix(),
+			})
+		}
+
+		ctx.Context().SetStatusCode(fasthttp.StatusOK)
+		return ctx.SendJson(map[string]interface{}{
+			"status": "ready",
+			"time":   time.Now().Unix(),
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	// Detailed health check endpoint
+	if checker != nil {
+		err = app.GET(prefix+"healthz", func(ctx *Ctx) error {
+			results := checker.RunChecks()
+
+			status := results["status"]
+			if status == health.StatusUnhealthy {
+				ctx.Context().SetStatusCode(fasthttp.StatusServiceUnavailable)
+			} else {
+				ctx.Context().SetStatusCode(fasthttp.StatusOK)
+			}
+
+			return ctx.SendJson(results)
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddMetricsEndpoint adds a metrics endpoint to the app
+func (app *App) AddMetricsEndpoint(path string, collector *metrics.Collector) error {
+	return app.GET(path, func(ctx *Ctx) error {
+		m := collector.GetMetrics()
+		return ctx.SendJson(map[string]interface{}{
+			"total_requests":     m.TotalRequests,
+			"total_responses":    m.TotalResponses,
+			"total_errors":       m.TotalErrors,
+			"total_panics":       m.TotalPanics,
+			"requests_in_flight": m.RequestsInFlight,
+			"by_method": map[string]interface{}{
+				"get":    m.GetRequests,
+				"post":   m.PostRequests,
+				"put":    m.PutRequests,
+				"delete": m.DeleteRequests,
+				"patch":  m.PatchRequests,
+				"other":  m.OtherRequests,
+			},
+		})
 	})
 }
