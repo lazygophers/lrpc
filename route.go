@@ -527,6 +527,9 @@ func sortChildren(children []*RouteNode) {
 	}
 }
 
+// ErrRouteNotFound indicates that no route was found for the given path
+var ErrRouteNotFound = fmt.Errorf("route not found")
+
 // findRoute finds a matching route for the given path
 func (r *Router) findRoute(path string) (*MatchResult, error) {
 	if path == "" || path[0] != '/' {
@@ -541,7 +544,7 @@ func (r *Router) findRoute(path string) (*MatchResult, error) {
 				Params: make(map[string]string),
 			}, nil
 		}
-		return nil, nil
+		return nil, ErrRouteNotFound
 	}
 
 	// Split path
@@ -553,7 +556,7 @@ func (r *Router) findRoute(path string) (*MatchResult, error) {
 		return result, nil
 	}
 
-	return nil, nil
+	return nil, ErrRouteNotFound
 }
 
 // searchNode recursively searches for a matching node
