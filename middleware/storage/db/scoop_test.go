@@ -11,16 +11,16 @@ import (
 
 // TestProduct is a test model for scoop testing
 type TestProduct struct {
-	Id          int    `gorm:"primaryKey;autoIncrement"`
-	Name        string `gorm:"size:100;not null"`
-	Description string `gorm:"size:500"`
+	Id          uint64  `gorm:"primaryKey;autoIncrement"`
+	Name        string  `gorm:"size:100;not null"`
+	Description string  `gorm:"size:500"`
 	Price       float64 `gorm:"not null"`
-	Stock       int    `gorm:"default:0"`
-	CategoryId  int    `gorm:"index"`
-	IsActive    bool   `gorm:"default:true"`
-	CreatedAt   int64  `gorm:"autoCreateTime"`
-	UpdatedAt   int64  `gorm:"autoUpdateTime"`
-	DeletedAt   int64  `gorm:"index"`
+	Stock       int     `gorm:"default:0"`
+	CategoryId  int     `gorm:"index"`
+	IsActive    bool    `gorm:"default:true"`
+	CreatedAt   int64   `gorm:"autoCreateTime"`
+	UpdatedAt   int64   `gorm:"autoUpdateTime"`
+	DeletedAt   int64   `gorm:"index"`
 }
 
 func (TestProduct) TableName() string {
@@ -33,13 +33,22 @@ func setupTestDBForScoop(t *testing.T) *db.Client {
 	assert.NilError(t, err)
 
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	})
 
+	//cfg := &db.Config{
+	//	Type:    db.Sqlite,
+	//	Address: tempDir,
+	//	Name:    "test",
+	//}
+
 	cfg := &db.Config{
-		Type:    db.Sqlite,
-		Address: tempDir,
-		Name:    "test",
+		Type:     db.MySQL,
+		Address:  "127.0.0.1",
+		Port:     3306,
+		Name:     "test",
+		Username: "root",
+		Password: "HNEzz4fang.",
 	}
 
 	client, err := db.New(cfg, &TestProduct{})
@@ -183,6 +192,88 @@ func TestScoopUpdate(t *testing.T) {
 		assert.NilError(t, firstResult.Error)
 		assert.Equal(t, updated.Price, 250.0)
 		assert.Equal(t, updated.Stock, 25)
+	})
+
+	t.Run("update with variadic args - ordered fields", func(t *testing.T) {
+		// Test using variadic args to preserve field order in UPDATE statement
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[2].Id).Updates(
+			"name", "Updated Product 3",
+			"price", 350.0,
+			"stock", 35,
+		)
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[2].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Name, "Updated Product 3")
+		assert.Equal(t, updated.Price, 350.0)
+		assert.Equal(t, updated.Stock, 35)
+	})
+
+	t.Run("update with variadic args - single field", func(t *testing.T) {
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[3].Id).Updates(
+			"description", "Updated Description",
+		)
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[3].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Description, "Updated Description")
+	})
+
+	t.Run("update with variadic args - error: odd count", func(t *testing.T) {
+		// Odd argument count should return error
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[0].Id).Updates(
+			"name", "New Name",
+			"price", // Missing value
+		)
+		assert.Assert(t, result.Error != nil)
+		assert.Assert(t, strings.Contains(result.Error.Error(), "argument count must be even"))
+	})
+
+	t.Run("update with variadic args - error: non-string key", func(t *testing.T) {
+		// Key at even position must be string
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[0].Id).Updates(
+			123, "value", // Key is int, not string
+		)
+		assert.Assert(t, result.Error != nil)
+		assert.Assert(t, strings.Contains(result.Error.Error(), "must be a string"))
+	})
+
+	t.Run("update with variadic args - verify order preservation", func(t *testing.T) {
+		// First create a new scoop with mock data to test SQL generation
+		scoop := client.NewScoop().Model(&TestProduct{}).Equal("id", products[4].Id)
+
+		// Use variadic args to update
+		result := scoop.Updates(
+			"stock", 55,
+			"price", 550.0,
+			"name", "Product 5 Updated",
+		)
+		assert.NilError(t, result.Error)
+
+		// Verify the update worked
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[4].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Stock, 55)
+		assert.Equal(t, updated.Price, 550.0)
+		assert.Equal(t, updated.Name, "Product 5 Updated")
+	})
+
+	t.Run("update with slice - still supported", func(t *testing.T) {
+		// Slice syntax should still work for backward compatibility
+		result := client.NewScoop().Model(&TestProduct{}).Equal("id", products[1].Id).Updates([]interface{}{
+			"description", "Slice Update",
+		})
+		assert.NilError(t, result.Error)
+
+		var updated TestProduct
+		firstResult := client.NewScoop().Model(&TestProduct{}).Equal("id", products[1].Id).First(&updated)
+		assert.NilError(t, firstResult.Error)
+		assert.Equal(t, updated.Description, "Slice Update")
 	})
 }
 
@@ -493,6 +584,7 @@ func TestScoopUnscoped(t *testing.T) {
 		assert.Equal(t, len(allProducts), 5)
 	})
 }
+
 // TestCategory is a test model for join testing
 type TestCategory struct {
 	Id        int    `gorm:"primaryKey;autoIncrement"`
@@ -508,11 +600,11 @@ func (TestCategory) TableName() string {
 // TestScoopJoin tests Join methods
 func TestScoopJoin(t *testing.T) {
 	client := setupTestDBForScoop(t)
-	
+
 	// Create test categories table
 	err := client.AutoMigrate(&TestCategory{})
 	assert.NilError(t, err)
-	
+
 	// Insert test categories
 	categories := []TestCategory{
 		{Name: "Electronics"},
@@ -523,10 +615,10 @@ func TestScoopJoin(t *testing.T) {
 		result := client.NewScoop().Model(&TestCategory{}).Create(&categories[i])
 		assert.NilError(t, result.Error)
 	}
-	
+
 	// Insert test products with categories
 	insertTestProducts(t, client)
-	
+
 	t.Run("inner join", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("test_products.name", "test_categories.name as category_name").
@@ -537,42 +629,42 @@ func TestScoopJoin(t *testing.T) {
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("left join", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("test_products.*", "test_categories.name as category_name").
 			LeftJoin("test_categories", "test_products.category_id = test_categories.id").
 			Where("test_products.deleted_at", 0)
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("right join", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("test_products.*").
 			RightJoin("test_categories", "test_products.category_id = test_categories.id")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("multiple joins", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			InnerJoin("test_categories", "test_products.category_id = test_categories.id").
 			LeftJoin("test_another_table", "test_products.id = test_another_table.product_id")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("cross join", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			CrossJoin("test_categories")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
@@ -583,30 +675,30 @@ func TestScoopJoin(t *testing.T) {
 func TestScoopHaving(t *testing.T) {
 	client := setupTestDBForScoop(t)
 	insertTestProducts(t, client)
-	
+
 	t.Run("having with count", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("category_id", "COUNT(*) as count").
 			Group("category_id").
 			Having("COUNT(*) > ?", 1)
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("having with multiple conditions", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("category_id", "SUM(price) as total_price").
 			Group("category_id").
 			Having("SUM(price) > ?", 100).
 			Having("COUNT(*) > ?", 1)
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("group by with having and order", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("category_id", "AVG(price) as avg_price", "COUNT(*) as count").
@@ -614,7 +706,7 @@ func TestScoopHaving(t *testing.T) {
 			Group("category_id").
 			Having("AVG(price) > ?", 150).
 			Order("avg_price DESC")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
@@ -624,11 +716,11 @@ func TestScoopHaving(t *testing.T) {
 // TestScoopComplexQuery tests complex queries combining Join and Having
 func TestScoopComplexQuery(t *testing.T) {
 	client := setupTestDBForScoop(t)
-	
+
 	// Create test categories table
 	err := client.AutoMigrate(&TestCategory{})
 	assert.NilError(t, err)
-	
+
 	// Insert test data
 	categories := []TestCategory{
 		{Name: "Electronics"},
@@ -639,9 +731,9 @@ func TestScoopComplexQuery(t *testing.T) {
 		result := client.NewScoop().Model(&TestCategory{}).Create(&categories[i])
 		assert.NilError(t, result.Error)
 	}
-	
+
 	insertTestProducts(t, client)
-	
+
 	t.Run("join with group by and having", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("test_categories.name as category", "COUNT(*) as product_count", "AVG(test_products.price) as avg_price").
@@ -650,12 +742,12 @@ func TestScoopComplexQuery(t *testing.T) {
 			Group("test_categories.name").
 			Having("COUNT(*) > ?", 0).
 			Order("product_count DESC")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
 	})
-	
+
 	t.Run("multiple joins with having", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("test_categories.name", "SUM(test_products.price) as total").
@@ -664,7 +756,7 @@ func TestScoopComplexQuery(t *testing.T) {
 			Group("test_categories.name").
 			Having("SUM(test_products.price) > ?", 200).
 			Limit(10)
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)
@@ -675,7 +767,7 @@ func TestScoopComplexQuery(t *testing.T) {
 func TestScoopJoinBackwardCompatibility(t *testing.T) {
 	client := setupTestDBForScoop(t)
 	insertTestProducts(t, client)
-	
+
 	t.Run("existing queries without joins", func(t *testing.T) {
 		var products []*TestProduct
 		result := client.NewScoop().Model(&TestProduct{}).
@@ -683,17 +775,17 @@ func TestScoopJoinBackwardCompatibility(t *testing.T) {
 			Order("price DESC").
 			Limit(5).
 			Find(&products)
-		
+
 		assert.NilError(t, result.Error)
 		assert.Assert(t, len(products) > 0)
 	})
-	
+
 	t.Run("existing group by without having", func(t *testing.T) {
 		sql := client.NewScoop().Table("test_products").
 			Select("category_id", "COUNT(*) as count").
 			Group("category_id").
 			Order("count DESC")
-		
+
 		sqlStr := sql.ToSQL(db.SQLOperationSelect)
 		t.Logf("Generated SQL: %s", sqlStr)
 		assert.Assert(t, len(sqlStr) > 0)

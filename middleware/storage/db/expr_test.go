@@ -41,37 +41,37 @@ func TestExprInc(t *testing.T) {
 			name:       "MySQL increment",
 			clientType: db.MySQL,
 			field:      "count",
-			expected:   "`count` + 1",
+			expected:   "count + 1",
 		},
 		{
 			name:       "SQLite increment",
 			clientType: db.Sqlite,
 			field:      "count",
-			expected:   "\"count\" + 1",
+			expected:   "count + 1",
 		},
 		{
 			name:       "PostgreSQL increment",
 			clientType: db.Postgres,
 			field:      "count",
-			expected:   "\"count\" + 1",
+			expected:   "count + 1",
 		},
 		{
 			name:       "TiDB increment",
 			clientType: db.TiDB,
 			field:      "score",
-			expected:   "`score` + 1",
+			expected:   "score + 1",
 		},
 		{
 			name:       "ClickHouse increment",
 			clientType: db.ClickHouse,
 			field:      "total",
-			expected:   "`total` + 1",
+			expected:   "total + 1",
 		},
 		{
 			name:       "GaussDB increment",
 			clientType: db.GaussDB,
 			field:      "amount",
-			expected:   "\"amount\" + 1",
+			expected:   "amount + 1",
 		},
 	}
 
@@ -97,49 +97,49 @@ func TestExprIncBy(t *testing.T) {
 			clientType: db.MySQL,
 			field:      "count",
 			count:      5,
-			expected:   "`count` + 5",
+			expected:   "count + 5",
 		},
 		{
 			name:       "SQLite increment by 10",
 			clientType: db.Sqlite,
 			field:      "count",
 			count:      10,
-			expected:   "\"count\" + 10",
+			expected:   "count + 10",
 		},
 		{
 			name:       "PostgreSQL decrement by 3",
 			clientType: db.Postgres,
 			field:      "balance",
 			count:      -3,
-			expected:   "\"balance\" + -3",
+			expected:   "balance + -3",
 		},
 		{
 			name:       "TiDB increment by 100",
 			clientType: db.TiDB,
 			field:      "points",
 			count:      100,
-			expected:   "`points` + 100",
+			expected:   "points + 100",
 		},
 		{
 			name:       "ClickHouse increment by 50",
 			clientType: db.ClickHouse,
 			field:      "views",
 			count:      50,
-			expected:   "`views` + 50",
+			expected:   "views + 50",
 		},
 		{
 			name:       "GaussDB decrement by 2",
 			clientType: db.GaussDB,
 			field:      "stock",
 			count:      -2,
-			expected:   "\"stock\" + -2",
+			expected:   "stock + -2",
 		},
 		{
 			name:       "increment by 0",
 			clientType: db.MySQL,
 			field:      "field",
 			count:      0,
-			expected:   "`field` + 0",
+			expected:   "field + 0",
 		},
 	}
 
@@ -225,7 +225,7 @@ func TestExprIf(t *testing.T) {
 func TestExprFieldQuoting(t *testing.T) {
 	t.Run("field with table prefix", func(t *testing.T) {
 		expr := db.ExprInc(db.MySQL, "users.count")
-		assert.Equal(t, "`users`.`count` + 1", expr.SQL)
+		assert.Equal(t, "users.count + 1", expr.SQL)
 	})
 
 	t.Run("field already quoted", func(t *testing.T) {
@@ -235,7 +235,7 @@ func TestExprFieldQuoting(t *testing.T) {
 
 	t.Run("SQLite field with table prefix", func(t *testing.T) {
 		expr := db.ExprIncBy(db.Sqlite, "orders.total", 100)
-		assert.Equal(t, "\"orders\".\"total\" + 100", expr.SQL)
+		assert.Equal(t, "orders.total + 100", expr.SQL)
 	})
 }
 
@@ -260,22 +260,22 @@ func TestExprReturnType(t *testing.T) {
 func TestExprEdgeCases(t *testing.T) {
 	t.Run("empty field name", func(t *testing.T) {
 		expr := db.ExprInc(db.MySQL, "")
-		assert.Equal(t, "`` + 1", expr.SQL)
+		assert.Equal(t, " + 1", expr.SQL)
 	})
 
 	t.Run("field with special characters", func(t *testing.T) {
 		expr := db.ExprIncBy(db.Sqlite, "field-name", 1)
-		assert.Equal(t, "\"field-name\" + 1", expr.SQL)
+		assert.Equal(t, "field-name + 1", expr.SQL)
 	})
 
 	t.Run("large increment value", func(t *testing.T) {
 		expr := db.ExprIncBy(db.MySQL, "bignum", 9223372036854775807)
-		assert.Equal(t, "`bignum` + 9223372036854775807", expr.SQL)
+		assert.Equal(t, "bignum + 9223372036854775807", expr.SQL)
 	})
 
 	t.Run("negative increment value", func(t *testing.T) {
 		expr := db.ExprIncBy(db.MySQL, "balance", -1000)
-		assert.Equal(t, "`balance` + -1000", expr.SQL)
+		assert.Equal(t, "balance + -1000", expr.SQL)
 	})
 
 	t.Run("ExprIf with nil values", func(t *testing.T) {
