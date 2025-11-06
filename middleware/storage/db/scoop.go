@@ -1529,22 +1529,20 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	idInfo := getIdFieldInfo(vv)
 	useReturning := false
 
-	if (p.clientType == Postgres || p.clientType == GaussDB) && idInfo.needsAutoIncrement() {
-		// Check if id column was included in the insert
-		hasIdColumn := false
-		for _, col := range columns {
-			if col == "id" {
-				hasIdColumn = true
-				break
-			}
-		}
+	// Build column map for efficient lookup
+	columnMap := make(map[string]bool, len(columns))
+	for _, col := range columns {
+		columnMap[col] = true
+	}
 
-		if !hasIdColumn {
-			// Use RETURNING clause to get the ID in one query
-			insertSQL += " RETURNING id"
-			useReturning = true
-			res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
-		}
+	// Determine if we should use RETURNING clause for auto-increment ID
+	if (p.clientType == Postgres || p.clientType == GaussDB) &&
+		idInfo.needsAutoIncrement() &&
+		!columnMap["id"] {
+		// Use RETURNING clause to get the ID in one query
+		insertSQL += " RETURNING id"
+		useReturning = true
+		res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
 	}
 
 	if !useReturning {
