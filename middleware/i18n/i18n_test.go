@@ -18,6 +18,18 @@ type mockFs struct {
 	dirs  map[string][]fs.DirEntry
 }
 
+func (m *mockFs) Open(name string) (fs.File, error) {
+	// Check if it's a file
+	if data, ok := m.files[name]; ok {
+		return &mockFile{name: name, data: data}, nil
+	}
+	// Check if it's a directory
+	if _, ok := m.dirs[name]; ok {
+		return &mockFile{name: name, isDir: true}, nil
+	}
+	return nil, fmt.Errorf("file not found: %s", name)
+}
+
 func (m *mockFs) ReadFile(name string) ([]byte, error) {
 	if data, ok := m.files[name]; ok {
 		return data, nil
@@ -32,13 +44,43 @@ func (m *mockFs) ReadDir(name string) ([]fs.DirEntry, error) {
 	return nil, fmt.Errorf("directory not found: %s", name)
 }
 
+type mockFile struct {
+	name  string
+	data  []byte
+	isDir bool
+}
+
+func (m *mockFile) Stat() (fs.FileInfo, error) {
+	return &mockFileInfo{name: m.name, isDir: m.isDir}, nil
+}
+
+func (m *mockFile) Read([]byte) (int, error) {
+	return 0, fmt.Errorf("not implemented")
+}
+
+func (m *mockFile) Close() error {
+	return nil
+}
+
+type mockFileInfo struct {
+	name  string
+	isDir bool
+}
+
+func (m *mockFileInfo) Name() string       { return m.name }
+func (m *mockFileInfo) Size() int64        { return 0 }
+func (m *mockFileInfo) Mode() fs.FileMode  { return 0 }
+func (m *mockFileInfo) ModTime() time.Time { return time.Time{} }
+func (m *mockFileInfo) IsDir() bool        { return m.isDir }
+func (m *mockFileInfo) Sys() interface{}   { return nil }
+
 type mockDirEntry struct {
 	name string
 }
 
-func (m *mockDirEntry) Name() string       { return m.name }
-func (m *mockDirEntry) IsDir() bool        { return false }
-func (m *mockDirEntry) Type() fs.FileMode  { return 0 }
+func (m *mockDirEntry) Name() string               { return m.name }
+func (m *mockDirEntry) IsDir() bool                { return false }
+func (m *mockDirEntry) Type() fs.FileMode          { return 0 }
 func (m *mockDirEntry) Info() (fs.FileInfo, error) { return nil, fmt.Errorf("not implemented") }
 
 func newMockFs() *mockFs {

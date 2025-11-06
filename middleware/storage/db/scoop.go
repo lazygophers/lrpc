@@ -1516,74 +1516,93 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	insertSQL := p.buildInsertSQL(columns, "("+strings.Join(placeholders, ", ")+")")
 
 	start := time.Now()
-	// Use Session with PrepareStmt disabled for raw SQL
-	session := p._db.Session(&gorm.Session{
-		PrepareStmt: false,
-	})
 
-	// Execute INSERT with RETURNING clause optimization for PostgreSQL/GaussDB
-	var lastInsertID int64
-	var res *gorm.DB
-
-	// Check if we need auto-increment ID and can use RETURNING clause
+	// Check if we need auto-increment ID
 	idInfo := getIdFieldInfo(vv)
-	useReturning := false
 
-	if (p.clientType == Postgres || p.clientType == GaussDB) && idInfo.needsAutoIncrement() {
-		// Check if id column was included in the insert
-		hasIdColumn := false
-		for _, col := range columns {
-			if col == "id" {
-				hasIdColumn = true
-				break
+	// Build column map for efficient lookup
+	columnMap := make(map[string]bool, len(columns))
+	for _, col := range columns {
+		columnMap[col] = true
+	}
+
+	// Determine if we should use RETURNING clause for auto-increment ID (PostgreSQL/GaussDB)
+	useReturning := (p.clientType == Postgres || p.clientType == GaussDB) &&
+		idInfo.needsAutoIncrement() &&
+		!columnMap["id"]
+
+	var lastInsertID int64
+	var rowsAffected int64
+	var execErr error
+
+	if useReturning {
+		// PostgreSQL/GaussDB: Use RETURNING clause to get the ID in one query
+		insertSQL += " RETURNING id"
+		session := p._db.Session(&gorm.Session{PrepareStmt: false})
+		res := session.Raw(insertSQL, values...).Scan(&lastInsertID)
+		rowsAffected = res.RowsAffected
+		execErr = res.Error
+
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return FormatSql(insertSQL, values...), res.RowsAffected
+		}, res.Error)
+	} else {
+		// MySQL/TiDB/SQLite/Others: Use ConnPool.ExecContext to get sql.Result
+		// This avoids the race condition of querying LAST_INSERT_ID() on a different connection
+		session := p._db.Session(&gorm.Session{PrepareStmt: false})
+
+		// Get connection pool and context from GORM
+		connPool := session.Statement.ConnPool
+		ctx := session.Statement.Context
+
+		// Execute INSERT using ConnPool.ExecContext
+		result, err := connPool.ExecContext(ctx, insertSQL, values...)
+
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+			if result != nil {
+				affectedRows, _ = result.RowsAffected()
+			}
+			return FormatSql(insertSQL, values...), affectedRows
+		}, err)
+
+		if err != nil {
+			execErr = err
+		} else {
+			// Get rows affected from sql.Result
+			rowsAffected, _ = result.RowsAffected()
+
+			// Get LastInsertId directly from sql.Result (no additional query needed)
+			// This is thread-safe because sql.Result contains the ID from the execution
+			if idInfo.needsAutoIncrement() && rowsAffected > 0 {
+				lastInsertID, err = result.LastInsertId()
+				if err != nil {
+					log.Errorf("err:%v", err)
+				}
 			}
 		}
-
-		if !hasIdColumn {
-			// Use RETURNING clause to get the ID in one query
-			insertSQL += " RETURNING id"
-			useReturning = true
-			res = session.Raw(insertSQL, values...).Scan(&lastInsertID)
-		}
 	}
 
-	if !useReturning {
-		res = session.Exec(insertSQL, values...)
-	}
-
-	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-		return FormatSql(insertSQL, values...), res.RowsAffected
-	}, res.Error)
-
-	if res.Error != nil {
-		log.Errorf("err:%v", res.Error)
-		if p.IsDuplicatedKeyError(res.Error) {
+	// Handle execution errors
+	if execErr != nil {
+		log.Errorf("err:%v", execErr)
+		if p.IsDuplicatedKeyError(execErr) {
 			return &CreateResult{
-				RowsAffected: res.RowsAffected,
+				RowsAffected: rowsAffected,
 				Error:        p.getDuplicatedKeyError(),
 			}
 		}
 		return &CreateResult{
-			Error: res.Error,
+			Error: execErr,
 		}
 	}
 
 	// Set the auto-generated ID back to the struct if applicable
-	if res.RowsAffected > 0 && idInfo.needsAutoIncrement() {
-		// For PostgreSQL/GaussDB, lastInsertID was already set via RETURNING clause
-		if useReturning && lastInsertID > 0 {
-			idInfo.setValue(lastInsertID)
-		} else if !useReturning {
-			// For MySQL/TiDB and SQLite, query the last insert ID
-			lastInsertID, err := p.queryLastInsertID(session)
-			if err == nil && lastInsertID > 0 {
-				idInfo.setValue(lastInsertID)
-			}
-		}
+	if lastInsertID > 0 && idInfo.needsAutoIncrement() {
+		idInfo.setValue(lastInsertID)
 	}
 
 	return &CreateResult{
-		RowsAffected: res.RowsAffected,
+		RowsAffected: rowsAffected,
 		Error:        nil,
 	}
 }
@@ -1774,19 +1793,107 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		insertSQL := p.buildInsertSQL(columns, strings.Join(allPlaceholders, ", "))
 
 		start := time.Now()
-		// Use Session with PrepareStmt disabled for raw SQL
+
+		// Get session and connection pool
 		session := p._db.Session(&gorm.Session{
 			PrepareStmt: false,
 		})
-		res := session.Exec(insertSQL, allValues...)
+		connPool := session.Statement.ConnPool
+		ctx := session.Statement.Context
 
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return FormatSql(insertSQL, allValues...), res.RowsAffected
-		}, res.Error)
+		var batchRowsAffected int64
+		var insertedIDs []int64
+		var execErr error
 
-		if res.Error != nil {
-			log.Errorf("err:%v", res.Error)
-			if p.IsDuplicatedKeyError(res.Error) {
+		// Check if we need to retrieve auto-increment IDs
+		firstRowInCurrentBatch := vv.Index(i)
+		for firstRowInCurrentBatch.Kind() == reflect.Ptr {
+			firstRowInCurrentBatch = firstRowInCurrentBatch.Elem()
+		}
+		needsIDRetrieval := firstRowInCurrentBatch.FieldByName("Id").IsValid()
+
+		// Use different strategies based on database type for optimal performance
+		if needsIDRetrieval && (p.clientType == Postgres || p.clientType == GaussDB) {
+			// PostgreSQL/GaussDB: Use RETURNING clause to get all inserted IDs in one query
+			// This completely avoids race conditions and is the most efficient approach
+			insertSQL += " RETURNING id"
+
+			rows, err := connPool.QueryContext(ctx, insertSQL, allValues...)
+			if err != nil {
+				execErr = err
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+					return FormatSql(insertSQL, allValues...), 0
+				}, err)
+			} else {
+				defer rows.Close()
+
+				// Collect all returned IDs
+				for rows.Next() {
+					var id int64
+					if err := rows.Scan(&id); err != nil {
+						log.Errorf("err:%v", err)
+						continue
+					}
+					insertedIDs = append(insertedIDs, id)
+				}
+
+				if err := rows.Err(); err != nil {
+					log.Errorf("err:%v", err)
+				}
+
+				batchRowsAffected = int64(len(insertedIDs))
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+					return FormatSql(insertSQL, allValues...), batchRowsAffected
+				}, nil)
+			}
+		} else {
+			// MySQL/TiDB/SQLite: Use ExecContext and get LastInsertId from sql.Result
+			// This avoids the race condition of querying LAST_INSERT_ID() on a different connection
+			result, err := connPool.ExecContext(ctx, insertSQL, allValues...)
+
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+				if result != nil {
+					affectedRows, _ = result.RowsAffected()
+				}
+				return FormatSql(insertSQL, allValues...), affectedRows
+			}, err)
+
+			if err != nil {
+				execErr = err
+			} else {
+				batchRowsAffected, _ = result.RowsAffected()
+
+				// Get LastInsertId and calculate IDs for the batch
+				if needsIDRetrieval && batchRowsAffected > 0 {
+					insertID, err := result.LastInsertId()
+					if err == nil && insertID > 0 {
+						// Calculate all IDs based on database-specific behavior
+						switch p.clientType {
+						case MySQL, TiDB:
+							// MySQL's LastInsertId() returns the first ID of a batch insert
+							for idx := int64(0); idx < batchRowsAffected; idx++ {
+								insertedIDs = append(insertedIDs, insertID+idx)
+							}
+						case Sqlite:
+							// SQLite's last_insert_rowid() returns the last rowid inserted
+							// Calculate from last ID backwards
+							firstID := insertID - batchRowsAffected + 1
+							for idx := int64(0); idx < batchRowsAffected; idx++ {
+								insertedIDs = append(insertedIDs, firstID+idx)
+							}
+						case ClickHouse:
+							// ClickHouse doesn't support auto-increment IDs
+							log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+						}
+					}
+				}
+			}
+		}
+
+		// Handle execution errors
+		if execErr != nil {
+			log.Errorf("err:%v", execErr)
+			if p.IsDuplicatedKeyError(execErr) {
 				return &CreateInBatchesResult{
 					RowsAffected: totalRowsAffected,
 					Error:        p.getDuplicatedKeyError(),
@@ -1794,74 +1901,28 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 			}
 			return &CreateInBatchesResult{
 				RowsAffected: totalRowsAffected,
-				Error:        res.Error,
+				Error:        execErr,
 			}
 		}
 
-		totalRowsAffected += res.RowsAffected
+		totalRowsAffected += batchRowsAffected
 
 		// Write back auto-generated IDs to the structs
-		if res.RowsAffected > 0 {
-			// Get the last inserted ID from the batch
-			var lastID int64
-			batchRowCount := end - i
-
-			// For databases that support retrieving the last inserted ID
-			switch p.clientType {
-			case Sqlite:
-				// SQLite's last_insert_rowid() returns the rowid of the last row inserted
-				// For batch inserts, this is the ID of the last row in the batch
-				err := session.Raw("SELECT last_insert_rowid()").Scan(&lastID).Error
-				if err != nil {
-					log.Errorf("err:%v", err)
+		if len(insertedIDs) > 0 {
+			for idx, j := 0, i; j < end && idx < len(insertedIDs); j, idx = j+1, idx+1 {
+				rowValue := vv.Index(j)
+				for rowValue.Kind() == reflect.Ptr {
+					rowValue = rowValue.Elem()
 				}
-			case MySQL, TiDB:
-				// MySQL's LAST_INSERT_ID() returns the first ID of a batch insert
-				// So we need to handle it differently
-				var firstID int64
-				err := session.Raw("SELECT LAST_INSERT_ID()").Scan(&firstID).Error
-				if err != nil {
-					log.Errorf("err:%v", err)
-				} else {
-					// Convert first ID to last ID
-					lastID = firstID + int64(batchRowCount) - 1
-				}
-			case Postgres, GaussDB:
-				// PostgreSQL doesn't have a direct way to get the last insert ID for batch inserts
-				// Query the max ID from the table
-				var maxID int64
-				err := session.Raw("SELECT MAX(id) FROM " + p.table).Scan(&maxID).Error
-				if err != nil {
-					log.Errorf("err:%v", err)
-				} else {
-					lastID = maxID
-				}
-			case ClickHouse:
-				// ClickHouse doesn't support auto-increment IDs
-				log.Warnf("ClickHouse does not support auto-increment ID retrieval")
-			}
 
-			// Set the IDs back to the structs
-			// Calculate the first ID based on the last ID and batch count
-			if lastID > 0 {
-				firstID := lastID - int64(batchRowCount) + 1
-				for j := i; j < end; j++ {
-					rowValue := vv.Index(j)
-					for rowValue.Kind() == reflect.Ptr {
-						rowValue = rowValue.Elem()
-					}
+				if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() {
+					isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
+					isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
 
-					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() {
-						isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
-						isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
-
-						if isIntType {
-							field.SetInt(firstID)
-							firstID++
-						} else if isUintType {
-							field.SetUint(uint64(firstID))
-							firstID++
-						}
+					if isIntType {
+						field.SetInt(insertedIDs[idx])
+					} else if isUintType {
+						field.SetUint(uint64(insertedIDs[idx]))
 					}
 				}
 			}

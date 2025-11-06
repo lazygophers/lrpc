@@ -20,15 +20,15 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 	var response fasthttp.Response
 	client, request := DiscoveryClient(c)
 
-	tranceId := ctx.TranceId()
-	if tranceId == "" {
-		tranceId = log.GetTrace()
-		ctx.SetTranceId(tranceId)
+	traceID := ctx.TraceID()
+	if traceID == "" {
+		traceID = log.GetTrace()
+		ctx.SetTraceID(traceID)
 	}
 
-	if tranceId == "" {
-		tranceId = log.GenTraceId()
-		ctx.SetTranceId(tranceId)
+	if traceID == "" {
+		traceID = log.GenTraceId()
+		ctx.SetTraceID(traceID)
 	}
 
 	ctx.Context().Request.Header.VisitAll(func(key, value []byte) {
@@ -39,7 +39,7 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 	})
 
 	request.Header.Set(HeaderContentType, MIMEApplicationProtobuf)
-	request.Header.Set(HeaderTrance, tranceId)
+	request.Header.Set(HeaderTrace, traceID)
 
 	if req != nil {
 		buffer, err := proto.Marshal(req)
@@ -56,9 +56,9 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 		return err
 	}
 
-	tranceId = string(response.Header.Peek(HeaderTrance))
-	log.SetTrace(tranceId)
-	ctx.SetTranceId(tranceId)
+	traceID = string(response.Header.Peek(HeaderTrace))
+	log.SetTrace(traceID)
+	ctx.SetTraceID(traceID)
 
 	baseResp := &core.BaseResponse{}
 	err = proto.Unmarshal(response.Body(), baseResp)

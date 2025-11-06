@@ -6,6 +6,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/lrpc/middleware/pool"
 	"github.com/lazygophers/lrpc/middleware/xerror"
 )
 
@@ -23,6 +24,21 @@ type Config struct {
 	// 用于统一的封包、权限等处理
 	AfterHandlerFuncWithRef func(ctx *Ctx, data reflect.Value, err error)
 	AfterHandlerFunc        func(ctx *Ctx, err error)
+
+	// MaxRequestBodySize sets the maximum request body size (0 = unlimited)
+	MaxRequestBodySize int
+
+	// EnableCompression enables automatic response compression
+	EnableCompression bool
+
+	// CompressionLevel sets the compression level
+	CompressionLevel int
+
+	// CompressionMinLength sets minimum response size to compress
+	CompressionMinLength int
+
+	// ServerPoolConfig configures the server connection pool
+	ServerPoolConfig *pool.ServerPoolConfig
 }
 
 var defaultOnError = func(ctx *Ctx, err error) {

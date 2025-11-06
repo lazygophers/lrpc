@@ -297,10 +297,6 @@ func (p *App) AddRoute(r *Route, opts ...RouteOption) {
 		o(r)
 	}
 
-	if _, ok := p.routes[r.Method]; !ok {
-		p.routes[r.Method] = NewSearchTree[HandlerFunc]()
-	}
-
 	for _, logic := range p.hook.onRoute {
 		err := logic(r)
 		if err != nil {
@@ -318,7 +314,12 @@ func (p *App) AddRoute(r *Route, opts ...RouteOption) {
 	handlers = append(handlers, r.Handler)
 	handlers = append(handlers, r.After...)
 
-	p.routes[r.Method].Add(r.Path, MergeHandler(handlers...))
+	// Use new routing system
+	err := p.addRoute(r.Method, r.Path, handlers)
+	if err != nil {
+		log.Fatalf("err:%v", err)
+		return
+	}
 }
 
 func (p *App) AddRoutes(rs []*Route, opts ...RouteOption) {

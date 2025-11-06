@@ -6,49 +6,31 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/pool"
 	"github.com/lazygophers/utils/network"
 	"github.com/lazygophers/utils/runtime"
 	"github.com/valyala/fasthttp"
 )
 
+// Handler is the main request handler that sets up tracing and calls ServeHTTP
 func (p *App) Handler(c *fasthttp.RequestCtx) {
-	ctx := p.AcquireCtx(c)
-	defer p.ReleaseCtx(ctx)
+	// Setup tracing before routing
+	appCtx := p.AcquireCtx(c)
 
-	if ctx.TranceId() == "" {
-		ctx.SetTranceId()
+	if appCtx.TraceID() == "" {
+		appCtx.SetTraceID()
 	}
 
-	log.SetTrace(ctx.TranceId())
+	log.SetTrace(appCtx.TraceID())
 	defer log.DelTrace()
 
-	ctx.SetHeader(HeaderTrance, log.GetTrace())
+	appCtx.SetHeader(HeaderTrace, log.GetTrace())
+	log.Infof("%s %s", appCtx.Method(), appCtx.Path())
 
-	log.Infof("%s %s", ctx.Method(), ctx.Path())
+	p.ReleaseCtx(appCtx)
 
-	route := p.routes[ctx.Method()]
-	if route == nil {
-		log.Errorf("not found route, method:%s, path:%s", ctx.Method(), ctx.Path())
-		c.SetStatusCode(fasthttp.StatusNotFound)
-		return
-	}
-
-	res, ok := route.Search(ctx.Path())
-	if !ok {
-		log.Errorf("not found route, method:%s, path:%s", ctx.Method(), ctx.Path())
-		c.SetStatusCode(fasthttp.StatusNotFound)
-		return
-	}
-
-	ctx.setParam(res.Params)
-
-	err := res.Item(ctx)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		p.onError(ctx, err)
-	}
-
-	return
+	// Route and execute handlers
+	p.ServeHTTP(c)
 }
 
 func (p *App) ErrorHandler(c *fasthttp.RequestCtx, err error) {
@@ -96,6 +78,11 @@ func (p *App) initServer() {
 		Logger:                             log.Clone(),
 		TLSConfig:                          nil,
 		FormValueFunc:                      nil,
+	}
+
+	// Apply server pool configuration if provided
+	if p.c.ServerPoolConfig != nil {
+		pool.ApplyServerPoolConfig(p.server, *p.c.ServerPoolConfig)
 	}
 }
 
