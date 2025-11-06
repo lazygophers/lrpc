@@ -1794,29 +1794,106 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 
 		start := time.Now()
 
-		// Use ConnPool.ExecContext to execute INSERT and get sql.Result directly
-		// This avoids race condition in high concurrency scenarios
+		// Get session and connection pool
 		session := p._db.Session(&gorm.Session{
 			PrepareStmt: false,
 		})
-
-		// Get connection pool and context from GORM
 		connPool := session.Statement.ConnPool
 		ctx := session.Statement.Context
 
-		// Execute INSERT using ConnPool.ExecContext
-		result, err := connPool.ExecContext(ctx, insertSQL, allValues...)
+		var batchRowsAffected int64
+		var insertedIDs []int64
+		var execErr error
 
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
-			if result != nil {
-				affectedRows, _ = result.RowsAffected()
+		// Check if we need to retrieve auto-increment IDs
+		firstRowInCurrentBatch := vv.Index(i)
+		for firstRowInCurrentBatch.Kind() == reflect.Ptr {
+			firstRowInCurrentBatch = firstRowInCurrentBatch.Elem()
+		}
+		needsIDRetrieval := firstRowInCurrentBatch.FieldByName("Id").IsValid()
+
+		// Use different strategies based on database type for optimal performance
+		if needsIDRetrieval && (p.clientType == Postgres || p.clientType == GaussDB) {
+			// PostgreSQL/GaussDB: Use RETURNING clause to get all inserted IDs in one query
+			// This completely avoids race conditions and is the most efficient approach
+			insertSQL += " RETURNING id"
+
+			rows, err := connPool.QueryContext(ctx, insertSQL, allValues...)
+			if err != nil {
+				execErr = err
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+					return FormatSql(insertSQL, allValues...), 0
+				}, err)
+			} else {
+				defer rows.Close()
+
+				// Collect all returned IDs
+				for rows.Next() {
+					var id int64
+					if err := rows.Scan(&id); err != nil {
+						log.Errorf("err:%v", err)
+						continue
+					}
+					insertedIDs = append(insertedIDs, id)
+				}
+
+				if err := rows.Err(); err != nil {
+					log.Errorf("err:%v", err)
+				}
+
+				batchRowsAffected = int64(len(insertedIDs))
+				GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+					return FormatSql(insertSQL, allValues...), batchRowsAffected
+				}, nil)
 			}
-			return FormatSql(insertSQL, allValues...), affectedRows
-		}, err)
+		} else {
+			// MySQL/TiDB/SQLite: Use ExecContext and get LastInsertId from sql.Result
+			// This avoids the race condition of querying LAST_INSERT_ID() on a different connection
+			result, err := connPool.ExecContext(ctx, insertSQL, allValues...)
 
-		if err != nil {
-			log.Errorf("err:%v", err)
-			if p.IsDuplicatedKeyError(err) {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, affectedRows int64) {
+				if result != nil {
+					affectedRows, _ = result.RowsAffected()
+				}
+				return FormatSql(insertSQL, allValues...), affectedRows
+			}, err)
+
+			if err != nil {
+				execErr = err
+			} else {
+				batchRowsAffected, _ = result.RowsAffected()
+
+				// Get LastInsertId and calculate IDs for the batch
+				if needsIDRetrieval && batchRowsAffected > 0 {
+					insertID, err := result.LastInsertId()
+					if err == nil && insertID > 0 {
+						// Calculate all IDs based on database-specific behavior
+						switch p.clientType {
+						case MySQL, TiDB:
+							// MySQL's LastInsertId() returns the first ID of a batch insert
+							for idx := int64(0); idx < batchRowsAffected; idx++ {
+								insertedIDs = append(insertedIDs, insertID+idx)
+							}
+						case Sqlite:
+							// SQLite's last_insert_rowid() returns the last rowid inserted
+							// Calculate from last ID backwards
+							firstID := insertID - batchRowsAffected + 1
+							for idx := int64(0); idx < batchRowsAffected; idx++ {
+								insertedIDs = append(insertedIDs, firstID+idx)
+							}
+						case ClickHouse:
+							// ClickHouse doesn't support auto-increment IDs
+							log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+						}
+					}
+				}
+			}
+		}
+
+		// Handle execution errors
+		if execErr != nil {
+			log.Errorf("err:%v", execErr)
+			if p.IsDuplicatedKeyError(execErr) {
 				return &CreateInBatchesResult{
 					RowsAffected: totalRowsAffected,
 					Error:        p.getDuplicatedKeyError(),
@@ -1824,68 +1901,28 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 			}
 			return &CreateInBatchesResult{
 				RowsAffected: totalRowsAffected,
-				Error:        err,
+				Error:        execErr,
 			}
 		}
 
-		batchRowsAffected, _ := result.RowsAffected()
 		totalRowsAffected += batchRowsAffected
 
 		// Write back auto-generated IDs to the structs
-		if batchRowsAffected > 0 {
-			batchRowCount := end - i
-
-			// Get the insert ID from sql.Result (no additional query needed)
-			// This is thread-safe and avoids connection pool race conditions
-			insertID, err := result.LastInsertId()
-
-			var firstID int64
-			if err == nil && insertID > 0 {
-				// Calculate first ID based on database type and result.LastInsertId() behavior
-				switch p.clientType {
-				case MySQL, TiDB:
-					// MySQL's LastInsertId() returns the first ID of a batch insert
-					firstID = insertID
-				case Sqlite:
-					// SQLite's last_insert_rowid() returns the last rowid inserted
-					// Calculate first ID from last ID
-					firstID = insertID - int64(batchRowCount) + 1
-				case Postgres, GaussDB:
-					// PostgreSQL doesn't support LastInsertId for batch inserts
-					// Need to query MAX(id) as fallback
-					var maxID int64
-					err := session.Raw("SELECT MAX(id) FROM " + p.table).Scan(&maxID).Error
-					if err != nil {
-						log.Errorf("err:%v", err)
-					} else if maxID > 0 {
-						firstID = maxID - int64(batchRowCount) + 1
-					}
-				case ClickHouse:
-					// ClickHouse doesn't support auto-increment IDs
-					log.Warnf("ClickHouse does not support auto-increment ID retrieval")
+		if len(insertedIDs) > 0 {
+			for idx, j := 0, i; j < end && idx < len(insertedIDs); j, idx = j+1, idx+1 {
+				rowValue := vv.Index(j)
+				for rowValue.Kind() == reflect.Ptr {
+					rowValue = rowValue.Elem()
 				}
-			}
 
-			// Set the IDs back to the structs
-			if firstID > 0 {
-				currentID := firstID
-				for j := i; j < end; j++ {
-					rowValue := vv.Index(j)
-					for rowValue.Kind() == reflect.Ptr {
-						rowValue = rowValue.Elem()
-					}
+				if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() {
+					isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
+					isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
 
-					if field := rowValue.FieldByName("Id"); field.IsValid() && field.CanSet() {
-						isIntType := (field.Kind() == reflect.Int || field.Kind() == reflect.Int64) && field.Int() == 0
-						isUintType := field.Kind() == reflect.Uint64 && field.Uint() == 0
-
-						if isIntType {
-							field.SetInt(currentID)
-							currentID++
-						} else if isUintType {
-							field.SetUint(uint64(currentID))
-							currentID++
-						}
+					if isIntType {
+						field.SetInt(insertedIDs[idx])
+					} else if isUintType {
+						field.SetUint(uint64(insertedIDs[idx]))
 					}
 				}
 			}
