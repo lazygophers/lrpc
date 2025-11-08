@@ -76,6 +76,9 @@ type Config struct {
 	// sqlserver: database password
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 
+	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty"` // 最大空闲连接数，-1 表示不限制
+	MaxOpenConns int `yaml:"max_open_conns,omitempty" json:"max_open_conns,omitempty"` // 最大连接数，-1 表示不限制
+
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
 	Logger logger.Interface `json:"-" yaml:"-"`

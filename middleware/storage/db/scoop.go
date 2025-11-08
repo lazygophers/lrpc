@@ -1254,6 +1254,8 @@ type ChunkResult struct {
 }
 
 func (p *Scoop) Chunk(dest interface{}, size uint64, fc func(tx *Scoop, offset uint64) error) *ChunkResult {
+	// Optimize: Perform reflection checks only once instead of every iteration
+	// This significantly improves performance in loops with many chunks
 	p.offset = 0
 	p.limit = size
 
@@ -1277,33 +1279,59 @@ func (p *Scoop) Chunk(dest interface{}, size uint64, fc func(tx *Scoop, offset u
 		p.table = getTableName(elem)
 	}
 
+	// Optimize: Check DeletedAt once and add condition before loop
 	p.hasDeletedAt = hasDeletedAt(elem)
+	if !p.unscoped && p.hasDeletedAt {
+		p.cond.whereRaw(condNotDeleted)
+	}
 
 	p.inc()
 	defer p.dec()
 
+	// Optimize: Inline query logic to avoid repeated reflection checks in Find()
+	// This eliminates function call overhead and redundant type validations
 	for {
-		// 重置dest内容
+		// Reset dest content
 		vv.Set(reflect.MakeSlice(vv.Type(), 0, int(size)))
 
-		res := p.Find(dest)
-		if res.Error != nil {
-			return &ChunkResult{
-				Error: res.Error,
-			}
-		}
-
-		if res.RowsAffected == 0 {
+		// Inline Find logic to avoid repeated reflection and validation
+		if p.cond.skip {
 			break
 		}
 
-		err := fc(p, p.offset)
+		// Build SQL once per iteration (necessary as offset changes)
+		sqlRaw := p.findSql()
+		start := time.Now()
+
+		// Execute query using GORM's Scan to handle serializers
+		scope := p._db.Raw(sqlRaw)
+		err := scope.Scan(dest).Error
+
+		// Log the query
+		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+			return sqlRaw, scope.RowsAffected
+		}, err)
+
 		if err != nil {
 			return &ChunkResult{
 				Error: err,
 			}
 		}
 
+		// Break if no more rows
+		if scope.RowsAffected == 0 {
+			break
+		}
+
+		// Execute user callback
+		err = fc(p, p.offset)
+		if err != nil {
+			return &ChunkResult{
+				Error: err,
+			}
+		}
+
+		// Move to next chunk
 		p.offset += size
 	}
 
