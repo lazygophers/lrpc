@@ -154,7 +154,8 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		AllowGlobalUpdate: true,
 		CreateBatchSize:   100,
-		TranslateError:    true,
+
+		TranslateError: true,
 
 		PropagateUnscoped: true,
 
@@ -177,6 +178,24 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 	if c.Debug {
 		p.db = p.db.Debug()
+	}
+
+	sqlDb, err := p.SqlDB()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	if c.MaxOpenConns > 0 {
+		sqlDb.SetMaxOpenConns(c.MaxOpenConns)
+	} else if c.MaxOpenConns < 0 {
+		sqlDb.SetMaxOpenConns(0)
+	}
+
+	if c.MaxIdleConns > 0 {
+		sqlDb.SetMaxIdleConns(c.MaxIdleConns)
+	} else if c.MaxIdleConns < 0 {
+		sqlDb.SetMaxIdleConns(0)
 	}
 
 	err = p.AutoMigrates(tables...)
