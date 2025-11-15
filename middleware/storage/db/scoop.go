@@ -2537,6 +2537,8 @@ func (p *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, er
 		Limit:  opt.Limit,
 	}
 
+	p.Offset(opt.Offset).Limit(opt.Limit)
+
 	p.inc()
 	defer p.dec()
 
