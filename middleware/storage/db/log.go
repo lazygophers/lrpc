@@ -26,9 +26,15 @@ var (
 
 func GetDefaultLogger() *Logger {
 	syncOnce.Do(func() {
-		_logger = NewLogger()
+		if _logger != nil {
+			_logger = NewLogger()
+		}
 	})
 	return _logger
+}
+
+func SetDefaultLogger(l *Logger) {
+	_logger = l
 }
 
 func NewLogger() *Logger {
