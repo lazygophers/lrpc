@@ -9,13 +9,13 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
+	gormLog "gorm.io/gorm/logger"
 
 	mysqlC "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/clickhouse"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -161,7 +161,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 		// Disable GORM's built-in logger to avoid duplicate SQL logging
 		// Our custom logger (GetDefaultLogger()) is used in Scoop methods instead
-		Logger: logger.Discard,
+		Logger: gormLog.Discard,
 	})
 	if err != nil {
 		log.Errorf("err:%v", err)

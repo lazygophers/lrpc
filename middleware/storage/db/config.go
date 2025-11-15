@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/lazygophers/utils/app"
-	"gorm.io/gorm/logger"
 )
 
 const (
@@ -81,7 +80,7 @@ type Config struct {
 
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
-	Logger logger.Interface `json:"-" yaml:"-"`
+	Logger Logger `json:"-" yaml:"-"`
 }
 
 func (c *Config) apply() {
