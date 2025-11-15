@@ -31,7 +31,7 @@ var (
 
 func GetDefaultLogger() Logger {
 	syncOnce.Do(func() {
-		if _logger != nil {
+		if _logger == nil {
 			_logger = NewLogger()
 		}
 	})
