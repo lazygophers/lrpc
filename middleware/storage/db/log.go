@@ -21,10 +21,10 @@ type Logger struct {
 
 var (
 	syncOnce sync.Once
-	_logger  *Logger
+	_logger  logger.Interface
 )
 
-func GetDefaultLogger() *Logger {
+func GetDefaultLogger() logger.Interface {
 	syncOnce.Do(func() {
 		if _logger != nil {
 			_logger = NewLogger()
@@ -33,7 +33,7 @@ func GetDefaultLogger() *Logger {
 	return _logger
 }
 
-func SetDefaultLogger(l *Logger) {
+func SetDefaultLogger(l logger.Interface) {
 	_logger = l
 }
 
