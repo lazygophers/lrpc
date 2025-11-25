@@ -275,6 +275,10 @@ func New(code int32, args ...interface{}) *Error {
 		}
 	}
 
+	if len(args) > 0 {
+		return NewErrorWithMsg(code, fmt.Sprint(args...))
+	}
+
 	return NewErrorWithMsg(code, "")
 }
 
