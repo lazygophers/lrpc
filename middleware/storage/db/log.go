@@ -12,53 +12,58 @@ import (
 	"github.com/lazygophers/log"
 
 	"github.com/gookit/color"
-	"gorm.io/gorm/logger"
+	gormLog "gorm.io/gorm/logger"
 )
 
-type Logger struct {
+type Logger interface {
+	gormLog.Interface
+	Log(skip int, begin time.Time, fc func() (sql string, rowsAffected int64), err error)
+}
+
+type logger struct {
 	logger *log.Logger
 }
 
 var (
 	syncOnce sync.Once
-	_logger  *Logger
+	_logger  Logger
 )
 
-func GetDefaultLogger() *Logger {
+func GetDefaultLogger() Logger {
 	syncOnce.Do(func() {
-		if _logger != nil {
+		if _logger == nil {
 			_logger = NewLogger()
 		}
 	})
 	return _logger
 }
 
-func SetDefaultLogger(l *Logger) {
+func SetDefaultLogger(l Logger) {
 	_logger = l
 }
 
-func NewLogger() *Logger {
-	l := &Logger{
+func NewLogger() *logger {
+	l := &logger{
 		logger: log.Clone().SetCallerDepth(5),
 	}
-	l.LogMode(logger.Info)
+	l.LogMode(gormLog.Info)
 	return l
 }
 
-func (l *Logger) SetOutput(writes ...io.Writer) *Logger {
+func (l *logger) SetOutput(writes ...io.Writer) *logger {
 	l.logger.SetOutput(writes...)
 	return l
 }
 
-func (l *Logger) LogMode(logLevel logger.LogLevel) logger.Interface {
+func (l *logger) LogMode(logLevel gormLog.LogLevel) gormLog.Interface {
 	switch logLevel {
-	case logger.Silent:
+	case gormLog.Silent:
 		l.logger.SetLevel(log.TraceLevel)
-	case logger.Error:
+	case gormLog.Error:
 		l.logger.SetLevel(log.ErrorLevel)
-	case logger.Warn:
+	case gormLog.Warn:
 		l.logger.SetLevel(log.WarnLevel)
-	case logger.Info:
+	case gormLog.Info:
 		l.logger.SetLevel(log.InfoLevel)
 	default:
 		l.logger.SetLevel(log.DebugLevel)
@@ -66,23 +71,23 @@ func (l *Logger) LogMode(logLevel logger.LogLevel) logger.Interface {
 	return l
 }
 
-func (l *Logger) Info(ctx context.Context, s string, i ...interface{}) {
+func (l *logger) Info(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Infof(s, i...)
 }
 
-func (l *Logger) Warn(ctx context.Context, s string, i ...interface{}) {
+func (l *logger) Warn(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Warnf(s, i...)
 }
 
-func (l *Logger) Error(ctx context.Context, s string, i ...interface{}) {
+func (l *logger) Error(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Errorf(s, i...)
 }
 
-func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	l.Log(4, begin, fc, err)
 }
 
-func (l *Logger) Log(skip int, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+func (l *logger) Log(skip int, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	var callerName string
 	pc, file, callerLine, ok := runtime.Caller(skip)
 	if ok {
