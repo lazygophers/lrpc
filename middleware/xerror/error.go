@@ -53,6 +53,10 @@ const (
 	// ErrConflict 表示数据冲突
 	// 使用场景：并发更新冲突、唯一键冲突、版本不匹配
 	ErrConflict = 1004
+
+	// ErrNotLogin 登录状态异常
+	// 使用场景：没有获取到登录状态、登录状态过期
+	ErrNotLogin = 1005
 )
 
 // errMap 存储已注册的错误码映射
@@ -328,6 +332,14 @@ func NewInvalidParam(a ...any) *Error {
 func NewNoAuth(msg string) *Error {
 	return &Error{
 		Code: ErrNoAuth,
+		Msg:  msg,
+	}
+}
+
+// NewNotLogin 创建未登录错误（错误码 1005）
+func NewNotLogin(msg string) *Error {
+	return &Error{
+		Code: ErrNotLogin,
 		Msg:  msg,
 	}
 }
