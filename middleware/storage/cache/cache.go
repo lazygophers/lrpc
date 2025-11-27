@@ -123,9 +123,6 @@ func New(c *Config) (Cache, error) {
 	case SugarDB:
 		return NewSugarDB(c)
 
-	case Bitcask:
-		return NewBitcask(c)
-
 	case LevelDB:
 		return NewLevelDB(c)
 
