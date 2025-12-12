@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -1226,20 +1225,39 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
-	// Use GORM's Scan to properly handle serializers
-	scope := p._db.Raw(sqlRaw)
-	err := scope.Scan(out).Error
-
+	// Use GORM's Rows and ScanRows to properly handle serializers
+	rows, err := p._db.Raw(sqlRaw).Rows()
 	if err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, scope.RowsAffected
+			return sqlRaw, 0
 		}, err)
 		return &FindResult{
 			Error: err,
 		}
 	}
+	defer rows.Close()
 
-	var rawsAffected int64 = scope.RowsAffected
+	// Clear the slice first
+	vv := reflect.ValueOf(out).Elem()
+	vv.Set(reflect.MakeSlice(vv.Type(), 0, 0))
+
+	var rawsAffected int64
+	for rows.Next() {
+		rawsAffected++
+		// Create a new element for each row
+		elemPtr := reflect.New(elem.Elem())
+		err = p._db.ScanRows(rows, elemPtr.Interface())
+		if err != nil {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				return sqlRaw, rawsAffected
+			}, err)
+			return &FindResult{
+				Error: err,
+			}
+		}
+		// Append the scanned element to the slice
+		vv.Set(reflect.Append(vv, elemPtr))
+	}
 
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rawsAffected
@@ -1381,29 +1399,32 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 	sqlRaw := p.findSql()
 	start := time.Now()
 
-	// Use GORM's Scan to properly handle serializers
-	scope := p._db.Raw(sqlRaw)
-	err := scope.Scan(out).Error
-
+	// Use GORM's Rows and ScanRows to properly handle serializers
+	rows, err := p._db.Raw(sqlRaw).Rows()
 	if err != nil {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, scope.RowsAffected
+			return sqlRaw, 0
 		}, err)
-
-		// Check if it's a "record not found" error
-		if errors.Is(err, gorm.ErrRecordNotFound) || scope.RowsAffected == 0 {
-			return &FirstResult{
-				Error: p.getNotFoundError(),
-			}
-		}
-
 		return &FirstResult{
 			Error: err,
 		}
 	}
+	defer rows.Close()
 
-	// Check if we got a result
-	var rowAffected int64 = scope.RowsAffected
+	var rowAffected int64
+	if rows.Next() {
+		rowAffected = 1
+		err = p._db.ScanRows(rows, out)
+		if err != nil {
+			GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+				return sqlRaw, rowAffected
+			}, err)
+			return &FirstResult{
+				Error: err,
+			}
+		}
+	}
+
 	if rowAffected == 0 {
 		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 			return sqlRaw, 0
