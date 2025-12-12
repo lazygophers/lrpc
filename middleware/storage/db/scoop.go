@@ -2111,6 +2111,10 @@ func (p *Scoop) updateWithOrder(updateFields []interface{}) *UpdateResult {
 	p.inc()
 	defer p.dec()
 
+	// 获取schema以检查serializer
+	stmt := getStatement(p._db, p.table, nil)
+	defer putStatement(stmt)
+
 	sqlRaw := log.GetBuffer()
 	defer log.PutBuffer(sqlRaw)
 
@@ -2120,15 +2124,15 @@ func (p *Scoop) updateWithOrder(updateFields []interface{}) *UpdateResult {
 	sqlRaw.WriteString(" SET ")
 	// Pre-allocate values slice with capacity based on fields length
 	values := make([]interface{}, 0, len(fields))
-	for i, field := range fields {
+	for i, orderedField := range fields {
 		if i > 0 {
 			sqlRaw.WriteString(", ")
 		}
-		sqlRaw.WriteString(quoteFieldName(field.key, p.clientType))
+		sqlRaw.WriteString(quoteFieldName(orderedField.key, p.clientType))
 		sqlRaw.WriteString("=")
 
 		// Handle clause.Expr with proper type assertion
-		switch x := field.value.(type) {
+		switch x := orderedField.value.(type) {
 		case clause.Expr:
 			// For expressions, use the SQL directly instead of placeholder
 			sqlRaw.WriteString(x.SQL)
@@ -2137,7 +2141,26 @@ func (p *Scoop) updateWithOrder(updateFields []interface{}) *UpdateResult {
 		default:
 			// For normal values, use placeholder
 			sqlRaw.WriteString("?")
-			values = append(values, candy.ToString(x))
+
+			// Check if this field has a serializer
+			var finalValue interface{}
+			if stmt.Schema != nil {
+				if field, ok := stmt.Schema.FieldsByDBName[orderedField.key]; ok && field.Serializer != nil {
+					// Apply serializer if configured
+					serializedValue, serErr := field.Serializer.Value(stmt.Context, field, reflect.Value{}, orderedField.value)
+					if serErr != nil {
+						log.Errorf("serializer failed for field %s: %v", orderedField.key, serErr)
+						finalValue = orderedField.value
+					} else {
+						finalValue = serializedValue
+					}
+				} else {
+					finalValue = candy.ToString(x)
+				}
+			} else {
+				finalValue = candy.ToString(x)
+			}
+			values = append(values, finalValue)
 		}
 	}
 
@@ -2213,6 +2236,10 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 	p.inc()
 	defer p.dec()
 
+	// 获取schema以检查serializer
+	stmt := getStatement(p._db, p.table, nil)
+	defer putStatement(stmt)
+
 	sqlRaw := log.GetBuffer()
 	defer log.PutBuffer(sqlRaw)
 
@@ -2240,7 +2267,26 @@ func (p *Scoop) update(updateMap map[string]interface{}) *UpdateResult {
 		default:
 			// For normal values, use placeholder
 			sqlRaw.WriteString("?")
-			values = append(values, candy.ToString(x))
+
+			// Check if this field has a serializer
+			var finalValue interface{}
+			if stmt.Schema != nil {
+				if field, ok := stmt.Schema.FieldsByDBName[k]; ok && field.Serializer != nil {
+					// Apply serializer if configured
+					serializedValue, serErr := field.Serializer.Value(stmt.Context, field, reflect.Value{}, v)
+					if serErr != nil {
+						log.Errorf("serializer failed for field %s: %v", k, serErr)
+						finalValue = v
+					} else {
+						finalValue = serializedValue
+					}
+				} else {
+					finalValue = candy.ToString(x)
+				}
+			} else {
+				finalValue = candy.ToString(x)
+			}
+			values = append(values, finalValue)
 		}
 		i++
 	}
