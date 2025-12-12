@@ -51,7 +51,9 @@ func SlowRequestLogger(config ...SlowRequestConfig) func(ctx *lrpc.Ctx) error {
 }
 
 // AddMetricsEndpoint adds a metrics endpoint to the app
-func AddMetricsEndpoint(app interface{ GET(path string, handler func(*lrpc.Ctx) error) error }, path string, collector *Collector) error {
+func AddMetricsEndpoint(app interface {
+	GET(path string, handler func(*lrpc.Ctx) error) error
+}, path string, collector *Collector) error {
 	return app.GET(path, func(ctx *lrpc.Ctx) error {
 		m := collector.GetMetrics()
 		return ctx.SendJson(map[string]interface{}{

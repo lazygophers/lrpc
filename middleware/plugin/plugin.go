@@ -81,12 +81,12 @@ type HookPlugin interface {
 
 // PluginInfo represents plugin metadata
 type PluginInfo struct {
-	Name        string
-	Version     string
-	Description string
-	Author      string
-	License     string
-	Homepage    string
+	Name         string
+	Version      string
+	Description  string
+	Author       string
+	License      string
+	Homepage     string
 	Dependencies []string
 }
 

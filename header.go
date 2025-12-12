@@ -127,8 +127,8 @@ const (
 	HeaderXUACompatible           = "X-UA-Compatible"
 
 	HeaderTrace = "X-Trace"
-	HeaderToken  = "X-Token"
-	HeaderTime   = "X-Time"
+	HeaderToken = "X-Token"
+	HeaderTime  = "X-Time"
 )
 
 const (

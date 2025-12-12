@@ -265,9 +265,9 @@ func TestMetadataCarrier(t *testing.T) {
 
 func TestDefaultStatusMapper(t *testing.T) {
 	tests := []struct {
-		name           string
-		grpcCode       int
-		expectedHTTP   int
+		name         string
+		grpcCode     int
+		expectedHTTP int
 	}{
 		{"OK", 0, 200},
 		{"CANCELLED", 1, 499},

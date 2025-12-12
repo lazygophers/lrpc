@@ -18,11 +18,13 @@ type Model struct {
 ```
 
 使用上述定义时，SQLite 会创建如下表结构：
+
 ```sql
 CREATE TABLE `model` (`id` bigint unsigned NOT NULL, ... PRIMARY KEY (`id`));
 ```
 
 这会导致插入数据时失败，错误信息：
+
 ```
 constraint failed: NOT NULL constraint failed: model.id
 ```
@@ -37,30 +39,34 @@ type Model struct {
 ```
 
 使用上述定义时：
+
 - **MySQL/TiDB**: 会生成 `BIGINT UNSIGNED AUTO_INCREMENT`
 - **SQLite**: 会生成 `INTEGER PRIMARY KEY AUTOINCREMENT`
 
 ### 推荐实践
 
 1. **不要在自增主键字段上使用 `type` 标签**
-   - 让 GORM 根据数据库类型自动选择合适的数据类型
+
+    - 让 GORM 根据数据库类型自动选择合适的数据类型
 
 2. **如果必须跨数据库兼容，使用条件编译**
-   ```go
-   type Model struct {
-       // 使用 GORM 的默认类型推断
-       Id uint64 `gorm:"primaryKey;autoIncrement"`
-   }
-   ```
+
+    ```go
+    type Model struct {
+        // 使用 GORM 的默认类型推断
+        Id uint64 `gorm:"primaryKey;autoIncrement"`
+    }
+    ```
 
 3. **测试时验证表结构**
-   ```bash
-   # 查看 SQLite 表结构
-   sqlite3 your_database.db ".schema table_name"
 
-   # 正确的自增主键应该显示为：
-   # `id` INTEGER PRIMARY KEY AUTOINCREMENT
-   ```
+    ```bash
+    # 查看 SQLite 表结构
+    sqlite3 your_database.db ".schema table_name"
+
+    # 正确的自增主键应该显示为：
+    # `id` INTEGER PRIMARY KEY AUTOINCREMENT
+    ```
 
 ### 相关链接
 
@@ -79,11 +85,13 @@ type Model struct {
 ### 技术细节
 
 SQLite 的 `INTEGER PRIMARY KEY` 有特殊含义：
+
 - 它是 `ROWID` 的别名
 - 自动递增，即使不指定 `AUTOINCREMENT`
 - `AUTOINCREMENT` 关键字确保 ID 永不重复（即使删除记录）
 
 因此，对于 SQLite：
+
 - `INTEGER PRIMARY KEY` → 自动递增
 - `INTEGER PRIMARY KEY AUTOINCREMENT` → 自动递增且永不重复
 - `BIGINT PRIMARY KEY` → **不会**自动递增
