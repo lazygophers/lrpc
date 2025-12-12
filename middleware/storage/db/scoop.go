@@ -1238,7 +1238,6 @@ func (p *Scoop) Find(out interface{}) *FindResult {
 	defer rows.Close()
 
 	// Clear the slice first
-	vv := reflect.ValueOf(out).Elem()
 	vv.Set(reflect.MakeSlice(vv.Type(), 0, 0))
 
 	var rawsAffected int64
