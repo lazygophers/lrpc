@@ -11,9 +11,9 @@ func TestNewLocalizerHandle(t *testing.T) {
 	unmarshalFunc := func(body []byte, v any) error {
 		return nil
 	}
-	
+
 	handle := NewLocalizerHandle(unmarshalFunc)
-	
+
 	assert.NotNil(t, handle)
 	assert.NotNil(t, handle.unmarshal)
 }
@@ -26,12 +26,12 @@ func TestLocalizerHandle_Unmarshal(t *testing.T) {
 		}
 		return nil
 	}
-	
+
 	handle := NewLocalizerHandle(unmarshalFunc)
-	
+
 	var result map[string]interface{}
 	err := handle.Unmarshal([]byte("{}"), &result)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "value", result["test"])
 }
@@ -42,12 +42,12 @@ func TestLocalizerHandle_UnmarshalError(t *testing.T) {
 	unmarshalFunc := func(body []byte, v any) error {
 		return expectedErr
 	}
-	
+
 	handle := NewLocalizerHandle(unmarshalFunc)
-	
+
 	var result map[string]interface{}
 	err := handle.Unmarshal([]byte("{}"), &result)
-	
+
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -97,7 +97,7 @@ func TestGetLocalizer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			localizer, found := GetLocalizer(tt.input)
-			
+
 			assert.Equal(t, tt.expected, found)
 			if tt.expected {
 				assert.NotNil(t, localizer)
@@ -113,22 +113,22 @@ func TestRegisterLocalizer(t *testing.T) {
 	customLocalizer := NewLocalizerHandle(func(body []byte, v any) error {
 		return nil
 	})
-	
+
 	// Register it
 	RegisterLocalizer("custom", customLocalizer)
-	
+
 	// Verify it's registered
 	retrieved, found := GetLocalizer("custom")
 	assert.True(t, found)
 	assert.Equal(t, customLocalizer, retrieved)
-	
+
 	// Test overriding existing localizer
 	newCustomLocalizer := NewLocalizerHandle(func(body []byte, v any) error {
 		return assert.AnError
 	})
-	
+
 	RegisterLocalizer("custom", newCustomLocalizer)
-	
+
 	// Verify it's updated
 	retrieved, found = GetLocalizer("custom")
 	assert.True(t, found)
@@ -147,13 +147,13 @@ func TestBuiltinLocalizers(t *testing.T) {
 			data: `{"hello": "world", "nested": {"key": "value"}}`,
 		},
 		{
-			name: "yaml localizer", 
+			name: "yaml localizer",
 			ext:  "yaml",
 			data: "hello: world\nnested:\n  key: value",
 		},
 		{
 			name: "yml localizer",
-			ext:  "yml", 
+			ext:  "yml",
 			data: "hello: world\nnested:\n  key: value",
 		},
 		{
@@ -170,14 +170,14 @@ key = "value"`,
 			localizer, found := GetLocalizer(tt.ext)
 			require.True(t, found)
 			require.NotNil(t, localizer)
-			
+
 			var result map[string]interface{}
 			err := localizer.Unmarshal([]byte(tt.data), &result)
 			require.NoError(t, err)
-			
+
 			// Verify basic structure
 			assert.Equal(t, "world", result["hello"])
-			
+
 			// Verify nested structure
 			if nested, ok := result["nested"]; ok {
 				if nestedMap, ok := nested.(map[string]interface{}); ok {
@@ -216,7 +216,7 @@ func TestBuiltinLocalizers_ErrorCases(t *testing.T) {
 			localizer, found := GetLocalizer(tt.ext)
 			require.True(t, found)
 			require.NotNil(t, localizer)
-			
+
 			var result map[string]interface{}
 			err := localizer.Unmarshal([]byte(tt.data), &result)
 			assert.Error(t, err)
@@ -227,19 +227,19 @@ func TestBuiltinLocalizers_ErrorCases(t *testing.T) {
 func TestLocalizerInterface(t *testing.T) {
 	// Verify that all built-in localizers implement the interface
 	builtinLocalizers := []string{"json", "yaml", "yml", "toml"}
-	
+
 	for _, name := range builtinLocalizers {
 		t.Run(name, func(t *testing.T) {
 			l, found := GetLocalizer(name)
 			require.True(t, found)
-			
+
 			// Verify it implements the interface
 			var _ Localizer = l
-			
+
 			// Test with empty data
 			var result map[string]interface{}
 			err := l.Unmarshal([]byte("{}"), &result)
-			
+
 			// Should not panic and should handle empty data gracefully
 			// (Error or success is acceptable depending on the format)
 			_ = err
@@ -253,13 +253,13 @@ func TestLocalizer_ConcreteTypes(t *testing.T) {
 	yamlLoc, _ := GetLocalizer("yaml")
 	ymlLoc, _ := GetLocalizer("yml")
 	tomlLoc, _ := GetLocalizer("toml")
-	
+
 	// Should all be LocalizerHandle instances
 	assert.IsType(t, &LocalizerHandle{}, jsonLoc)
 	assert.IsType(t, &LocalizerHandle{}, yamlLoc)
 	assert.IsType(t, &LocalizerHandle{}, ymlLoc)
 	assert.IsType(t, &LocalizerHandle{}, tomlLoc)
-	
+
 	// yaml and yml should be the same instance
 	assert.Same(t, yamlLoc, ymlLoc)
 }
@@ -278,17 +278,17 @@ func TestGetLocalizer_DotPrefix(t *testing.T) {
 		{"..json", ".json", false}, // Only removes first dot, results in invalid localizer
 		{".custom", "custom", true},
 	}
-	
+
 	// First register a custom localizer to test dot prefix behavior
 	customLocalizer := NewLocalizerHandle(func(body []byte, v any) error {
 		return nil
 	})
 	RegisterLocalizer("custom", customLocalizer)
-	
+
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			result, found := GetLocalizer(tc.input)
-			
+
 			assert.Equal(t, tc.shouldExist, found)
 			if tc.shouldExist {
 				// Compare with getting the localizer without dot

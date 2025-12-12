@@ -38,7 +38,7 @@ middleware/storage/cache/
 ```go
 type Cache interface {
     BaseCache
-    
+
     // Type-safe getters
     GetBool(key string) (bool, error)
     GetInt(key string) (int, error)
@@ -49,7 +49,7 @@ type Cache interface {
     GetUint64(key string) (uint64, error)
     GetFloat32(key string) (float32, error)
     GetFloat64(key string) (float64, error)
-    
+
     // Slice operations
     GetSlice(key string) ([]string, error)
     GetBoolSlice(key string) ([]bool, error)
@@ -61,14 +61,14 @@ type Cache interface {
     GetUint64Slice(key string) ([]uint64, error)
     GetFloat32Slice(key string) ([]float32, error)
     GetFloat64Slice(key string) ([]float64, error)
-    
+
     // Advanced operations
     GetJson(key string, j interface{}) error
     SetPb(key string, j proto.Message) error
     SetPbEx(key string, j proto.Message, timeout time.Duration) error
     GetPb(key string, j proto.Message) error
     HGetJson(key, field string, j interface{}) error
-    
+
     // Rate limiting
     Limit(key string, limit int64, timeout time.Duration) (bool, error)
     LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error)
@@ -84,17 +84,17 @@ type BaseCache interface {
     SetEx(key string, value any, timeout time.Duration) error
     Del(key ...string) error
     Exists(keys ...string) (bool, error)
-    
+
     // Expiration
     Ttl(key string) (time.Duration, error)
     Expire(key string, timeout time.Duration) (bool, error)
-    
+
     // Atomic operations
     Incr(key string) (int64, error)
     Decr(key string) (int64, error)
     IncrBy(key string, value int64) (int64, error)
     DecrBy(key string, value int64) (int64, error)
-    
+
     // Hash operations
     HSet(key string, field string, value interface{}) (bool, error)
     HGet(key, field string) (string, error)
@@ -106,7 +106,7 @@ type BaseCache interface {
     HIncrBy(key string, field string, increment int64) (int64, error)
     HDecr(key string, field string) (int64, error)
     HDecrBy(key string, field string, increment int64) (int64, error)
-    
+
     // Set operations
     SAdd(key string, members ...string) (int64, error)
     SMembers(key string) ([]string, error)
@@ -114,7 +114,7 @@ type BaseCache interface {
     SRandMember(key string, count ...int64) ([]string, error)
     SPop(key string) (string, error)
     SisMember(key, field string) (bool, error)
-    
+
     // Management
     Clean() error
     Close() error
@@ -287,7 +287,7 @@ func (p *Config) apply() {
 ```go
 func New(c *Config) (Cache, error) {
     c.apply()
-    
+
     switch c.Type {
     case Bbolt:
         return NewBbolt(c.Address, &bbolt.Options{
@@ -296,7 +296,7 @@ func New(c *Config) (Cache, error) {
             FreelistType: bbolt.FreelistArrayType,
         })
     case Redis:
-        return NewRedis(c.Address, 
+        return NewRedis(c.Address,
             redis.DialDatabase(c.Db),
             redis.DialPassword(c.Password),
         )
@@ -382,7 +382,7 @@ The testing system is designed with multiple layers:
 ### Test Coverage Breakdown
 - **Total Coverage**: 72.6% (excluding problematic tests)
 - **Core Operations**: >90% coverage
-- **Error Paths**: >85% coverage  
+- **Error Paths**: >85% coverage
 - **Type Conversions**: >95% coverage
 - **Configuration**: >80% coverage
 
@@ -414,8 +414,8 @@ bbolt_additional_coverage_test.go # 4 tests - BboltDB additional coverage
        name   string
        method func(string) error
    }{
-       {"GetBool_error", func(key string) error { 
-           _, err := cache.GetBool(key); return err 
+       {"GetBool_error", func(key string) error {
+           _, err := cache.GetBool(key); return err
        }},
        // ... more test cases
    }
@@ -545,8 +545,8 @@ err := cache.GetJson("user:profile:"+id, &user)
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-09-15  
-**Coverage**: 72.6% test coverage  
-**Lint Status**: ✅ 0 issues  
+**Document Version**: 1.0
+**Last Updated**: 2025-09-15
+**Coverage**: 72.6% test coverage
+**Lint Status**: ✅ 0 issues
 **Stability**: Production ready

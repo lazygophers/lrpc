@@ -1413,15 +1413,6 @@ func (p *Scoop) First(out interface{}) *FirstResult {
 		}
 	}
 
-	if rowAffected == 0 {
-		GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
-			return sqlRaw, 0
-		}, p.getNotFoundError())
-		return &FirstResult{
-			Error: p.getNotFoundError(),
-		}
-	}
-
 	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
 		return sqlRaw, rowAffected
 	}, nil)
