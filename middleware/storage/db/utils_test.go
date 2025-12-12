@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"gotest.tools/v3/assert"
 	"gorm.io/gorm/clause"
+	"gotest.tools/v3/assert"
 )
 
 // ============================================================================

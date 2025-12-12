@@ -92,9 +92,9 @@ func newMockFs() *mockFs {
 
 func TestPack_parse(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   map[string]any
-		want    map[string]string
+		name      string
+		input     map[string]any
+		want      map[string]string
 		wantPanic bool
 	}{
 		{
@@ -194,7 +194,7 @@ func TestPack_parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pack := NewPack("en")
-			
+
 			if tt.wantPanic {
 				// First add the key, then try to add it again
 				pack.parse(nil, map[string]any{"test": "first"})
@@ -212,7 +212,7 @@ func TestPack_parse(t *testing.T) {
 
 func TestPack_parseUnsupportedType(t *testing.T) {
 	pack := NewPack("en")
-	
+
 	assert.Panics(t, func() {
 		pack.parse(nil, map[string]any{
 			"unsupported": []int{1, 2, 3}, // unsupported type
@@ -225,29 +225,29 @@ func TestPack_parseDuplicateKeys(t *testing.T) {
 		pack := NewPack("en")
 		// First add the key
 		pack.parse(nil, map[string]any{"num": 42})
-		
+
 		// Try to add duplicate int key
 		assert.Panics(t, func() {
 			pack.parse(nil, map[string]any{"num": 43})
 		})
 	})
-	
+
 	t.Run("duplicate int64 key should panic", func(t *testing.T) {
 		pack := NewPack("en")
 		// First add the key
 		pack.parse(nil, map[string]any{"bignum": int64(12345678901234)})
-		
+
 		// Try to add duplicate int64 key
 		assert.Panics(t, func() {
 			pack.parse(nil, map[string]any{"bignum": int64(98765432109876)})
 		})
 	})
-	
+
 	t.Run("duplicate float64 key should panic", func(t *testing.T) {
 		pack := NewPack("en")
 		// First add the key
 		pack.parse(nil, map[string]any{"pi": 3.14159})
-		
+
 		// Try to add duplicate float64 key
 		assert.Panics(t, func() {
 			pack.parse(nil, map[string]any{"pi": 2.71828})
@@ -257,7 +257,7 @@ func TestPack_parseDuplicateKeys(t *testing.T) {
 
 func TestNewPack(t *testing.T) {
 	pack := NewPack("en-US")
-	
+
 	assert.Equal(t, "en-US", pack.lang)
 	assert.NotNil(t, pack.code)
 	assert.NotNil(t, pack.corpus)
@@ -266,29 +266,29 @@ func TestNewPack(t *testing.T) {
 
 func TestI18n_localize(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Add test packs
 	enPack := NewPack("en")
 	enPack.corpus["hello"] = "Hello"
 	enPack.corpus["welcome"] = "Welcome"
 	i18n.packMap["en"] = enPack
-	
+
 	enUSPack := NewPack("en-us")
 	enUSPack.corpus["hello"] = "Hello US"
 	i18n.packMap["en-us"] = enUSPack
-	
+
 	zhPack := NewPack("zh")
 	zhPack.corpus["hello"] = "你好"
 	i18n.packMap["zh"] = zhPack
-	
+
 	i18n.SetDefaultLang("en")
 
 	tests := []struct {
-		name     string
-		lang     string
-		key      string
-		want     string
-		wantOK   bool
+		name   string
+		lang   string
+		key    string
+		want   string
+		wantOK bool
 	}{
 		{
 			name:   "exact language match",
@@ -300,7 +300,7 @@ func TestI18n_localize(t *testing.T) {
 		{
 			name:   "fallback to base language",
 			lang:   "en-gb",
-			key:    "welcome", 
+			key:    "welcome",
 			want:   "Welcome",
 			wantOK: true,
 		},
@@ -353,14 +353,14 @@ func TestI18n_localize(t *testing.T) {
 			} else if tt.name == "default lang with hyphen fallback" {
 				// Special case to test default language hyphen fallback
 				testI18n := NewI18n()
-				
+
 				// Add base language pack (en) but set default to en-us
 				basePack := NewPack("en")
 				basePack.corpus["base_test"] = "Base Test"
 				testI18n.packMap["en"] = basePack
-				
+
 				testI18n.SetDefaultLang("en-us") // Hyphenated default
-				
+
 				got, gotOK := testI18n.localize(tt.lang, tt.key)
 				assert.Equal(t, tt.want, got)
 				assert.Equal(t, tt.wantOK, gotOK)
@@ -375,7 +375,7 @@ func TestI18n_localize(t *testing.T) {
 
 func TestI18n_LocalizeWithLang(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Add test pack
 	pack := NewPack("en")
 	pack.corpus["greeting"] = "Hello {{.Name}}"
@@ -416,27 +416,27 @@ func TestI18n_LocalizeWithLang(t *testing.T) {
 
 func TestI18n_LocalizeWithLang_TemplateError(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	t.Run("template parsing error", func(t *testing.T) {
 		// Add pack with invalid template syntax
 		pack := NewPack("en")
-		pack.corpus["bad_template"] = "Hello {{.Name}"  // Missing closing brace
+		pack.corpus["bad_template"] = "Hello {{.Name}" // Missing closing brace
 		i18n.packMap["en"] = pack
 		i18n.SetDefaultLang("en")
-		
+
 		// This should panic due to template parsing error
 		assert.Panics(t, func() {
 			i18n.LocalizeWithLang("en", "bad_template", map[string]string{"Name": "World"})
 		})
 	})
-	
+
 	t.Run("template execution error", func(t *testing.T) {
 		// Add pack with template that causes execution error
 		pack := NewPack("en")
 		pack.corpus["exec_error"] = "Hello {{call .BadFunc}}"
 		i18n.packMap["en"] = pack
 		i18n.SetDefaultLang("en")
-		
+
 		// This should panic due to template execution error (calling undefined function)
 		assert.Panics(t, func() {
 			i18n.LocalizeWithLang("en", "exec_error", map[string]interface{}{"BadFunc": nil})
@@ -446,7 +446,7 @@ func TestI18n_LocalizeWithLang_TemplateError(t *testing.T) {
 
 func TestI18n_Localize(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Add test pack
 	pack := NewPack("en")
 	pack.corpus["test"] = "Test message"
@@ -456,20 +456,20 @@ func TestI18n_Localize(t *testing.T) {
 	// Set language for current goroutine
 	SetLanguage("en")
 	defer DelLanguage()
-	
+
 	got := i18n.Localize("test")
 	assert.Equal(t, "Test message", got)
 }
 
 func TestI18n_AddTemplateFunc(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	customFunc := func(s string) string {
 		return "custom: " + s
 	}
-	
+
 	i18n.AddTemplateFunc("custom", customFunc)
-	
+
 	assert.Contains(t, i18n.templateFunc, "custom")
 	assert.NotNil(t, i18n.templateFunc["custom"])
 }
@@ -477,25 +477,25 @@ func TestI18n_AddTemplateFunc(t *testing.T) {
 func TestI18n_LoadLocalizesWithFs(t *testing.T) {
 	i18n := NewI18n()
 	mockFs := newMockFs()
-	
+
 	// Setup mock files
 	mockFs.dirs["localize"] = []fs.DirEntry{
 		&mockDirEntry{name: "en.json"},
 		&mockDirEntry{name: "zh.yaml"},
 		&mockDirEntry{name: "invalid.txt"}, // unsupported extension
 	}
-	
+
 	mockFs.files["localize/en.json"] = []byte(`{"hello": "Hello", "world": "World"}`)
 	mockFs.files["localize/zh.yaml"] = []byte("hello: 你好\nworld: 世界")
-	
+
 	err := i18n.LoadLocalizesWithFs("localize", mockFs)
 	require.NoError(t, err)
-	
+
 	// Verify loaded packs
 	assert.Contains(t, i18n.packMap, "en")
 	assert.Contains(t, i18n.packMap, "zh")
 	assert.NotContains(t, i18n.packMap, "invalid")
-	
+
 	// Verify content
 	assert.Equal(t, "Hello", i18n.packMap["en"].corpus["hello"])
 	assert.Equal(t, "World", i18n.packMap["en"].corpus["world"])
@@ -506,7 +506,7 @@ func TestI18n_LoadLocalizesWithFs(t *testing.T) {
 func TestI18n_LoadLocalizesWithFs_Error(t *testing.T) {
 	i18n := NewI18n()
 	mockFs := newMockFs()
-	
+
 	tests := []struct {
 		name  string
 		setup func()
@@ -550,7 +550,7 @@ func TestI18n_LoadLocalizesWithFs_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockFs := newMockFs()
 			tt.setup()
-			
+
 			err := i18n.LoadLocalizesWithFs("localize", mockFs)
 			assert.Error(t, err)
 		})
@@ -560,25 +560,25 @@ func TestI18n_LoadLocalizesWithFs_Error(t *testing.T) {
 func TestI18n_LoadLocalizes(t *testing.T) {
 	i18n := NewI18n()
 	mockFs := newMockFs()
-	
+
 	// Setup mock files
 	mockFs.dirs["localize"] = []fs.DirEntry{
 		&mockDirEntry{name: "en.json"},
 	}
 	mockFs.files["localize/en.json"] = []byte(`{"test": "Test"}`)
-	
+
 	err := i18n.LoadLocalizes(mockFs)
 	require.NoError(t, err)
-	
+
 	assert.Contains(t, i18n.packMap, "en")
 }
 
 func TestI18n_DefaultLangOperations(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Test initial default
 	assert.Equal(t, "en", i18n.DefaultLang())
-	
+
 	// Test setting new default
 	result := i18n.SetDefaultLang("zh-CN")
 	assert.Same(t, i18n, result) // Should return self for chaining
@@ -587,18 +587,18 @@ func TestI18n_DefaultLangOperations(t *testing.T) {
 
 func TestI18n_AllSupportedLanguageCode(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Initially empty
 	langs := i18n.AllSupportedLanguageCode()
 	assert.Empty(t, langs)
-	
+
 	// Add some packs
 	i18n.packMap["en"] = NewPack("en")
 	i18n.packMap["zh"] = NewPack("zh")
-	
+
 	langs = i18n.AllSupportedLanguageCode()
 	assert.Len(t, langs, 2)
-	
+
 	// Verify language codes are present
 	langStrs := make([]string, len(langs))
 	for i, lang := range langs {
@@ -612,19 +612,19 @@ func TestLanguageCache(t *testing.T) {
 	// Test SetLanguage and GetLanguage
 	SetLanguage("en-US")
 	assert.Equal(t, "en-us", GetLanguage())
-	
+
 	// Test with specific goroutine ID
 	SetLanguage("zh-CN", 12345)
 	assert.Equal(t, "zh-cn", GetLanguage(12345))
-	
+
 	// Test DelLanguage
 	DelLanguage()
 	assert.Equal(t, "", GetLanguage())
-	
+
 	// Test DelLanguage with specific goroutine ID
 	DelLanguage(12345)
 	assert.Equal(t, "", GetLanguage(12345))
-	
+
 	// Test empty language deletion
 	SetLanguage("", 99999)
 	assert.Equal(t, "", GetLanguage(99999))
@@ -632,12 +632,12 @@ func TestLanguageCache(t *testing.T) {
 
 func TestNewI18n(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	assert.NotNil(t, i18n.packMap)
 	assert.Empty(t, i18n.packMap)
 	assert.Equal(t, "en", i18n.DefaultLang())
 	assert.NotNil(t, i18n.templateFunc)
-	
+
 	// Verify default template functions exist
 	expectedFuncs := []string{
 		"ToCamel", "ToSmallCamel", "ToSnake", "ToLower", "ToUpper", "ToTitle",
@@ -647,7 +647,7 @@ func TestNewI18n(t *testing.T) {
 		"TopString", "FirstString", "LastString", "ContainsString",
 		"TimeFormat4Pb", "TimeFormat4Timestamp",
 	}
-	
+
 	for _, funcName := range expectedFuncs {
 		assert.Contains(t, i18n.templateFunc, funcName, "Missing template function: %s", funcName)
 	}
@@ -655,7 +655,7 @@ func TestNewI18n(t *testing.T) {
 
 func TestDefaultTemplateFunctions(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Test TimeFormat4Pb function
 	now := time.Now()
 	pbTime := timestamppb.New(now)
@@ -663,14 +663,14 @@ func TestDefaultTemplateFunctions(t *testing.T) {
 	result := timeFunc(pbTime, "2006-01-02")
 	// Don't assert the exact date, just ensure it's a valid date format
 	assert.Regexp(t, `^\d{4}-\d{2}-\d{2}$`, result)
-	
+
 	// Test TimeFormat4Timestamp function
 	timestamp := now.Unix()
 	tsFunc := i18n.templateFunc["TimeFormat4Timestamp"].(func(int64, string) string)
 	result2 := tsFunc(timestamp, "2006-01-02")
 	expected2 := time.Unix(timestamp, 0).Format("2006-01-02")
 	assert.Equal(t, expected2, result2)
-	
+
 	// Test StringSliceEmpty function
 	emptyFunc := i18n.templateFunc["StringSliceEmpty"].(func([]string) bool)
 	assert.True(t, emptyFunc([]string{}))
@@ -681,18 +681,18 @@ func TestDefaultI18nFunctions(t *testing.T) {
 	// Test SetDefaultLanguage and DefaultLanguage
 	SetDefaultLanguage("zh-CN")
 	assert.Equal(t, "zh-cn", DefaultLanguage())
-	
+
 	// Test Localize
 	result := Localize("nonexistent.key")
 	assert.Equal(t, "nonexistent.key", result)
-	
+
 	// Test LoadLocalizes
 	mockFs := newMockFs()
 	mockFs.dirs["localize"] = []fs.DirEntry{
 		&mockDirEntry{name: "en.json"},
 	}
 	mockFs.files["localize/en.json"] = []byte(`{"test": "value"}`)
-	
+
 	err := LoadLocalizes(mockFs)
 	assert.NoError(t, err)
 }
@@ -775,10 +775,10 @@ func TestLocalizeWithHeaders(t *testing.T) {
 				}
 				DefaultI18n.packMap = make(map[string]*Pack)
 				DefaultI18n.SetDefaultLang("nonexistent")
-				
+
 				result := LocalizeWithHeaders(tt.headers, tt.key)
 				assert.Equal(t, tt.expected, result)
-				
+
 				// Restore original state
 				DefaultI18n.packMap = originalPacks
 				DefaultI18n.SetDefaultLang("en")
@@ -795,10 +795,10 @@ func TestPrivateLocalizeFunction(t *testing.T) {
 	pack := NewPack("en")
 	pack.corpus["key"] = "value"
 	DefaultI18n.packMap["en"] = pack
-	
+
 	result := localize("en", "key")
 	assert.Equal(t, "value", result)
-	
+
 	// Test with template args
 	pack.corpus["template"] = "Hello {{.Name}}"
 	result = localize("en", "template", map[string]string{"Name": "World"})
@@ -807,24 +807,24 @@ func TestPrivateLocalizeFunction(t *testing.T) {
 
 func TestI18n_localizeWithDefaultFallback(t *testing.T) {
 	i18n := NewI18n()
-	
+
 	// Set up default language pack
 	enPack := NewPack("en")
 	enPack.corpus["test"] = "Default"
 	i18n.packMap["en"] = enPack
-	
-	// Set up default with hyphen 
+
+	// Set up default with hyphen
 	enUSPack := NewPack("en-us")
 	enUSPack.corpus["specific"] = "US Specific"
 	i18n.packMap["en-us"] = enUSPack
-	
+
 	i18n.SetDefaultLang("en-us")
 
 	// Test fallback to default with hyphen parsing
 	value, found := i18n.localize("fr", "test")
 	assert.Equal(t, "Default", value)
 	assert.True(t, found)
-	
+
 	// Test default language with hyphen
 	value, found = i18n.localize("", "specific")
 	assert.Equal(t, "US Specific", value)

@@ -62,10 +62,10 @@ type CacheConfig struct {
 
 // DefaultCacheConfig is the default cache configuration
 var DefaultCacheConfig = CacheConfig{
-	MaxAge:     3600,  // 1 hour
-	Public:     true,
-	WeakETag:   false,
-	Vary:       []string{"Accept-Encoding"},
+	MaxAge:   3600, // 1 hour
+	Public:   true,
+	WeakETag: false,
+	Vary:     []string{"Accept-Encoding"},
 }
 
 // BuildCacheControl builds Cache-Control header value from config

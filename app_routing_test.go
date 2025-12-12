@@ -321,10 +321,10 @@ func TestAppNewRoutingPriority(t *testing.T) {
 		path     string
 		wantBody string
 	}{
-		{"/users/list", "static"},   // Static wins
-		{"/users/123", "typed"},     // Typed param wins over generic param
-		{"/users/abc", "param"},     // Generic param wins over wildcard
-		{"/users/x/y", "wildcard"},  // Only wildcard matches
+		{"/users/list", "static"},  // Static wins
+		{"/users/123", "typed"},    // Typed param wins over generic param
+		{"/users/abc", "param"},    // Generic param wins over wildcard
+		{"/users/x/y", "wildcard"}, // Only wildcard matches
 	}
 
 	for _, tt := range tests {

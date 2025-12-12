@@ -207,14 +207,14 @@ func (p *CacheSugarDB) HGetAll(key string) (map[string]string, error) {
 		log.Errorf("err:%v", err)
 		return nil, err
 	}
-	
+
 	result := make(map[string]string)
 	for i := 0; i < len(values); i += 2 {
 		if i+1 < len(values) {
 			result[values[i]] = values[i+1]
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -295,7 +295,7 @@ func (p *CacheSugarDB) SRandMember(key string, count ...int64) ([]string, error)
 	if len(count) > 0 {
 		cnt = int(count[0])
 	}
-	
+
 	values, err := p.cli.SRandMember(key, cnt)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -310,7 +310,7 @@ func (p *CacheSugarDB) SPop(key string) (string, error) {
 		log.Errorf("err:%v", err)
 		return "", err
 	}
-	
+
 	if len(values) == 0 {
 		return "", ErrNotFound
 	}

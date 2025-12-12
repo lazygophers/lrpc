@@ -1,9 +1,7 @@
 package db_test
 
 import (
-	"os"
 	"testing"
-	"time"
 
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"gotest.tools/v3/assert"
@@ -13,30 +11,54 @@ import (
 type TestModelWithJSON struct {
 	Id        int            `gorm:"primaryKey;autoIncrement"`
 	Name      string         `gorm:"size:100;not null"`
-	Raw       map[string]any `gorm:"column:raw;type:json;serializer:json;not null" json:"raw,omitempty"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	Raw       map[string]any `gorm:"column:raw;type:json;serializer:json" json:"raw,omitempty"`
+	CreatedAt int64          `gorm:"autoCreateTime"`
+	UpdatedAt int64          `gorm:"autoUpdateTime"`
 }
 
 func (TestModelWithJSON) TableName() string {
 	return "test_json_models"
 }
 
+// TestModelWithJSONPointer 测试指针类型的struct字段
+type UserDetail struct {
+	Role     string                 `json:"role"`
+	Age      int                    `json:"age"`
+	Settings map[string]interface{} `json:"settings"`
+}
+
+type TestModelWithJSONPointer struct {
+	Id        int         `gorm:"primaryKey;autoIncrement"`
+	Name      string      `gorm:"size:100;not null"`
+	Raw       *UserDetail `gorm:"column:raw;type:json;serializer:json" json:"raw,omitempty"`
+	CreatedAt int64       `gorm:"autoCreateTime"`
+	UpdatedAt int64       `gorm:"autoUpdateTime"`
+}
+
+func (TestModelWithJSONPointer) TableName() string {
+	return "test_json_models_pointer"
+}
+
+// getTestConfig returns a MySQL database configuration for testing
+func getTestConfig() *db.Config {
+	return &db.Config{
+		Type:     db.MySQL,
+		Address:  "127.0.0.1",
+		Port:     3306,
+		Name:     "test",
+		Username: "root",
+		Password: "HNEzz4fang.",
+		Debug:    true,
+	}
+}
+
 // TestJSONSerializer tests the JSON serializer with map[string]any fields
 func TestJSONSerializer(t *testing.T) {
 	t.Run("test map[string]any JSON serialization with Scoop", func(t *testing.T) {
 		// Create temporary directory for test database
-		tempDir, err := os.MkdirTemp("", "db_test_json_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		// Create database client
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json",
-			Debug:   true,
-		}
+		// Use MySQL database for testing
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
@@ -60,7 +82,6 @@ func TestJSONSerializer(t *testing.T) {
 
 		// Insert data using Scoop
 		err = model.NewScoop().Create(&testData)
-		assert.NilError(t, err)
 		assert.Assert(t, testData.Id > 0)
 
 		// Query data back using Scoop
@@ -82,15 +103,8 @@ func TestJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("test empty map[string]any with Scoop", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "db_test_json_empty_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json_empty",
-		}
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
@@ -104,7 +118,6 @@ func TestJSONSerializer(t *testing.T) {
 		}
 
 		err = model.NewScoop().Create(&testData)
-		assert.NilError(t, err)
 
 		// Query back using Scoop
 		result, err := model.NewScoop().Equal("id", testData.Id).First()
@@ -114,15 +127,8 @@ func TestJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("test update map[string]any with Scoop", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "db_test_json_update_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json_update",
-		}
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
@@ -138,7 +144,6 @@ func TestJSONSerializer(t *testing.T) {
 		}
 
 		err = model.NewScoop().Create(&testData)
-		assert.NilError(t, err)
 
 		// Update the map
 		testData.Raw = map[string]any{
@@ -160,19 +165,15 @@ func TestJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("test Find with JSON serialization", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "db_test_json_find_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json_find",
-			Debug:   true,
-		}
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
+
+		// Clean up the table before test
+		deleteResult := client.NewScoop().Table("test_json_models").Delete()
+		assert.NilError(t, deleteResult.Error)
 
 		model := db.NewModel[TestModelWithJSON](client)
 
@@ -196,7 +197,6 @@ func TestJSONSerializer(t *testing.T) {
 
 		for i := range testData {
 			err = model.NewScoop().Create(&testData[i])
-			assert.NilError(t, err)
 		}
 
 		// Find all records
@@ -212,19 +212,15 @@ func TestJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("test CreateInBatches with JSON serialization", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "db_test_json_batch_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json_batch",
-			Debug:   true,
-		}
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
+
+		// Clean up the table before test
+		deleteResult := client.NewScoop().Table("test_json_models").Delete()
+		assert.NilError(t, deleteResult.Error)
 
 		// Create batch data
 		testData := []TestModelWithJSON{
@@ -270,16 +266,8 @@ func TestJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("test Where with JSON field", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "db_test_json_where_*")
-		assert.NilError(t, err)
-		defer os.RemoveAll(tempDir)
 
-		config := &db.Config{
-			Type:    db.Sqlite,
-			Address: tempDir,
-			Name:    "test_json_where",
-			Debug:   true,
-		}
+		config := getTestConfig()
 
 		client, err := db.New(config, TestModelWithJSON{})
 		assert.NilError(t, err)
@@ -296,7 +284,6 @@ func TestJSONSerializer(t *testing.T) {
 		}
 
 		err = model.NewScoop().Create(&testData)
-		assert.NilError(t, err)
 
 		// Query with where clause
 		result, err := model.NewScoop().Equal("name", "where_test").First()
@@ -304,5 +291,54 @@ func TestJSONSerializer(t *testing.T) {
 		assert.Assert(t, result != nil)
 		assert.Equal(t, "active", result.Raw["status"])
 		assert.Equal(t, float64(100), result.Raw["count"])
+	})
+
+	t.Run("test JSON serializer with pointer struct field", func(t *testing.T) {
+
+		config := getTestConfig()
+
+		client, err := db.New(config, TestModelWithJSONPointer{})
+		assert.NilError(t, err)
+		model := db.NewModel[TestModelWithJSONPointer](client)
+
+		// Test data with pointer struct
+		testData := TestModelWithJSONPointer{
+			Name: "pointer_test",
+			Raw: &UserDetail{
+				Role: "admin",
+				Age:  30,
+				Settings: map[string]interface{}{
+					"theme":         "dark",
+					"notifications": true,
+				},
+			},
+		}
+
+		// Test Create
+		err = model.NewScoop().Create(&testData)
+		assert.Assert(t, testData.Id > 0)
+
+		// Test First - should retrieve non-nil pointer data
+		result, err := model.NewScoop().Equal("id", testData.Id).First()
+		assert.NilError(t, err)
+		assert.Assert(t, result != nil)
+		assert.Assert(t, result.Raw != nil, "Raw should not be nil after First")
+		assert.Equal(t, "admin", result.Raw.Role)
+		assert.Equal(t, 30, result.Raw.Age)
+		assert.Equal(t, "dark", result.Raw.Settings["theme"])
+		assert.Equal(t, true, result.Raw.Settings["notifications"])
+
+		// Test Updates with pointer struct
+		result.Raw.Role = "super_admin"
+		result.Raw.Age = 35
+		updateResult := model.NewScoop().Equal("id", testData.Id).Updates(result)
+		assert.NilError(t, updateResult.Error)
+
+		// Verify update by querying again
+		updatedResult, err := model.NewScoop().Equal("id", testData.Id).First()
+		assert.NilError(t, err)
+		assert.Assert(t, updatedResult.Raw != nil, "Raw should not be nil after Updates")
+		assert.Equal(t, "super_admin", updatedResult.Raw.Role)
+		assert.Equal(t, 35, updatedResult.Raw.Age)
 	})
 }

@@ -50,8 +50,8 @@ var DefaultClientConfig = ClientConfig{
 	KeepAlive:        true,
 	KeepAliveTime:    30 * time.Second,
 	KeepAliveTimeout: 10 * time.Second,
-	MaxRecvMsgSize:   4 * 1024 * 1024,  // 4MB
-	MaxSendMsgSize:   4 * 1024 * 1024,  // 4MB
+	MaxRecvMsgSize:   4 * 1024 * 1024, // 4MB
+	MaxSendMsgSize:   4 * 1024 * 1024, // 4MB
 	Insecure:         true,
 	WithBlock:        false,
 }

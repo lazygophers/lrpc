@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/lazygophers/lrpc/middleware/storage/db"
-	"gotest.tools/v3/assert"
 	"gorm.io/gorm/clause"
+	"gotest.tools/v3/assert"
 )
 
 func TestExpr(t *testing.T) {

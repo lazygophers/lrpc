@@ -241,7 +241,6 @@ func (p *Ctx) SetParam(key, value string) {
 	p.params[key] = value
 }
 
-
 // AllParams returns all route parameters
 func (p *Ctx) AllParams() map[string]string {
 	if p.params == nil {

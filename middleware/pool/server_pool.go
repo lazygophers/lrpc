@@ -53,8 +53,8 @@ type ServerPoolConfig struct {
 
 // DefaultServerPoolConfig returns default server pool configuration
 var DefaultServerPoolConfig = ServerPoolConfig{
-	MaxConnsPerIP:         0,    // Unlimited
-	MaxRequestsPerConn:    0,    // Unlimited
+	MaxConnsPerIP:         0, // Unlimited
+	MaxRequestsPerConn:    0, // Unlimited
 	MaxIdleWorkerDuration: 10 * time.Second,
 	TCPKeepalive:          true,
 	TCPKeepalivePeriod:    30 * time.Second,
@@ -64,7 +64,7 @@ var DefaultServerPoolConfig = ServerPoolConfig{
 	WriteTimeout:          30 * time.Second,
 	IdleTimeout:           60 * time.Second,
 	MaxRequestBodySize:    4 * 1024 * 1024, // 4MB
-	Concurrency:           256 * 1024,       // 256K
+	Concurrency:           256 * 1024,      // 256K
 	DisableKeepalive:      false,
 	ReduceMemoryUsage:     false,
 }
@@ -83,7 +83,7 @@ func HighPerformanceConfig() ServerPoolConfig {
 		WriteTimeout:          10 * time.Second,
 		IdleTimeout:           30 * time.Second,
 		MaxRequestBodySize:    10 * 1024 * 1024, // 10MB
-		Concurrency:           512 * 1024,        // 512K
+		Concurrency:           512 * 1024,       // 512K
 		DisableKeepalive:      false,
 		ReduceMemoryUsage:     false,
 	}
@@ -103,7 +103,7 @@ func LowMemoryConfig() ServerPoolConfig {
 		WriteTimeout:          60 * time.Second,
 		IdleTimeout:           120 * time.Second,
 		MaxRequestBodySize:    1 * 1024 * 1024, // 1MB
-		Concurrency:           64 * 1024,        // 64K
+		Concurrency:           64 * 1024,       // 64K
 		DisableKeepalive:      false,
 		ReduceMemoryUsage:     true,
 	}

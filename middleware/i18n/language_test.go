@@ -54,7 +54,7 @@ func TestLanguageCode_GoString(t *testing.T) {
 		Lang: "en",
 		Tag:  language.English,
 	}
-	
+
 	// GoString should be the same as String
 	assert.Equal(t, langCode.String(), langCode.GoString())
 }
@@ -209,13 +209,13 @@ func TestParseLangCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := ParseLangCode(tt.input)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, result)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			assert.Equal(t, tt.expected.Lang, result.Lang)
@@ -227,12 +227,12 @@ func TestParseLangCode(t *testing.T) {
 func TestMustParseLangCode(t *testing.T) {
 	t.Run("success case", func(t *testing.T) {
 		result := MustParseLangCode("en")
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, "en", result.Lang)
 		assert.Equal(t, language.English, result.Tag)
 	})
-	
+
 	t.Run("panic on invalid code", func(t *testing.T) {
 		assert.Panics(t, func() {
 			MustParseLangCode("invalid-lang-code")
@@ -263,7 +263,7 @@ func TestParseLangCode_SpecialCases(t *testing.T) {
 		{"zh-cht", language.TraditionalChinese},
 		{"ZH-CHT", language.TraditionalChinese},
 	}
-	
+
 	for _, tc := range chineseCases {
 		t.Run(tc.input, func(t *testing.T) {
 			result, err := ParseLangCode(tc.input)
@@ -278,7 +278,7 @@ func TestParseLangCode_DefaultCase(t *testing.T) {
 	// Test the default case that uses language.Parse
 	commonCases := []string{
 		"en",
-		"en-US", 
+		"en-US",
 		"en-GB",
 		"fr",
 		"fr-FR",
@@ -299,16 +299,16 @@ func TestParseLangCode_DefaultCase(t *testing.T) {
 		"th",
 		"vi",
 	}
-	
+
 	for _, lang := range commonCases {
 		t.Run(lang, func(t *testing.T) {
 			result, err := ParseLangCode(lang)
 			require.NoError(t, err)
-			
+
 			// Should be able to parse with golang.org/x/text/language
 			expectedTag, expectedErr := language.Parse(lang)
 			require.NoError(t, expectedErr)
-			
+
 			assert.Equal(t, strings.ToLower(lang), result.Lang)
 			assert.Equal(t, expectedTag, result.Tag)
 		})
@@ -325,12 +325,12 @@ func TestLanguageCode_Coverage(t *testing.T) {
 		{"zh-cn", "zh(zh-cn)"},
 		{"fr-FR", "fr-FR"},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
 			langCode := MustParseLangCode(tc.lang)
 			result := langCode.String()
-			
+
 			// The actual result may vary based on language.Parse behavior
 			// Just ensure it doesn't panic and returns a string
 			assert.NotEmpty(t, result)

@@ -34,12 +34,12 @@ const (
 
 // ParamConstraint defines parameter validation rules
 type ParamConstraint struct {
-	Type  string           // int, string, uuid, regex, digit, etc.
-	Min   *int             // min value for int, min length for string
-	Max   *int             // max value for int, max length for string
-	Len   *int             // fixed length for string
-	Regex *regexp.Regexp   // regex pattern
-	Enum  []string         // enum values
+	Type  string         // int, string, uuid, regex, digit, etc.
+	Min   *int           // min value for int, min length for string
+	Max   *int           // max value for int, max length for string
+	Len   *int           // fixed length for string
+	Regex *regexp.Regexp // regex pattern
+	Enum  []string       // enum values
 }
 
 // RouteParam defines a route parameter
@@ -68,10 +68,10 @@ type RouteNode struct {
 
 // Router manages routes and middleware
 type Router struct {
-	root              *RouteNode
-	middleware        []HandlerFunc // global middleware
-	notFound          HandlerFunc
-	methodNotAllowed  HandlerFunc
+	root             *RouteNode
+	middleware       []HandlerFunc // global middleware
+	notFound         HandlerFunc
+	methodNotAllowed HandlerFunc
 }
 
 // MatchResult contains the result of a route match

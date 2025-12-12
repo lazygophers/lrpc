@@ -228,8 +228,8 @@ func getOp(fieldName string) (newFieldName, op string) {
 //     val -> 任意类型
 //   - []interface{}
 //     interface{} 可以是:
-//     - []string, 可以写成 {"fieldName", "op"?, value}
-//     - map[string]interface{}
+//   - []string, 可以写成 {"fieldName", "op"?, value}
+//   - map[string]interface{}
 //   - fieldName 'op'? arg, op 不填，也就是只有两个入参时，表示是相等操作 =
 //   - 自己构造的sql条件，比如: a = ? or (c = ? and d = ?), x, y, z
 func (p *Cond) where(args ...interface{}) {
