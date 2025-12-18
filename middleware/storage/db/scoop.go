@@ -1506,6 +1506,11 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 	values := make([]interface{}, 0, fieldCount)
 
 	for _, field := range stmt.Schema.Fields {
+		// 跳过不可创建的字段（如 gorm:"-" 标记的字段）
+		if !field.Creatable {
+			continue
+		}
+
 		fieldValue := vv.FieldByName(field.Name)
 
 		// Set auto create time for CreatedAt/UpdatedAt if needed
@@ -1756,6 +1761,11 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		includedFields := make([]fieldInfo, 0, fieldCount)
 
 		for _, field := range stmt.Schema.Fields {
+			// 跳过不可创建的字段（如 gorm:"-" 标记的字段）
+			if !field.Creatable {
+				continue
+			}
+
 			// Skip auto increment primary key if it's zero in first row
 			if field.AutoIncrement && firstRowInBatch.FieldByName(field.Name).IsZero() {
 				continue
