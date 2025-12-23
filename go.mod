@@ -13,8 +13,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
-	github.com/lazygophers/log v0.0.0-20251109135330-a99e80960847
-	github.com/lazygophers/utils v0.0.0-20251030072921-255b987010d6
+	github.com/lazygophers/log v0.0.0-20251223085513-ddd669847c1d
+	github.com/lazygophers/utils v0.0.0-20251223085706-b10d851050e6
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/petermattis/goid v0.0.0-20251121121749-a11dd1a45f9a
