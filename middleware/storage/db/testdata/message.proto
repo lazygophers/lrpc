@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package testdata;
+
+option go_package = "github.com/lazygophers/lrpc/middleware/storage/db/testdata";
+
+// TextContent 文本内容
+message TextContent {
+    string text = 1;
+}
+
+// ImageContent 图片内容
+message ImageContent {
+    string url = 1;
+    int32 width = 2;
+    int32 height = 3;
+}
+
+// ModelMessage 包含 oneof 字段的消息
+message ModelMessage {
+    int64 id = 1;
+    string name = 2;
+
+    // oneof content 字段
+    oneof content {
+        TextContent text_content = 6;
+        ImageContent image_content = 10;
+    }
+}
+
+// SimpleMessage 简单消息（用于基础测试）
+message SimpleMessage {
+    string name = 1;
+    int32 age = 2;
+    repeated string tags = 3;
+}

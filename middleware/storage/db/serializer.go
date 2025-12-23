@@ -11,6 +11,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
 	"go.mongodb.org/mongo-driver/bson"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v3"
@@ -34,6 +35,7 @@ func ensureSerializerRegistered() {
 		schema.RegisterSerializer("bson", &BsonSerializer{})
 		schema.RegisterSerializer("toml", &TomlSerializer{})
 		schema.RegisterSerializer("protobuf", &ProtobufSerializer{})
+		schema.RegisterSerializer("protojson", &ProtojsonSerializer{})
 	})
 }
 
@@ -367,6 +369,84 @@ func (p *ProtobufSerializer) Value(ctx context.Context, field *schema.Field, dst
 	}
 
 	buffer, err := proto.Marshal(msg)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	return string(buffer), nil
+}
+
+// ProtojsonSerializer Protobuf JSON 序列化器，使用 protojson 处理 protobuf 消息（包括 oneof 字段）
+type ProtojsonSerializer struct {
+}
+
+func (p *ProtojsonSerializer) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) (err error) {
+	// 处理指针类型：当字段是 *T 时，创建 T 的实例
+	fieldType := field.FieldType
+	isPtr := fieldType.Kind() == reflect.Ptr
+	if isPtr {
+		fieldType = fieldType.Elem()
+	}
+
+	// 创建实际类型的实例
+	fieldValue := reflect.New(fieldType)
+
+	if dbValue != nil {
+		var data []byte
+		switch v := dbValue.(type) {
+		case []byte:
+			data = v
+		case string:
+			data = []byte(v)
+		default:
+			// Check if it's a proto.Message
+			if msg, ok := v.(proto.Message); ok {
+				data, err = protojson.Marshal(msg)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					return err
+				}
+			} else {
+				return errors.New("value is not a proto.Message")
+			}
+		}
+
+		if len(data) > 0 {
+			// Check if fieldValue is a proto.Message
+			if msg, ok := fieldValue.Interface().(proto.Message); ok {
+				err = protojson.Unmarshal(data, msg)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					return err
+				}
+			} else {
+				return errors.New("field is not a proto.Message")
+			}
+		}
+	}
+
+	// 根据原始字段类型设置值
+	if isPtr {
+		field.ReflectValueOf(ctx, dst).Set(fieldValue)
+	} else {
+		field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
+	}
+	return nil
+}
+
+func (p *ProtojsonSerializer) Value(ctx context.Context, field *schema.Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
+	if fieldValue == nil {
+		return "", nil
+	}
+
+	// Check if it's a proto.Message
+	msg, ok := fieldValue.(proto.Message)
+	if !ok {
+		return nil, errors.New("value is not a proto.Message")
+	}
+
+	buffer, err := protojson.Marshal(msg)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
