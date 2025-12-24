@@ -1511,6 +1511,11 @@ func (p *Scoop) Create(value interface{}) *CreateResult {
 			continue
 		}
 
+		// 跳过没有数据库字段名的字段（防止生成空字段名导致 SQL 语法错误）
+		if field.DBName == "" {
+			continue
+		}
+
 		fieldValue := vv.FieldByName(field.Name)
 
 		// Set auto create time for CreatedAt/UpdatedAt if needed
@@ -1763,6 +1768,11 @@ func (p *Scoop) CreateInBatches(value interface{}, batchSize int) *CreateInBatch
 		for _, field := range stmt.Schema.Fields {
 			// 跳过不可创建的字段（如 gorm:"-" 标记的字段）
 			if !field.Creatable {
+				continue
+			}
+
+			// 跳过没有数据库字段名的字段（防止生成空字段名导致 SQL 语法错误）
+			if field.DBName == "" {
 				continue
 			}
 
