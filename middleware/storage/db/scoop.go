@@ -2597,6 +2597,13 @@ func (p *Scoop) Exist() (bool, error) {
 }
 
 func (p *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, error) {
+	if opt == nil {
+		opt = &core.ListOption{
+			Offset: core.DefaultOffset,
+			Limit:  core.DefaultLimit,
+		}
+	}
+
 	p.Offset(opt.Offset).Limit(opt.Limit)
 
 	page := &core.Paginate{

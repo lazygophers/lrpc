@@ -36,8 +36,8 @@ import (
 )
 
 const (
-	defaultOffset = 0  // 默认偏移量
-	defaultLimit  = 20 // 默认每页条数
+	DefaultOffset = 0  // 默认偏移量
+	DefaultLimit  = 20 // 默认每页条数
 
 	maxLimit = 1000 // 最大每页条数限制
 )
@@ -69,8 +69,8 @@ func splitAndTrim(value string) []string {
 // NewListOption 创建一个新的 ListOption 实例，使用默认的分页参数
 func NewListOption() *ListOption {
 	return &ListOption{
-		Offset: defaultOffset,
-		Limit:  defaultLimit,
+		Offset: DefaultOffset,
+		Limit:  DefaultLimit,
 	}
 }
 
@@ -128,8 +128,8 @@ func (p *ListOption) AddOption(key int32, value string) *ListOption {
 func (p *ListOption) Clone() *ListOption {
 	if p == nil {
 		return &ListOption{
-			Offset: defaultOffset,
-			Limit:  defaultLimit,
+			Offset: DefaultOffset,
+			Limit:  DefaultLimit,
 		}
 	}
 
@@ -163,8 +163,8 @@ func (p *ListOption) Processor() *ListOptionProcessor {
 func (p *ListOption) Paginate() *Paginate {
 	if p == nil {
 		return &Paginate{
-			Offset: defaultOffset,
-			Limit:  defaultLimit,
+			Offset: DefaultOffset,
+			Limit:  DefaultLimit,
 		}
 	}
 
@@ -634,11 +634,11 @@ func (p *ListOptionProcessor) Order(key int32, logic func(isDesc bool) error) *L
 //   - Limit > 1000 -> 限制为 1000
 func (p *ListOptionProcessor) Process() error {
 	if p.ListOption.Offset < 0 {
-		p.ListOption.Offset = defaultOffset
+		p.ListOption.Offset = DefaultOffset
 	}
 
 	if p.ListOption.Limit < 0 {
-		p.ListOption.Limit = defaultLimit
+		p.ListOption.Limit = DefaultLimit
 	} else if p.ListOption.Limit > maxLimit {
 		p.ListOption.Limit = maxLimit
 	}
