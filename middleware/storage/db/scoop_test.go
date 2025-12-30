@@ -955,3 +955,68 @@ func TestScoopToSQLOperations(t *testing.T) {
 		assert.Assert(t, strings.Contains(sqlStr4, "ERROR"))
 	})
 }
+
+// TestScoopScan tests the Scan method
+func TestScoopScan(t *testing.T) {
+	client := setupTestDBForScoop(t)
+
+	// Clear table before testing
+	client.NewScoop().Model(&TestProduct{}).Unscoped().Where("1 = 1").Delete()
+
+	insertTestProducts(t, client)
+
+	t.Run("scan single value", func(t *testing.T) {
+		var count int64
+		result := client.NewScoop().Model(&TestProduct{}).Select("COUNT(*)").Scan(&count)
+		assert.NilError(t, result.Error)
+		assert.Equal(t, count, int64(5))
+		assert.Equal(t, result.RowsAffected, int64(1))
+	})
+
+	t.Run("scan multiple values into slice", func(t *testing.T) {
+		var names []string
+		result := client.NewScoop().Model(&TestProduct{}).
+			Select("name").
+			Equal("category_id", 1).
+			Scan(&names)
+		assert.NilError(t, result.Error)
+		assert.Equal(t, len(names), 2)
+		assert.Equal(t, result.RowsAffected, int64(2))
+	})
+
+	t.Run("scan with where condition", func(t *testing.T) {
+		var maxPrice float64
+		result := client.NewScoop().Model(&TestProduct{}).
+			Select("MAX(price)").
+			Where("is_active", true).
+			Scan(&maxPrice)
+		assert.NilError(t, result.Error)
+		assert.Equal(t, maxPrice, 500.0)
+	})
+
+	t.Run("scan with aggregation", func(t *testing.T) {
+		var avgPrice float64
+		result := client.NewScoop().Model(&TestProduct{}).
+			Select("AVG(price)").
+			Scan(&avgPrice)
+		assert.NilError(t, result.Error)
+		assert.Assert(t, avgPrice > 0)
+	})
+
+	t.Run("scan empty result", func(t *testing.T) {
+		var name string
+		result := client.NewScoop().Model(&TestProduct{}).
+			Select("name").
+			Equal("id", 99999).
+			Scan(&name)
+		assert.NilError(t, result.Error)
+		assert.Equal(t, result.RowsAffected, int64(0))
+	})
+
+	t.Run("scan without table name should fail", func(t *testing.T) {
+		var count int64
+		result := client.NewScoop().Select("COUNT(*)").Scan(&count)
+		assert.Assert(t, result.Error != nil)
+		assert.Assert(t, strings.Contains(result.Error.Error(), "table name is empty"))
+	})
+}

@@ -2643,6 +2643,68 @@ func (p *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, er
 	return page, nil
 }
 
+type ScanResult struct {
+	RowsAffected int64
+	Error        error
+}
+
+// Scan executes the query and scans the result into dest.
+// The dest parameter can be:
+//   - A pointer to a basic type (int, string, etc.) for single value queries
+//   - A pointer to a slice for multiple values
+//   - A pointer to a struct for single row queries
+//   - A pointer to a slice of structs for multiple rows
+//
+// Returns ScanResult containing any error that occurred.
+//
+// Example:
+//
+//	var count int64
+//	result := scoop.Table("users").Select("COUNT(*)").Where("age > ?", 18).Scan(&count)
+//
+//	var names []string
+//	result := scoop.Table("users").Select("name").Where("age > ?", 18).Scan(&names)
+func (p *Scoop) Scan(dest interface{}) *ScanResult {
+	if p.cond.skip {
+		return &ScanResult{}
+	}
+
+	if p.table == "" {
+		return &ScanResult{
+			Error: fmt.Errorf("Scan failed: table name is empty, use Table() to specify table name"),
+		}
+	}
+
+	if !p.unscoped && p.hasDeletedAt {
+		p.cond.whereRaw("deleted_at = 0")
+	}
+
+	p.inc()
+	defer p.dec()
+
+	sqlRaw := p.findSql()
+	start := time.Now()
+
+	res := p._db.Raw(sqlRaw).Scan(dest)
+
+	GetDefaultLogger().Log(p.depth, start, func() (sql string, rowsAffected int64) {
+		return sqlRaw, res.RowsAffected
+	}, res.Error)
+
+	if res.Error != nil {
+		log.Errorf("err:%v", res.Error)
+		return &ScanResult{
+			RowsAffected: res.RowsAffected,
+			Error:        res.Error,
+		}
+	}
+
+	return &ScanResult{
+		RowsAffected: res.RowsAffected,
+		Error:        nil,
+	}
+}
+
 // ——————————事务——————————
 
 func (p *Scoop) Begin() *Scoop {
