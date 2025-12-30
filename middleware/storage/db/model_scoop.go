@@ -507,19 +507,18 @@ func (p *ModelScoop[M]) FindByPage(opt *core.ListOption) (page *core.Paginate, v
 //   - A pointer to a slice for multiple values
 //   - A pointer to M or []*M for model queries
 //
-// Returns error if scan fails.
+// Returns ScanResult containing any error that occurred.
 //
 // Example:
 //
 //	var count int64
-//	err := scoop.Select("COUNT(*)").Where("age > ?", 18).Scan(&count)
+//	result := scoop.Select("COUNT(*)").Where("age > ?", 18).Scan(&count)
 //
 //	var ids []uint64
-//	err := scoop.Select("id").Where("status = ?", "active").Scan(&ids)
-func (p *ModelScoop[M]) Scan(dest interface{}) error {
+//	result := scoop.Select("id").Where("status = ?", "active").Scan(&ids)
+func (p *ModelScoop[M]) Scan(dest interface{}) *ScanResult {
 	p.inc()
 	defer p.dec()
 
-	result := p.Scoop.Scan(dest)
-	return result.Error
+	return p.Scoop.Scan(dest)
 }
