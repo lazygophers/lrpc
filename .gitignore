@@ -13,3 +13,4 @@ coverage-*.html
 .codanna/
 .codannaignore
 .fastembed_cache
+.DS_Store
