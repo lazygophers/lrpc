@@ -10,3 +10,6 @@ coverage-*.html
 *.test
 *.log
 /middleware/storage/cache/aof
+.codanna/
+.codannaignore
+.fastembed_cache
