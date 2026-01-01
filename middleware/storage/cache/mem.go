@@ -684,8 +684,8 @@ func (p *CacheMem) Publish(channel string, message interface{}) (int64, error) {
 	return 0, errors.New("mem cache does not support pub/sub")
 }
 
-func (p *CacheMem) Subscribe(channels ...string) (chan []byte, chan error, error) {
-	return nil, nil, errors.New("mem cache does not support pub/sub")
+func (p *CacheMem) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	return errors.New("mem cache does not support pub/sub")
 }
 
 func (p *CacheMem) XAdd(stream string, values map[string]interface{}) (string, error) {

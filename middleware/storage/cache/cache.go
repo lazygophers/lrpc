@@ -53,7 +53,7 @@ type BaseCache interface {
 
 	// Pub/Sub 发布订阅
 	Publish(channel string, message interface{}) (int64, error)
-	Subscribe(channels ...string) (chan []byte, chan error, error)
+	Subscribe(handler func(channel string, message []byte) error, channels ...string) error
 
 	// Stream 流操作
 	XAdd(stream string, values map[string]interface{}) (string, error)

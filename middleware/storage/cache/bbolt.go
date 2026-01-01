@@ -814,8 +814,8 @@ func (p *CacheBbolt) Publish(channel string, message interface{}) (int64, error)
 	return 0, errors.New("bbolt cache does not support pub/sub")
 }
 
-func (p *CacheBbolt) Subscribe(channels ...string) (chan []byte, chan error, error) {
-	return nil, nil, errors.New("bbolt cache does not support pub/sub")
+func (p *CacheBbolt) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	return errors.New("bbolt cache does not support pub/sub")
 }
 
 func (p *CacheBbolt) XAdd(stream string, values map[string]interface{}) (string, error) {

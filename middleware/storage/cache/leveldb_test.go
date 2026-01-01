@@ -8,6 +8,15 @@ import (
 	"gotest.tools/v3/assert"
 )
 
+func containsString(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
 func TestLevelDBBasicOperations(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "test_leveldb_*")
 	assert.NilError(t, err)

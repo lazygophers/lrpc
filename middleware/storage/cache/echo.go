@@ -355,8 +355,8 @@ func (p *CacheSugarDB) Publish(channel string, message interface{}) (int64, erro
 	return 0, errors.New("sugardb cache does not support pub/sub")
 }
 
-func (p *CacheSugarDB) Subscribe(channels ...string) (chan []byte, chan error, error) {
-	return nil, nil, errors.New("sugardb cache does not support pub/sub")
+func (p *CacheSugarDB) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	return errors.New("sugardb cache does not support pub/sub")
 }
 
 func (p *CacheSugarDB) XAdd(stream string, values map[string]interface{}) (string, error) {

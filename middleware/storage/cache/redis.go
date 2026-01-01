@@ -7,6 +7,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/runtime"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/shomali11/xredis"
@@ -491,8 +492,9 @@ func (p *CacheRedis) Publish(channel string, message interface{}) (int64, error)
 	return val, nil
 }
 
-func (p *CacheRedis) Subscribe(channels ...string) (chan []byte, chan error, error) {
+func (p *CacheRedis) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
 	conn := p.cli.GetConnection()
+	defer conn.Close()
 
 	psc := redis.PubSubConn{Conn: conn}
 
@@ -504,33 +506,37 @@ func (p *CacheRedis) Subscribe(channels ...string) (chan []byte, chan error, err
 	err := psc.Subscribe(prefixedChannels...)
 	if err != nil {
 		log.Errorf("err:%v", err)
-		conn.Close()
-		return nil, nil, err
+		return err
 	}
 
-	msgChan := make(chan []byte, 100)
-	errChan := make(chan error, 1)
+	logic := func(v redis.Message) {
+		defer runtime.CachePanicWithHandle(func(err interface{}) {
+			log.Errorf("PANIC:%v", err)
+		})
 
-	go func() {
-		defer conn.Close()
-		defer close(msgChan)
-		defer close(errChan)
-
-		for {
-			switch v := psc.Receive().(type) {
-			case redis.Message:
-				msgChan <- v.Data
-			case redis.Subscription:
-				log.Debugf("subscription: %s %s %d", v.Kind, v.Channel, v.Count)
-			case error:
-				log.Errorf("err:%v", v)
-				errChan <- v
-				return
-			}
+		channel := v.Channel
+		if len(p.prefix) > 0 && len(channel) > len(p.prefix) {
+			channel = channel[len(p.prefix):]
 		}
-	}()
 
-	return msgChan, errChan, nil
+		err := handler(channel, v.Data)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	}
+
+	for {
+		switch v := psc.Receive().(type) {
+		case redis.Message:
+			logic(v)
+		case redis.Subscription:
+			log.Debugf("subscription: %s %s %d", v.Kind, v.Channel, v.Count)
+		case error:
+			log.Errorf("err:%v", v)
+			return v
+		}
+	}
 }
 
 func (p *CacheRedis) XAdd(stream string, values map[string]interface{}) (string, error) {

@@ -604,8 +604,8 @@ func (p *CacheLevelDB) Publish(channel string, message interface{}) (int64, erro
 	return 0, errors.New("leveldb cache does not support pub/sub")
 }
 
-func (p *CacheLevelDB) Subscribe(channels ...string) (chan []byte, chan error, error) {
-	return nil, nil, errors.New("leveldb cache does not support pub/sub")
+func (p *CacheLevelDB) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	return errors.New("leveldb cache does not support pub/sub")
 }
 
 func (p *CacheLevelDB) XAdd(stream string, values map[string]interface{}) (string, error) {

@@ -255,8 +255,8 @@ func (p *Database) Publish(channel string, message interface{}) (int64, error) {
 	return 0, errors.New("database cache does not support pub/sub")
 }
 
-func (p *Database) Subscribe(channels ...string) (chan []byte, chan error, error) {
-	return nil, nil, errors.New("database cache does not support pub/sub")
+func (p *Database) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	return errors.New("database cache does not support pub/sub")
 }
 
 func (p *Database) XAdd(stream string, values map[string]interface{}) (string, error) {
