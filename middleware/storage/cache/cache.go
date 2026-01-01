@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"

@@ -2,17 +2,15 @@ module github.com/lazygophers/lrpc
 
 go 1.25.0
 
-replace github.com/armon/go-metrics => github.com/hashicorp/go-metrics v0.4.1
-
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
 	github.com/echovault/sugardb v0.17.0
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/garyburd/redigo v1.6.4
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/gomodule/redigo v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
 	github.com/lazygophers/log v0.0.0-20251229002445-3573dbfe9e95
@@ -20,7 +18,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/petermattis/goid v0.0.0-20251121121749-a11dd1a45f9a
-	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b
 	github.com/stretchr/testify v1.11.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/valyala/fasthttp v1.68.0
@@ -62,6 +59,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
+	github.com/garyburd/redigo v1.6.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect

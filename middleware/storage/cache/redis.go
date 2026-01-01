@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"errors"
 	"time"
 
 	"github.com/lazygophers/log"
@@ -9,18 +8,17 @@ import (
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/runtime"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/shomali11/xredis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type CacheRedis struct {
-	cli *xredis.Client
+	cli *redis.Pool
 
 	prefix string
 }
 
 func (p *CacheRedis) Clean() error {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	keys, err := redis.Strings(conn.Do("KEYS", p.prefix+"*"))
@@ -51,16 +49,18 @@ func (p *CacheRedis) SetPrefix(prefix string) {
 }
 
 func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
+	pool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", address, opts...)
+		},
+		MaxIdle:     1000,
+		MaxActive:   1000,
+		IdleTimeout: time.Second * 5,
+		Wait:        true,
+	}
+
 	p := &CacheRedis{
-		cli: xredis.NewClient(&redis.Pool{
-			Dial: func() (redis.Conn, error) {
-				return redis.Dial("tcp", address, opts...)
-			},
-			MaxIdle:     1000,
-			MaxActive:   1000,
-			IdleTimeout: time.Second * 5,
-			Wait:        true,
-		}),
+		cli: pool,
 	}
 
 	atexit.Register(func() {
@@ -71,7 +71,10 @@ func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
 		}
 	})
 
-	pong, err := p.cli.Ping()
+	conn := pool.Get()
+	defer conn.Close()
+
+	pong, err := redis.String(conn.Do("PING"))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
@@ -83,7 +86,10 @@ func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
 }
 
 func (p *CacheRedis) Incr(key string) (int64, error) {
-	val, err := p.cli.Incr(p.prefix + key)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("INCR", p.prefix+key))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -92,7 +98,10 @@ func (p *CacheRedis) Incr(key string) (int64, error) {
 }
 
 func (p *CacheRedis) Decr(key string) (int64, error) {
-	val, err := p.cli.Decr(p.prefix + key)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("DECR", p.prefix+key))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -101,7 +110,10 @@ func (p *CacheRedis) Decr(key string) (int64, error) {
 }
 
 func (p *CacheRedis) IncrBy(key string, value int64) (int64, error) {
-	val, err := p.cli.IncrBy(p.prefix+key, value)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("INCRBY", p.prefix+key, value))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -110,7 +122,10 @@ func (p *CacheRedis) IncrBy(key string, value int64) (int64, error) {
 }
 
 func (p *CacheRedis) IncrByFloat(key string, increment float64) (float64, error) {
-	val, err := p.cli.IncrByFloat(p.prefix+key, increment)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Float64(conn.Do("INCRBYFLOAT", p.prefix+key, increment))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -119,7 +134,10 @@ func (p *CacheRedis) IncrByFloat(key string, increment float64) (float64, error)
 }
 
 func (p *CacheRedis) DecrBy(key string, value int64) (int64, error) {
-	val, err := p.cli.DecrBy(p.prefix+key, value)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("DECRBY", p.prefix+key, value))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -130,43 +148,47 @@ func (p *CacheRedis) DecrBy(key string, value int64) (int64, error) {
 func (p *CacheRedis) Get(key string) (string, error) {
 	log.Debugf("get %s", key)
 
-	val, ok, err := p.cli.Get(p.prefix + key)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.String(conn.Do("GET", p.prefix+key))
 	if err != nil {
+		if err == redis.ErrNil {
+			return "", ErrNotFound
+		}
 		log.Errorf("err:%v", err)
 		return "", err
-	}
-	if !ok {
-		return "", ErrNotFound
 	}
 
 	return val, nil
 }
 
 func (p *CacheRedis) Exists(keys ...string) (bool, error) {
-	ok, err := p.cli.Exists(candy.Map(keys, func(key string) string {
-		return p.prefix + key
-	})...)
-	if err != nil {
-		if errors.Is(err, redis.ErrNil) {
-			return false, nil
-		}
+	conn := p.cli.Get()
+	defer conn.Close()
 
+	args := make([]interface{}, 0, len(keys))
+	for _, key := range keys {
+		args = append(args, p.prefix+key)
+	}
+
+	count, err := redis.Int64(conn.Do("EXISTS", args...))
+	if err != nil {
 		log.Errorf("err:%v", err)
 		return false, err
 	}
 
-	return ok, nil
+	return count > 0, nil
 }
 
 func (p *CacheRedis) SetNx(key string, value interface{}) (bool, error) {
 	log.Debugf("set nx %s", key)
 
-	ok, err := p.cli.SetNx(p.prefix+key, candy.ToString(value))
-	if err != nil {
-		if err == redis.ErrNil {
-			return false, nil
-		}
+	conn := p.cli.Get()
+	defer conn.Close()
 
+	ok, err := redis.Bool(conn.Do("SETNX", p.prefix+key, candy.ToString(value)))
+	if err != nil {
 		log.Errorf("err:%v", err)
 		return false, err
 	}
@@ -175,12 +197,11 @@ func (p *CacheRedis) SetNx(key string, value interface{}) (bool, error) {
 }
 
 func (p *CacheRedis) Expire(key string, timeout time.Duration) (bool, error) {
-	ok, err := p.cli.Expire(p.prefix+key, int64(timeout.Seconds()))
-	if err != nil {
-		if err == redis.ErrNil {
-			return false, nil
-		}
+	conn := p.cli.Get()
+	defer conn.Close()
 
+	ok, err := redis.Bool(conn.Do("EXPIRE", p.prefix+key, int64(timeout.Seconds())))
+	if err != nil {
 		log.Errorf("err:%v", err)
 		return false, err
 	}
@@ -189,9 +210,10 @@ func (p *CacheRedis) Expire(key string, timeout time.Duration) (bool, error) {
 }
 
 func (p *CacheRedis) Ttl(key string) (time.Duration, error) {
-	connection := p.cli.GetConnection()
+	conn := p.cli.Get()
+	defer conn.Close()
 
-	ttl, err := redis.Int64(connection.Do("TTL", p.prefix+key))
+	ttl, err := redis.Int64(conn.Do("TTL", p.prefix+key))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -203,7 +225,10 @@ func (p *CacheRedis) Ttl(key string) (time.Duration, error) {
 func (p *CacheRedis) Set(key string, value interface{}) (err error) {
 	log.Debugf("set %s", key)
 
-	_, err = p.cli.Set(p.prefix+key, candy.ToString(value))
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("SET", p.prefix+key, candy.ToString(value))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
@@ -214,7 +239,10 @@ func (p *CacheRedis) Set(key string, value interface{}) (err error) {
 func (p *CacheRedis) SetEx(key string, value interface{}, timeout time.Duration) error {
 	log.Debugf("set ex %s", key)
 
-	_, err := p.cli.SetEx(p.prefix+key, candy.ToString(value), int64(timeout.Seconds()))
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("SETEX", p.prefix+key, int64(timeout.Seconds()), candy.ToString(value))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
@@ -242,9 +270,15 @@ func (p *CacheRedis) SetNxWithTimeout(key string, value interface{}, timeout tim
 }
 
 func (p *CacheRedis) Del(keys ...string) (err error) {
-	_, err = p.cli.Del(candy.Map(keys, func(key string) string {
-		return p.prefix + key
-	})...)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, len(keys))
+	for _, key := range keys {
+		args = append(args, p.prefix+key)
+	}
+
+	_, err = conn.Do("DEL", args...)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
@@ -253,29 +287,39 @@ func (p *CacheRedis) Del(keys ...string) (err error) {
 }
 
 func (p *CacheRedis) HSet(key string, field string, value interface{}) (bool, error) {
-	ok, err := p.cli.HSet(p.prefix+key, field, candy.ToString(value))
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	result, err := redis.Int64(conn.Do("HSET", p.prefix+key, field, candy.ToString(value)))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return false, err
 	}
-	return ok, nil
+
+	return result > 0, nil
 }
 
 func (p *CacheRedis) HGet(key, field string) (string, error) {
-	val, ok, err := p.cli.HGet(p.prefix+key, field)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.String(conn.Do("HGET", p.prefix+key, field))
 	if err != nil {
+		if err == redis.ErrNil {
+			return "", ErrNotFound
+		}
 		log.Errorf("err:%v", err)
 		return "", err
-	}
-	if !ok {
-		return "", ErrNotFound
 	}
 
 	return val, nil
 }
 
 func (p *CacheRedis) HGetAll(key string) (map[string]string, error) {
-	val, err := p.cli.HGetAll(p.prefix + key)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.StringMap(conn.Do("HGETALL", p.prefix+key))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
@@ -284,7 +328,10 @@ func (p *CacheRedis) HGetAll(key string) (map[string]string, error) {
 }
 
 func (p *CacheRedis) HKeys(key string) ([]string, error) {
-	val, err := p.cli.HKeys(p.prefix + key)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Strings(conn.Do("HKEYS", p.prefix+key))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return nil, err
@@ -293,7 +340,7 @@ func (p *CacheRedis) HKeys(key string) ([]string, error) {
 }
 
 func (p *CacheRedis) HVals(key string) ([]string, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.Strings(conn.Do("HVALS", p.prefix+key))
@@ -305,7 +352,16 @@ func (p *CacheRedis) HVals(key string) ([]string, error) {
 }
 
 func (p *CacheRedis) HDel(key string, fields ...string) (int64, error) {
-	val, err := p.cli.HDel(p.prefix+key, fields...)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, len(fields)+1)
+	args = append(args, p.prefix+key)
+	for _, field := range fields {
+		args = append(args, field)
+	}
+
+	val, err := redis.Int64(conn.Do("HDEL", args...))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -314,7 +370,7 @@ func (p *CacheRedis) HDel(key string, fields ...string) (int64, error) {
 }
 
 func (p *CacheRedis) SAdd(key string, members ...string) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, len(members)+1)
@@ -332,7 +388,7 @@ func (p *CacheRedis) SAdd(key string, members ...string) (int64, error) {
 }
 
 func (p *CacheRedis) SMembers(key string) ([]string, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.Strings(conn.Do("SMEMBERS", p.prefix+key))
@@ -344,7 +400,7 @@ func (p *CacheRedis) SMembers(key string) ([]string, error) {
 }
 
 func (p *CacheRedis) SRem(key string, members ...string) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, len(members)+1)
@@ -362,7 +418,7 @@ func (p *CacheRedis) SRem(key string, members ...string) (int64, error) {
 }
 
 func (p *CacheRedis) SRandMember(key string, count ...int64) ([]string, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0)
@@ -382,7 +438,7 @@ func (p *CacheRedis) SRandMember(key string, count ...int64) ([]string, error) {
 }
 
 func (p *CacheRedis) SPop(key string) (string, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.String(conn.Do("SPOP", p.prefix+key))
@@ -394,7 +450,10 @@ func (p *CacheRedis) SPop(key string) (string, error) {
 }
 
 func (p *CacheRedis) HIncr(key string, subKey string) (int64, error) {
-	val, err := p.cli.HIncr(p.prefix+key, subKey)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("HINCRBY", p.prefix+key, subKey, 1))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -403,7 +462,10 @@ func (p *CacheRedis) HIncr(key string, subKey string) (int64, error) {
 }
 
 func (p *CacheRedis) HIncrBy(key string, field string, increment int64) (int64, error) {
-	val, err := p.cli.HIncrBy(p.prefix+key, field, increment)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("HINCRBY", p.prefix+key, field, increment))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -412,7 +474,10 @@ func (p *CacheRedis) HIncrBy(key string, field string, increment int64) (int64, 
 }
 
 func (p *CacheRedis) HIncrByFloat(key string, field string, increment float64) (float64, error) {
-	val, err := p.cli.HIncrByFloat(p.prefix+key, field, increment)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Float64(conn.Do("HINCRBYFLOAT", p.prefix+key, field, increment))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -421,7 +486,10 @@ func (p *CacheRedis) HIncrByFloat(key string, field string, increment float64) (
 }
 
 func (p *CacheRedis) HDecr(key string, field string) (int64, error) {
-	val, err := p.cli.HDecr(p.prefix+key, field)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("HINCRBY", p.prefix+key, field, -1))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -430,7 +498,10 @@ func (p *CacheRedis) HDecr(key string, field string) (int64, error) {
 }
 
 func (p *CacheRedis) HDecrBy(key string, field string, increment int64) (int64, error) {
-	val, err := p.cli.HDecrBy(p.prefix+key, field, increment)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("HINCRBY", p.prefix+key, field, -increment))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return 0, err
@@ -439,7 +510,10 @@ func (p *CacheRedis) HDecrBy(key string, field string, increment int64) (int64, 
 }
 
 func (p *CacheRedis) HExists(key, field string) (bool, error) {
-	ok, err := p.cli.HExists(p.prefix+key, field)
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	ok, err := redis.Bool(conn.Do("HEXISTS", p.prefix+key, field))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return false, err
@@ -448,7 +522,7 @@ func (p *CacheRedis) HExists(key, field string) (bool, error) {
 }
 
 func (p *CacheRedis) SisMember(key, field string) (bool, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, 2)
@@ -472,7 +546,10 @@ func (p *CacheRedis) Close() error {
 }
 
 func (p *CacheRedis) Ping() error {
-	_, err := p.cli.Ping()
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err := redis.String(conn.Do("PING"))
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
@@ -481,7 +558,7 @@ func (p *CacheRedis) Ping() error {
 }
 
 func (p *CacheRedis) Publish(channel string, message interface{}) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.Int64(conn.Do("PUBLISH", p.prefix+channel, candy.ToString(message)))
@@ -493,7 +570,7 @@ func (p *CacheRedis) Publish(channel string, message interface{}) (int64, error)
 }
 
 func (p *CacheRedis) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	psc := redis.PubSubConn{Conn: conn}
@@ -540,7 +617,7 @@ func (p *CacheRedis) Subscribe(handler func(channel string, message []byte) erro
 }
 
 func (p *CacheRedis) XAdd(stream string, values map[string]interface{}) (string, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, len(values)*2+2)
@@ -558,7 +635,7 @@ func (p *CacheRedis) XAdd(stream string, values map[string]interface{}) (string,
 }
 
 func (p *CacheRedis) XLen(stream string) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.Int64(conn.Do("XLEN", p.prefix+stream))
@@ -570,7 +647,7 @@ func (p *CacheRedis) XLen(stream string) (int64, error) {
 }
 
 func (p *CacheRedis) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, 4)
@@ -621,7 +698,7 @@ func (p *CacheRedis) XRange(stream string, start, stop string, count ...int64) (
 }
 
 func (p *CacheRedis) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, 4)
@@ -672,7 +749,7 @@ func (p *CacheRedis) XRevRange(stream string, start, stop string, count ...int64
 }
 
 func (p *CacheRedis) XDel(stream string, ids ...string) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	args := make([]interface{}, 0, len(ids)+1)
@@ -690,7 +767,7 @@ func (p *CacheRedis) XDel(stream string, ids ...string) (int64, error) {
 }
 
 func (p *CacheRedis) XTrim(stream string, maxLen int64) (int64, error) {
-	conn := p.cli.GetConnection()
+	conn := p.cli.Get()
 	defer conn.Close()
 
 	val, err := redis.Int64(conn.Do("XTRIM", p.prefix+stream, "MAXLEN", maxLen))
