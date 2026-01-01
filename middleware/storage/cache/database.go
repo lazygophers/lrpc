@@ -2,6 +2,7 @@ package cache
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -248,6 +249,38 @@ func (p *Database) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (p *Database) Publish(channel string, message interface{}) (int64, error) {
+	return 0, errors.New("database cache does not support pub/sub")
+}
+
+func (p *Database) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	return nil, nil, errors.New("database cache does not support pub/sub")
+}
+
+func (p *Database) XAdd(stream string, values map[string]interface{}) (string, error) {
+	return "", errors.New("database cache does not support stream")
+}
+
+func (p *Database) XLen(stream string) (int64, error) {
+	return 0, errors.New("database cache does not support stream")
+}
+
+func (p *Database) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("database cache does not support stream")
+}
+
+func (p *Database) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("database cache does not support stream")
+}
+
+func (p *Database) XDel(stream string, ids ...string) (int64, error) {
+	return 0, errors.New("database cache does not support stream")
+}
+
+func (p *Database) XTrim(stream string, maxLen int64) (int64, error) {
+	return 0, errors.New("database cache does not support stream")
 }
 
 func NewDatabase(db *sql.DB, tableName string) (Cache, error) {

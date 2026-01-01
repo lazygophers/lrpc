@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -807,6 +808,38 @@ func (p *CacheBbolt) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (p *CacheBbolt) Publish(channel string, message interface{}) (int64, error) {
+	return 0, errors.New("bbolt cache does not support pub/sub")
+}
+
+func (p *CacheBbolt) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	return nil, nil, errors.New("bbolt cache does not support pub/sub")
+}
+
+func (p *CacheBbolt) XAdd(stream string, values map[string]interface{}) (string, error) {
+	return "", errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XLen(stream string) (int64, error) {
+	return 0, errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XDel(stream string, ids ...string) (int64, error) {
+	return 0, errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XTrim(stream string, maxLen int64) (int64, error) {
+	return 0, errors.New("bbolt cache does not support stream")
 }
 
 func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {

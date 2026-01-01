@@ -2,6 +2,7 @@ package cache
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -677,6 +678,38 @@ func (p *CacheMem) Reset() error {
 
 func (p *CacheMem) Ping() error {
 	return nil
+}
+
+func (p *CacheMem) Publish(channel string, message interface{}) (int64, error) {
+	return 0, errors.New("mem cache does not support pub/sub")
+}
+
+func (p *CacheMem) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	return nil, nil, errors.New("mem cache does not support pub/sub")
+}
+
+func (p *CacheMem) XAdd(stream string, values map[string]interface{}) (string, error) {
+	return "", errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XLen(stream string) (int64, error) {
+	return 0, errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XDel(stream string, ids ...string) (int64, error) {
+	return 0, errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XTrim(stream string, maxLen int64) (int64, error) {
+	return 0, errors.New("mem cache does not support stream")
 }
 
 func NewMem() Cache {

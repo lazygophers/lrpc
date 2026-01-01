@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -597,6 +598,38 @@ func (p *CacheLevelDB) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (p *CacheLevelDB) Publish(channel string, message interface{}) (int64, error) {
+	return 0, errors.New("leveldb cache does not support pub/sub")
+}
+
+func (p *CacheLevelDB) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	return nil, nil, errors.New("leveldb cache does not support pub/sub")
+}
+
+func (p *CacheLevelDB) XAdd(stream string, values map[string]interface{}) (string, error) {
+	return "", errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XLen(stream string) (int64, error) {
+	return 0, errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XDel(stream string, ids ...string) (int64, error) {
+	return 0, errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XTrim(stream string, maxLen int64) (int64, error) {
+	return 0, errors.New("leveldb cache does not support stream")
 }
 
 func NewLevelDB(c *Config) (Cache, error) {

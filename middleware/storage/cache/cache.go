@@ -51,6 +51,18 @@ type BaseCache interface {
 	SPop(key string) (string, error)
 	SisMember(key, field string) (bool, error) // 成员是否存在
 
+	// Pub/Sub 发布订阅
+	Publish(channel string, message interface{}) (int64, error)
+	Subscribe(channels ...string) (chan []byte, chan error, error)
+
+	// Stream 流操作
+	XAdd(stream string, values map[string]interface{}) (string, error)
+	XLen(stream string) (int64, error)
+	XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error)
+	XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error)
+	XDel(stream string, ids ...string) (int64, error)
+	XTrim(stream string, maxLen int64) (int64, error)
+
 	Del(key ...string) error
 
 	//Reset() error

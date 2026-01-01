@@ -478,3 +478,219 @@ func (p *CacheRedis) Ping() error {
 	}
 	return nil
 }
+
+func (p *CacheRedis) Publish(channel string, message interface{}) (int64, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("PUBLISH", p.prefix+channel, candy.ToString(message)))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+func (p *CacheRedis) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	conn := p.cli.GetConnection()
+
+	psc := redis.PubSubConn{Conn: conn}
+
+	prefixedChannels := make([]interface{}, len(channels))
+	for i, ch := range channels {
+		prefixedChannels[i] = p.prefix + ch
+	}
+
+	err := psc.Subscribe(prefixedChannels...)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		conn.Close()
+		return nil, nil, err
+	}
+
+	msgChan := make(chan []byte, 100)
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer conn.Close()
+		defer close(msgChan)
+		defer close(errChan)
+
+		for {
+			switch v := psc.Receive().(type) {
+			case redis.Message:
+				msgChan <- v.Data
+			case redis.Subscription:
+				log.Debugf("subscription: %s %s %d", v.Kind, v.Channel, v.Count)
+			case error:
+				log.Errorf("err:%v", v)
+				errChan <- v
+				return
+			}
+		}
+	}()
+
+	return msgChan, errChan, nil
+}
+
+func (p *CacheRedis) XAdd(stream string, values map[string]interface{}) (string, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, len(values)*2+2)
+	args = append(args, p.prefix+stream, "*")
+	for k, v := range values {
+		args = append(args, k, candy.ToString(v))
+	}
+
+	val, err := redis.String(conn.Do("XADD", args...))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return "", err
+	}
+	return val, nil
+}
+
+func (p *CacheRedis) XLen(stream string) (int64, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("XLEN", p.prefix+stream))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+func (p *CacheRedis) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, 4)
+	args = append(args, p.prefix+stream, start, stop)
+	if len(count) > 0 && count[0] > 0 {
+		args = append(args, "COUNT", count[0])
+	}
+
+	reply, err := redis.Values(conn.Do("XRANGE", args...))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	result := make([]map[string]interface{}, 0, len(reply))
+	for _, item := range reply {
+		entry, err := redis.Values(item, nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		if len(entry) != 2 {
+			continue
+		}
+
+		id, err := redis.String(entry[0], nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		fields, err := redis.StringMap(entry[1], nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		entryMap := make(map[string]interface{})
+		entryMap["id"] = id
+		for k, v := range fields {
+			entryMap[k] = v
+		}
+		result = append(result, entryMap)
+	}
+
+	return result, nil
+}
+
+func (p *CacheRedis) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, 4)
+	args = append(args, p.prefix+stream, start, stop)
+	if len(count) > 0 && count[0] > 0 {
+		args = append(args, "COUNT", count[0])
+	}
+
+	reply, err := redis.Values(conn.Do("XREVRANGE", args...))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	result := make([]map[string]interface{}, 0, len(reply))
+	for _, item := range reply {
+		entry, err := redis.Values(item, nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		if len(entry) != 2 {
+			continue
+		}
+
+		id, err := redis.String(entry[0], nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		fields, err := redis.StringMap(entry[1], nil)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			continue
+		}
+
+		entryMap := make(map[string]interface{})
+		entryMap["id"] = id
+		for k, v := range fields {
+			entryMap[k] = v
+		}
+		result = append(result, entryMap)
+	}
+
+	return result, nil
+}
+
+func (p *CacheRedis) XDel(stream string, ids ...string) (int64, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, len(ids)+1)
+	args = append(args, p.prefix+stream)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+
+	val, err := redis.Int64(conn.Do("XDEL", args...))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+func (p *CacheRedis) XTrim(stream string, maxLen int64) (int64, error) {
+	conn := p.cli.GetConnection()
+	defer conn.Close()
+
+	val, err := redis.Int64(conn.Do("XTRIM", p.prefix+stream, "MAXLEN", maxLen))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}

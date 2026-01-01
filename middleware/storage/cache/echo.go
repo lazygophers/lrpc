@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -348,6 +349,38 @@ func (p *CacheSugarDB) Ping() error {
 		return err
 	}
 	return nil
+}
+
+func (p *CacheSugarDB) Publish(channel string, message interface{}) (int64, error) {
+	return 0, errors.New("sugardb cache does not support pub/sub")
+}
+
+func (p *CacheSugarDB) Subscribe(channels ...string) (chan []byte, chan error, error) {
+	return nil, nil, errors.New("sugardb cache does not support pub/sub")
+}
+
+func (p *CacheSugarDB) XAdd(stream string, values map[string]interface{}) (string, error) {
+	return "", errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XLen(stream string) (int64, error) {
+	return 0, errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+	return nil, errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XDel(stream string, ids ...string) (int64, error) {
+	return 0, errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XTrim(stream string, maxLen int64) (int64, error) {
+	return 0, errors.New("sugardb cache does not support stream")
 }
 
 func NewSugarDB(c *Config) (Cache, error) {
