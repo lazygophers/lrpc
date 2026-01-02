@@ -632,6 +632,30 @@ func (p *CacheLevelDB) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("leveldb cache does not support stream")
 }
 
+func (p *CacheLevelDB) XGroupCreate(stream, group, start string) error {
+	return errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XGroupDestroy(stream, group string) error {
+	return errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XGroupSetID(stream, group, id string) error {
+	return errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	return errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XAck(stream, group string, ids ...string) (int64, error) {
+	return 0, errors.New("leveldb cache does not support stream")
+}
+
+func (p *CacheLevelDB) XPending(stream, group string) (int64, error) {
+	return 0, errors.New("leveldb cache does not support stream")
+}
+
 func NewLevelDB(c *Config) (Cache, error) {
 	var err error
 	p := &CacheLevelDB{}

@@ -383,6 +383,30 @@ func (p *CacheSugarDB) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("sugardb cache does not support stream")
 }
 
+func (p *CacheSugarDB) XGroupCreate(stream, group, start string) error {
+	return errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XGroupDestroy(stream, group string) error {
+	return errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XGroupSetID(stream, group, id string) error {
+	return errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	return errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XAck(stream, group string, ids ...string) (int64, error) {
+	return 0, errors.New("sugardb cache does not support stream")
+}
+
+func (p *CacheSugarDB) XPending(stream, group string) (int64, error) {
+	return 0, errors.New("sugardb cache does not support stream")
+}
+
 func NewSugarDB(c *Config) (Cache, error) {
 	ec := sugardb.DefaultConfig()
 	if c.DataDir != "" {

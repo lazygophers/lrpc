@@ -842,6 +842,30 @@ func (p *CacheBbolt) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("bbolt cache does not support stream")
 }
 
+func (p *CacheBbolt) XGroupCreate(stream, group, start string) error {
+	return errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XGroupDestroy(stream, group string) error {
+	return errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XGroupSetID(stream, group, id string) error {
+	return errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	return errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XAck(stream, group string, ids ...string) (int64, error) {
+	return 0, errors.New("bbolt cache does not support stream")
+}
+
+func (p *CacheBbolt) XPending(stream, group string) (int64, error) {
+	return 0, errors.New("bbolt cache does not support stream")
+}
+
 func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {
 	prefix := app.Name
 	if prefix == "" {

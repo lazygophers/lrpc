@@ -6,6 +6,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/runtime"
 
 	"github.com/gomodule/redigo/redis"
@@ -776,4 +777,232 @@ func (p *CacheRedis) XTrim(stream string, maxLen int64) (int64, error) {
 		return 0, err
 	}
 	return val, nil
+}
+
+// XGroupCreate 创建消费者组
+// stream: Stream 键名
+// group: 消费者组名称
+// start: 起始消息 ID，可以是具体 ID、"0"（从头开始）或 "$"（从最新消息开始）
+// MKSTREAM 选项会在 stream 不存在时自动创建
+func (p *CacheRedis) XGroupCreate(stream, group, start string) error {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("XGROUP", "CREATE", p.prefix+stream, group, start, "MKSTREAM")
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// XGroupDestroy 销毁消费者组
+// stream: Stream 键名
+// group: 消费者组名称
+func (p *CacheRedis) XGroupDestroy(stream, group string) error {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("XGROUP", "DESTROY", p.prefix+stream, group)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// XGroupSetID 设置消费者组的起始消息 ID
+// stream: Stream 键名
+// group: 消费者组名称
+// id: 新的起始消息 ID
+func (p *CacheRedis) XGroupSetID(stream, group, id string) error {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("XGROUP", "SETID", p.prefix+stream, group, id)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// XReadGroup 使用消费者组持续消费 Stream 消息（回调模式，参考 Subscribe 设计）
+// handler: 消息处理回调函数
+//   - stream: Stream 键名（已去除 prefix）
+//   - id: 消息 ID
+//   - body: 消息体（JSON 格式的字节数组）
+//   - 返回 error 时会退出消费循环
+//
+// group: 消费者组名称
+// consumer: 消费者名称
+// stream: Stream 键名
+//
+// 特点：
+//   - 使用 BLOCK 60000 阻塞等待新消息（60秒超时，有效防止 CPU 空转）
+//   - 使用 ">" 特殊 ID 只读取未投递给其他消费者的新消息
+//   - 自动处理 panic 恢复（参考 Subscribe 的设计）
+//   - 自动处理 prefix 的添加和移除
+//   - handler 返回 error 时优雅退出
+//   - 消息需要手动调用 XAck 确认
+//   - XREADGROUP 本身已经阻塞，无需额外 sleep
+//   - 消息体为 JSON 序列化的字节数组（与 Subscribe 保持一致）
+func (p *CacheRedis) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	// 消息处理逻辑，包含 panic 恢复机制
+	logic := func(streamName string, id string, fields map[string]string) {
+		defer runtime.CachePanicWithHandle(func(err interface{}) {
+			log.Errorf("PANIC:%v", err)
+		})
+
+		// 移除 prefix，返回原始 stream 名称
+		originalStream := streamName
+		if len(p.prefix) > 0 && len(streamName) > len(p.prefix) {
+			originalStream = streamName[len(p.prefix):]
+		}
+
+		// 将 fields 序列化为 JSON 字节数组
+		body, err := json.Marshal(fields)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+
+		err = handler(originalStream, id, body)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	}
+
+	// 无限循环，持续消费消息
+	for {
+		// XREADGROUP GROUP <group> <consumer> BLOCK <timeout> STREAMS <stream> <id>
+		// BLOCK 30000 表示阻塞等待 30000ms（30秒）
+		// - 当有新消息时，立即返回（延迟小于 30 秒）
+		// - 当无消息时，阻塞 60 秒后返回空结果（CPU 几乎不占用）
+		// - 相比 BLOCK 0 的优势：可以定期检查连接状态、支持优雅退出
+		// ">" 表示只读取未投递给其他消费者的新消息
+		reply, err := redis.Values(conn.Do("XREADGROUP", "GROUP", group, consumer, "BLOCK", 60000, "STREAMS", p.prefix+stream, ">"))
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+
+		// 如果没有消息（超时返回），直接继续下一轮
+		// XREADGROUP 本身已经阻塞了 30 秒，不需要额外 sleep
+		if len(reply) == 0 {
+			continue
+		}
+
+		// 解析返回的 stream 数据
+		// 格式: [[stream_name, [[id1, [field1, value1, ...]], [id2, [field2, value2, ...]]]]]
+		for _, streamData := range reply {
+			streamInfo, err := redis.Values(streamData, nil)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				continue
+			}
+
+			if len(streamInfo) != 2 {
+				continue
+			}
+
+			// 解析 stream 名称
+			streamName, err := redis.String(streamInfo[0], nil)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				continue
+			}
+
+			// 解析消息列表
+			messages, err := redis.Values(streamInfo[1], nil)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				continue
+			}
+
+			// 处理每条消息
+			for _, msg := range messages {
+				entry, err := redis.Values(msg, nil)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					continue
+				}
+
+				if len(entry) != 2 {
+					continue
+				}
+
+				// 解析消息 ID
+				id, err := redis.String(entry[0], nil)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					continue
+				}
+
+				// 解析消息字段
+				fields, err := redis.StringMap(entry[1], nil)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					continue
+				}
+
+				// 调用回调函数处理消息
+				logic(streamName, id, fields)
+			}
+		}
+	}
+}
+
+// XAck 确认消费者组中的消息
+// stream: Stream 键名
+// group: 消费者组名称
+// ids: 要确认的消息 ID 列表
+// 返回成功确认的消息数量
+func (p *CacheRedis) XAck(stream, group string, ids ...string) (int64, error) {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	args := make([]interface{}, 0, len(ids)+2)
+	args = append(args, p.prefix+stream, group)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+
+	val, err := redis.Int64(conn.Do("XACK", args...))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// XPending 查询消费者组中待处理消息的数量
+// stream: Stream 键名
+// group: 消费者组名称
+// 返回待处理消息的总数量
+func (p *CacheRedis) XPending(stream, group string) (int64, error) {
+	conn := p.cli.Get()
+	defer conn.Close()
+
+	reply, err := redis.Values(conn.Do("XPENDING", p.prefix+stream, group))
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+
+	if len(reply) == 0 {
+		return 0, nil
+	}
+
+	count, err := redis.Int64(reply[0], nil)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+
+	return count, nil
 }

@@ -712,6 +712,30 @@ func (p *CacheMem) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("mem cache does not support stream")
 }
 
+func (p *CacheMem) XGroupCreate(stream, group, start string) error {
+	return errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XGroupDestroy(stream, group string) error {
+	return errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XGroupSetID(stream, group, id string) error {
+	return errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	return errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XAck(stream, group string, ids ...string) (int64, error) {
+	return 0, errors.New("mem cache does not support stream")
+}
+
+func (p *CacheMem) XPending(stream, group string) (int64, error) {
+	return 0, errors.New("mem cache does not support stream")
+}
+
 func NewMem() Cache {
 	p := &CacheMem{
 		data: make(map[string]*Item),

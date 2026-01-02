@@ -283,6 +283,30 @@ func (p *Database) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
+func (p *Database) XGroupCreate(stream, group, start string) error {
+	return errors.New("database cache does not support stream")
+}
+
+func (p *Database) XGroupDestroy(stream, group string) error {
+	return errors.New("database cache does not support stream")
+}
+
+func (p *Database) XGroupSetID(stream, group, id string) error {
+	return errors.New("database cache does not support stream")
+}
+
+func (p *Database) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	return errors.New("database cache does not support stream")
+}
+
+func (p *Database) XAck(stream, group string, ids ...string) (int64, error) {
+	return 0, errors.New("database cache does not support stream")
+}
+
+func (p *Database) XPending(stream, group string) (int64, error) {
+	return 0, errors.New("database cache does not support stream")
+}
+
 func NewDatabase(db *sql.DB, tableName string) (Cache, error) {
 	p := &Database{
 		db:        db,

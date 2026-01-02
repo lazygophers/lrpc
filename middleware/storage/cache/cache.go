@@ -63,6 +63,20 @@ type BaseCache interface {
 	XDel(stream string, ids ...string) (int64, error)
 	XTrim(stream string, maxLen int64) (int64, error)
 
+	// Stream 消费者组管理
+	XGroupCreate(stream, group, start string) error
+	XGroupDestroy(stream, group string) error
+	XGroupSetID(stream, group, id string) error
+
+	// Stream 消费（回调模式，参考 Subscribe）
+	XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error
+
+	// Stream 消息确认
+	XAck(stream, group string, ids ...string) (int64, error)
+
+	// Stream 待处理消息查询
+	XPending(stream, group string) (int64, error)
+
 	Del(key ...string) error
 
 	//Reset() error

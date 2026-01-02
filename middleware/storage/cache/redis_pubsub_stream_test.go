@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/lazygophers/utils/json"
 	"gotest.tools/v3/assert"
 )
 
@@ -222,4 +223,191 @@ func TestRedisPubSubPanicRecovery(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("timeout waiting for subscribe to finish")
 	}
+}
+
+func TestRedisStreamConsumerGroup(t *testing.T) {
+	cache, err := NewRedis("localhost:6379",
+		redis.DialDatabase(0),
+		redis.DialConnectTimeout(time.Second*3),
+		redis.DialReadTimeout(time.Minute),
+		redis.DialWriteTimeout(time.Minute),
+	)
+	if err != nil {
+		t.Skipf("skip test: redis not available: %v", err)
+		return
+	}
+	defer cache.Close()
+
+	cache.SetPrefix("test:")
+
+	streamKey := "test_stream_group"
+	groupName := "test_group"
+
+	err = cache.Del(streamKey)
+	assert.NilError(t, err)
+
+	err = cache.XGroupDestroy(streamKey, groupName)
+
+	err = cache.XGroupCreate(streamKey, groupName, "0")
+	assert.NilError(t, err)
+
+	id1, err := cache.XAdd(streamKey, map[string]interface{}{
+		"message": "hello",
+		"count":   "1",
+	})
+	assert.NilError(t, err)
+	assert.Assert(t, id1 != "")
+
+	id2, err := cache.XAdd(streamKey, map[string]interface{}{
+		"message": "world",
+		"count":   "2",
+	})
+	assert.NilError(t, err)
+	assert.Assert(t, id2 != "")
+
+	err = cache.XGroupSetID(streamKey, groupName, "0")
+	assert.NilError(t, err)
+
+	receivedCount := 0
+	receivedIds := make([]string, 0)
+	doneChan := make(chan error, 1)
+
+	go func() {
+		err := cache.XReadGroup(func(stream string, id string, body []byte) error {
+			assert.Equal(t, stream, streamKey)
+			receivedCount++
+			receivedIds = append(receivedIds, id)
+
+			var fields map[string]string
+			err := json.Unmarshal(body, &fields)
+			assert.NilError(t, err)
+
+			ackCount, err := cache.XAck(streamKey, groupName, id)
+			assert.NilError(t, err)
+			assert.Equal(t, ackCount, int64(1))
+
+			if receivedCount >= 2 {
+				return errors.New("test done")
+			}
+
+			return nil
+		}, groupName, "consumer1", streamKey)
+		doneChan <- err
+	}()
+
+	select {
+	case err := <-doneChan:
+		assert.Error(t, err, "test done")
+		assert.Equal(t, receivedCount, 2)
+		assert.Equal(t, len(receivedIds), 2)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for stream read to finish")
+	}
+
+	pendingCount, err := cache.XPending(streamKey, groupName)
+	assert.NilError(t, err)
+	assert.Equal(t, pendingCount, int64(0))
+
+	err = cache.XGroupDestroy(streamKey, groupName)
+	assert.NilError(t, err)
+
+	err = cache.Del(streamKey)
+	assert.NilError(t, err)
+}
+
+func TestRedisStreamConsumerGroupPanic(t *testing.T) {
+	cache, err := NewRedis("localhost:6379",
+		redis.DialDatabase(0),
+		redis.DialConnectTimeout(time.Second*3),
+		redis.DialReadTimeout(time.Minute),
+		redis.DialWriteTimeout(time.Minute),
+	)
+	if err != nil {
+		t.Skipf("skip test: redis not available: %v", err)
+		return
+	}
+	defer cache.Close()
+
+	cache.SetPrefix("test:")
+
+	streamKey := "test_stream_panic"
+	groupName := "test_group_panic"
+
+	err = cache.Del(streamKey)
+	assert.NilError(t, err)
+
+	err = cache.XGroupDestroy(streamKey, groupName)
+
+	err = cache.XGroupCreate(streamKey, groupName, "$")
+	assert.NilError(t, err)
+
+	panicCount := 0
+	normalCount := 0
+	doneChan := make(chan error, 1)
+
+	go func() {
+		err := cache.XReadGroup(func(stream string, id string, body []byte) error {
+			var fields map[string]string
+			err := json.Unmarshal(body, &fields)
+			assert.NilError(t, err)
+
+			message := fields["message"]
+
+			if message == "panic" {
+				panicCount++
+				panic("test panic in stream")
+			}
+
+			if message == "normal" {
+				normalCount++
+
+				ackCount, err := cache.XAck(streamKey, groupName, id)
+				assert.NilError(t, err)
+				assert.Equal(t, ackCount, int64(1))
+			}
+
+			if normalCount >= 2 {
+				return errors.New("test done")
+			}
+
+			return nil
+		}, groupName, "consumer1", streamKey)
+		doneChan <- err
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
+	_, err = cache.XAdd(streamKey, map[string]interface{}{
+		"message": "panic",
+	})
+	assert.NilError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = cache.XAdd(streamKey, map[string]interface{}{
+		"message": "normal",
+	})
+	assert.NilError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = cache.XAdd(streamKey, map[string]interface{}{
+		"message": "normal",
+	})
+	assert.NilError(t, err)
+
+	select {
+	case err := <-doneChan:
+		assert.Error(t, err, "test done")
+		assert.Equal(t, panicCount, 1)
+		assert.Equal(t, normalCount, 2)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for stream read to finish")
+	}
+
+	err = cache.XGroupDestroy(streamKey, groupName)
+	assert.NilError(t, err)
+
+	err = cache.Del(streamKey)
+	assert.NilError(t, err)
 }
