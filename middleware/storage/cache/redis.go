@@ -48,43 +48,6 @@ func (p *CacheRedis) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
-func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
-	pool := &redis.Pool{
-		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", address, opts...)
-		},
-		MaxIdle:     1000,
-		MaxActive:   1000,
-		IdleTimeout: time.Second * 5,
-		Wait:        true,
-	}
-
-	p := &CacheRedis{
-		cli: pool,
-	}
-
-	atexit.Register(func() {
-		err := p.Close()
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return
-		}
-	})
-
-	conn := pool.Get()
-	defer conn.Close()
-
-	pong, err := redis.String(conn.Do("PING"))
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
-
-	log.Infof("ping:%v", pong)
-
-	return newBaseCache(p), nil
-}
-
 func (p *CacheRedis) Incr(key string) (int64, error) {
 	conn := p.cli.Get()
 	defer conn.Close()
@@ -1016,4 +979,36 @@ func (p *CacheRedis) XPending(stream, group string) (int64, error) {
 
 func (p *CacheRedis) Redis() *redis.Pool {
 	return p.cli
+}
+
+func NewRedis(address string, opts ...redis.DialOption) (Cache, error) {
+	pool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", address, opts...)
+		},
+		MaxIdle:     1000,
+		MaxActive:   1000,
+		IdleTimeout: time.Second * 5,
+		Wait:        true,
+	}
+
+	p := &CacheRedis{
+		cli: pool,
+	}
+
+	atexit.Register(func() {
+		err := p.Close()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return
+		}
+	})
+
+	err := p.Ping()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	return newBaseCache(p), nil
 }

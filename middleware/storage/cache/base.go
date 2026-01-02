@@ -391,6 +391,10 @@ func (p *baseCache) HGetJson(key, field string, j interface{}) error {
 	return nil
 }
 
+func (p *baseCache) Base() BaseCache {
+	return p.BaseCache
+}
+
 func newBaseCache(c BaseCache) Cache {
 	return &baseCache{
 		BaseCache: c,

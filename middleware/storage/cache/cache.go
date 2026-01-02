@@ -90,6 +90,8 @@ type BaseCache interface {
 type Cache interface {
 	BaseCache
 
+	Base() BaseCache
+
 	GetBool(key string) (bool, error)
 	GetInt(key string) (int, error)
 	GetUint(key string) (uint, error)
