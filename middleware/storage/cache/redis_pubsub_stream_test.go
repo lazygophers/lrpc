@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/lazygophers/utils/json"
 	"gotest.tools/v3/assert"
 )
 
@@ -252,15 +251,13 @@ func TestRedisStreamConsumerGroup(t *testing.T) {
 	assert.NilError(t, err)
 
 	id1, err := cache.XAdd(streamKey, map[string]interface{}{
-		"message": "hello",
-		"count":   "1",
+		"data": "hello",
 	})
 	assert.NilError(t, err)
 	assert.Assert(t, id1 != "")
 
 	id2, err := cache.XAdd(streamKey, map[string]interface{}{
-		"message": "world",
-		"count":   "2",
+		"data": "world",
 	})
 	assert.NilError(t, err)
 	assert.Assert(t, id2 != "")
@@ -278,9 +275,8 @@ func TestRedisStreamConsumerGroup(t *testing.T) {
 			receivedCount++
 			receivedIds = append(receivedIds, id)
 
-			var fields map[string]string
-			err := json.Unmarshal(body, &fields)
-			assert.NilError(t, err)
+			// body 是直接从 Redis 获取的字节数组
+			assert.Assert(t, len(body) > 0)
 
 			ackCount, err := cache.XAck(streamKey, groupName, id)
 			assert.NilError(t, err)
@@ -347,11 +343,8 @@ func TestRedisStreamConsumerGroupPanic(t *testing.T) {
 
 	go func() {
 		err := cache.XReadGroup(func(stream string, id string, body []byte) error {
-			var fields map[string]string
-			err := json.Unmarshal(body, &fields)
-			assert.NilError(t, err)
-
-			message := fields["message"]
+			// body 是直接从 Redis 获取的字节数组
+			message := string(body)
 
 			if message == "panic" {
 				panicCount++
@@ -378,21 +371,21 @@ func TestRedisStreamConsumerGroupPanic(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	_, err = cache.XAdd(streamKey, map[string]interface{}{
-		"message": "panic",
+		"data": "panic",
 	})
 	assert.NilError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
 	_, err = cache.XAdd(streamKey, map[string]interface{}{
-		"message": "normal",
+		"data": "normal",
 	})
 	assert.NilError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
 	_, err = cache.XAdd(streamKey, map[string]interface{}{
-		"message": "normal",
+		"data": "normal",
 	})
 	assert.NilError(t, err)
 

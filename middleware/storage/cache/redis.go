@@ -6,7 +6,6 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
-	"github.com/lazygophers/utils/json"
 	"github.com/lazygophers/utils/runtime"
 
 	"github.com/gomodule/redigo/redis"
@@ -831,7 +830,7 @@ func (p *CacheRedis) XGroupSetID(stream, group, id string) error {
 // handler: 消息处理回调函数
 //   - stream: Stream 键名（已去除 prefix）
 //   - id: 消息 ID
-//   - body: 消息体（JSON 格式的字节数组）
+//   - body: 消息体的原始字节数组（直接从 Redis 获取，无需序列化）
 //   - 返回 error 时会退出消费循环
 //
 // group: 消费者组名称
@@ -846,13 +845,13 @@ func (p *CacheRedis) XGroupSetID(stream, group, id string) error {
 //   - handler 返回 error 时优雅退出
 //   - 消息需要手动调用 XAck 确认
 //   - XREADGROUP 本身已经阻塞，无需额外 sleep
-//   - 消息体为 JSON 序列化的字节数组（与 Subscribe 保持一致）
+//   - 假设消息使用单个字段存储数据（如 "data"），直接返回该字段的值
 func (p *CacheRedis) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
 	conn := p.cli.Get()
 	defer conn.Close()
 
 	// 消息处理逻辑，包含 panic 恢复机制
-	logic := func(streamName string, id string, fields map[string]string) {
+	logic := func(streamName string, id string, body []byte) {
 		defer runtime.CachePanicWithHandle(func(err interface{}) {
 			log.Errorf("PANIC:%v", err)
 		})
@@ -863,14 +862,7 @@ func (p *CacheRedis) XReadGroup(handler func(stream string, id string, body []by
 			originalStream = streamName[len(p.prefix):]
 		}
 
-		// 将 fields 序列化为 JSON 字节数组
-		body, err := json.Marshal(fields)
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return
-		}
-
-		err = handler(originalStream, id, body)
+		err := handler(originalStream, id, body)
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return
@@ -943,15 +935,30 @@ func (p *CacheRedis) XReadGroup(handler func(stream string, id string, body []by
 					continue
 				}
 
-				// 解析消息字段
-				fields, err := redis.StringMap(entry[1], nil)
+				// 解析消息字段列表（field-value pairs）
+				// entry[1] 是 [field1, value1, field2, value2, ...] 格式
+				fieldValues, err := redis.Values(entry[1], nil)
+				if err != nil {
+					log.Errorf("err:%v", err)
+					continue
+				}
+
+				// 假设消息使用单个字段 "data" 存储实际数据
+				// 如果字段数量不是 2（1对 field-value），则跳过
+				if len(fieldValues) != 2 {
+					log.Warnf("unexpected field count: %d, expected 2 (single field-value pair)", len(fieldValues))
+					continue
+				}
+
+				// 获取字段值（索引 1 是 value）
+				body, err := redis.Bytes(fieldValues[1], nil)
 				if err != nil {
 					log.Errorf("err:%v", err)
 					continue
 				}
 
 				// 调用回调函数处理消息
-				logic(streamName, id, fields)
+				logic(streamName, id, body)
 			}
 		}
 	}
