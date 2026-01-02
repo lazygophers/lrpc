@@ -1013,3 +1013,7 @@ func (p *CacheRedis) XPending(stream, group string) (int64, error) {
 
 	return count, nil
 }
+
+func (p *CacheRedis) Redis() *redis.Pool {
+	return p.cli
+}
