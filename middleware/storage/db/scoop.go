@@ -211,7 +211,27 @@ func (p *Scoop) IsNotFound(err error) bool {
 }
 
 func (p *Scoop) IsDuplicatedKeyError(err error) bool {
-	return err == p.getDuplicatedKeyError() || err == gorm.ErrDuplicatedKey
+	if err == nil {
+		return false
+	}
+
+	if err == p.getDuplicatedKeyError() {
+		return true
+	}
+
+	if err == gorm.ErrDuplicatedKey {
+		return true
+	}
+
+	if strings.Contains(err.Error(), "Error 1062") {
+		return true
+	}
+
+	if strings.Contains(err.Error(), "Duplicate entry") {
+		return true
+	}
+
+	return false
 }
 
 func (p *Scoop) AutoMigrate(dst ...interface{}) error {
