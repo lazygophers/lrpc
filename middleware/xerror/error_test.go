@@ -226,7 +226,7 @@ func TestNewError(t *testing.T) {
 		testErr := &Error{Code: 5001, Msg: "Registered error"}
 		Register(testErr)
 
-		err := NewError(5001, "en")
+		err := New(5001, "en")
 		assert.Equal(t, int32(5001), err.Code)
 		assert.Equal(t, "Registered error", err.Msg)
 	})
@@ -234,7 +234,7 @@ func TestNewError(t *testing.T) {
 	t.Run("unregistered error - no i18n", func(t *testing.T) {
 		i18n = nil
 
-		err := NewError(9999, "en")
+		err := New(9999, "en")
 		assert.Equal(t, int32(9999), err.Code)
 		assert.Equal(t, "", err.Msg)
 	})
@@ -250,11 +250,11 @@ func TestNewError(t *testing.T) {
 		}
 		i18n = mockI18nImpl
 
-		err := NewError(9999, "en")
+		err := New(9999, "en")
 		assert.Equal(t, int32(9999), err.Code)
 		assert.Equal(t, "English error message", err.Msg)
 
-		err = NewError(9999, "zh")
+		err = New(9999, "zh")
 		assert.Equal(t, int32(9999), err.Code)
 		assert.Equal(t, "中文错误信息", err.Msg)
 	})
@@ -265,7 +265,7 @@ func TestNewError(t *testing.T) {
 		}
 		i18n = mockI18nImpl
 
-		err := NewError(9999, "en")
+		err := New(9999, "en")
 		assert.Equal(t, int32(9999), err.Code)
 		assert.Equal(t, "", err.Msg)
 	})
@@ -281,7 +281,7 @@ func TestNewError(t *testing.T) {
 		i18n = mockI18nImpl
 
 		// First language not found, should try fallback
-		err := NewError(9999, "en", "zh")
+		err := New(9999, "en", "zh")
 		assert.Equal(t, int32(9999), err.Code)
 		assert.Equal(t, "中文错误信息", err.Msg)
 	})
@@ -479,19 +479,19 @@ func TestComplexScenarios(t *testing.T) {
 		// Test various scenarios
 
 		// 1. Registered error (should use registered message)
-		err1 := NewError(1000, "en")
+		err1 := New(1000, "en")
 		assert.Equal(t, "Registered error", err1.Msg)
 
 		// 2. Unregistered error with i18n (should use i18n)
-		err2 := NewError(1001, "en")
+		err2 := New(1001, "en")
 		assert.Equal(t, "Invalid parameter", err2.Msg)
 
 		// 3. Unregistered error with i18n fallback
-		err3 := NewError(1001, "fr", "zh")
+		err3 := New(1001, "fr", "zh")
 		assert.Equal(t, "参数无效", err3.Msg)
 
 		// 4. Unregistered error without i18n match
-		err4 := NewError(9999, "en")
+		err4 := New(9999, "en")
 		assert.Equal(t, "", err4.Msg)
 
 		// Test error comparisons
@@ -746,7 +746,7 @@ func TestBackwardCompatibility(t *testing.T) {
 		Register(testErr)
 
 		err1 := New(5000, "en")
-		err2 := NewError(5000, "en")
+		err2 := New(5000, "en")
 
 		assert.Equal(t, err1.Code, err2.Code)
 		assert.Equal(t, err1.Msg, err2.Msg)

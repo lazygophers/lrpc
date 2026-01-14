@@ -148,9 +148,10 @@ func Register(errs ...*Error) {
 // Error 结构化错误类型，包含错误码和错误消息
 // 实现了 error 接口和 Go 1.13+ 的错误链接口
 type Error struct {
-	Code  int32  `json:"code,omitempty" yaml:"code,omitempty"` // 错误码
-	Msg   string `json:"msg,omitempty" yaml:"msg,omitempty"`   // 错误消息
-	Cause error  `json:"-" yaml:"-"`                           // 底层错误（支持错误链）
+	Code int32  `json:"code,omitempty" yaml:"code,omitempty"` // 错误码
+	Msg  string `json:"msg,omitempty" yaml:"msg,omitempty"`   // 错误消息
+
+	Cause error `json:"-" yaml:"-"` // 底层错误（支持错误链）
 }
 
 // Error 实现 error 接口，返回错误消息
@@ -315,10 +316,7 @@ func NewSystemError(msg string) *Error {
 //	err := xerror.NewInvalidParam("user_id is required")
 //	err := xerror.NewInvalidParam("invalid email format: ", email)
 func NewInvalidParam(a ...any) *Error {
-	return &Error{
-		Code: ErrInvalidParam,
-		Msg:  fmt.Sprint(a...),
-	}
+	return New(ErrInvalidParam, a...)
 }
 
 // NewNoAuth 创建未授权错误（错误码 1002）
@@ -329,19 +327,13 @@ func NewInvalidParam(a ...any) *Error {
 //
 //	err := xerror.NewNoAuth("token expired")
 //	err := xerror.NewNoAuth("permission denied")
-func NewNoAuth(msg string) *Error {
-	return &Error{
-		Code: ErrNoAuth,
-		Msg:  msg,
-	}
+func NewNoAuth(a ...any) *Error {
+	return New(ErrNoAuth, a...)
 }
 
 // NewNotLogin 创建未登录错误（错误码 1005）
-func NewNotLogin(msg string) *Error {
-	return &Error{
-		Code: ErrNotLogin,
-		Msg:  msg,
-	}
+func NewNotLogin(a ...any) *Error {
+	return New(ErrNotLogin, a...)
 }
 
 // NewNoData 创建数据不存在错误（错误码 1003）
@@ -353,10 +345,7 @@ func NewNotLogin(msg string) *Error {
 //	err := xerror.NewNoData("user not found")
 //	err := xerror.NewNoData("record id:", id, " not found")
 func NewNoData(a ...any) *Error {
-	return &Error{
-		Code: ErrNoData,
-		Msg:  fmt.Sprint(a...),
-	}
+	return New(ErrNoData, a...)
 }
 
 // NewConflict 创建数据冲突错误（错误码 1004）
@@ -367,11 +356,8 @@ func NewNoData(a ...any) *Error {
 //
 //	err := xerror.NewConflict("email already exists")
 //	err := xerror.NewConflict("version mismatch")
-func NewConflict(msg string) *Error {
-	return &Error{
-		Code: ErrConflict,
-		Msg:  msg,
-	}
+func NewConflict(a ...any) *Error {
+	return New(ErrConflict, a...)
 }
 
 // Wrap 将标准 error 包装为 *Error
@@ -419,26 +405,4 @@ func WrapError(err error, code int32, msg string) *Error {
 		Msg:   msg,
 		Cause: err,
 	}
-}
-
-// NewError 创建新的错误实例，支持可选的多语言参数
-// 这是 New 函数的别名，提供更直观的函数名
-//
-// 创建过程：
-// 1. 如果错误码已注册，返回注册错误的克隆
-// 2. 如果提供了语言参数且设置了 i18n，尝试获取国际化消息
-// 3. 否则创建仅包含错误码的错误实例
-//
-// 参数：
-//   - code: 错误码
-//   - args: 可选参数，可以是语言代码（如 "en", "zh"）或错误消息字符串
-//
-// 示例：
-//
-//	err1 := xerror.NewError(1001)                    // 使用已注册的错误消息
-//	err2 := xerror.NewError(1001, "en")              // 使用英文消息
-//	err3 := xerror.NewError(1001, "fr", "en", "zh")  // 尝试法语，回退到英语或中文
-//	err4 := xerror.NewError(10001, "custom message") // 使用自定义消息
-func NewError(code int32, args ...interface{}) *Error {
-	return New(code, args...)
 }

@@ -118,7 +118,7 @@ func (p *Discovery) GetServer(name string) (*core.ServiceDiscoveryService, error
 	if err == nil {
 		return service, nil
 	} else if os.IsNotExist(err) {
-		return nil, xerror.NewError(int32(core.ErrCode_ServerNodeNotFound))
+		return nil, xerror.New(int32(core.ErrCode_ServerNodeNotFound))
 	}
 
 	return nil, err

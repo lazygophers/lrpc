@@ -11,6 +11,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
+	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/stringx"
 	"gorm.io/gorm"
@@ -192,6 +193,10 @@ func NewScoop(db *gorm.DB, clientType string) *Scoop {
 
 func (p *Scoop) getNotFoundError() error {
 	if p.notFoundError != nil {
+		if x, ok := p.notFoundError.(*xerror.Error); ok {
+			return xerror.New(x.Code)
+		}
+
 		return p.notFoundError
 	}
 
@@ -200,6 +205,10 @@ func (p *Scoop) getNotFoundError() error {
 
 func (p *Scoop) getDuplicatedKeyError() error {
 	if p.duplicatedKeyError != nil {
+		if x, ok := p.duplicatedKeyError.(*xerror.Error); ok {
+			return xerror.New(x.Code)
+		}
+
 		return p.duplicatedKeyError
 	}
 

@@ -46,14 +46,14 @@ func TestHTTPErrorsWithNewError(t *testing.T) {
 	// Test that HTTP errors work with NewError function
 
 	t.Run("NewError with HTTP codes", func(t *testing.T) {
-		err := NewError(404)
+		err := New(404)
 		assert.Equal(t, int32(404), err.Code)
 		assert.Equal(t, "Not Found", err.Msg)
 	})
 
 	t.Run("NewError returns cloned instances", func(t *testing.T) {
-		err1 := NewError(500)
-		err2 := NewError(500)
+		err1 := New(500)
+		err2 := New(500)
 
 		assert.Equal(t, err1.Code, err2.Code)
 		assert.Equal(t, err1.Msg, err2.Msg)

@@ -36,7 +36,7 @@ func ChooseNode(name string) (*core.ServiceDiscoveryNode, error) {
 	}
 
 	if len(nodeList) == 0 {
-		return nil, xerror.NewError(int32(core.ErrCode_ServerNodeNotFound))
+		return nil, xerror.New(int32(core.ErrCode_ServerNodeNotFound))
 	}
 
 	if len(nodeList) == 1 {
@@ -54,7 +54,7 @@ func ChooseNode(name string) (*core.ServiceDiscoveryNode, error) {
 		return node, nil
 	}
 
-	return nil, xerror.NewError(int32(core.ErrCode_ServerAliveNodeNotFound))
+	return nil, xerror.New(int32(core.ErrCode_ServerAliveNodeNotFound))
 }
 
 func DiscoveryClient(c *core.ServiceDiscoveryClient) (lrpc.Client, *fasthttp.Request) {
