@@ -157,8 +157,16 @@ type Error struct {
 // Error 实现 error 接口，返回错误消息
 func (p *Error) Error() string {
 	if p.Cause != nil {
-		return fmt.Sprintf("%s: %v", p.Msg, p.Cause)
+		if p.Msg == "" {
+			return fmt.Sprintf("code:%d,%v", p.Code, p.Cause.Error())
+		}
+		return fmt.Sprintf("%s:%v", p.Msg, p.Cause.Error())
 	}
+
+	if p.Msg == "" {
+		return fmt.Sprintf("code:%d", p.Code)
+	}
+
 	return p.Msg
 }
 
