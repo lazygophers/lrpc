@@ -237,59 +237,19 @@ func GetMsg(err error) string {
 }
 
 // New 创建新的错误实例，支持可选的多语言参数
-//
-// 创建过程：
-// 1. 如果错误码已注册，返回注册错误的克隆
-// 2. 如果提供了语言参数且设置了 i18n，尝试获取国际化消息
-// 3. 否则创建仅包含错误码的错误实例
-//
-// 参数：
-//   - code: 错误码
-//   - lang: 可选的语言代码（如 "en", "zh"），支持多个语言作为回退
-//
-// 示例：
-//
-//	err1 := xerror.New(1001)                    // 使用已注册的错误消息
-//	err2 := xerror.New(1001, "en")              // 使用英文消息
-//	err3 := xerror.New(1001, "fr", "en", "zh")  // 尝试法语，回退到英语或中文
 func New(code int32, args ...interface{}) *Error {
-	// 优先返回已注册的错误
+	if len(args) > 0 {
+		return NewErrorWithMsg(code, fmt.Sprint(args...))
+	}
+
 	if err, ok := errMap[code]; ok {
 		return err.Clone()
 	}
 
-	// 如果有参数且设置了 i18n，尝试将参数作为语言代码
-	if len(args) > 0 && i18n != nil {
-		// 将 args 转换为字符串切片作为语言代码
-		langs := make([]string, 0, len(args))
-		for _, arg := range args {
-			if lang, ok := arg.(string); ok {
-				langs = append(langs, lang)
-			}
-		}
-
-		// 如果成功转换了语言代码，使用 i18n 查找消息
-		if len(langs) > 0 {
-			if msg, ok := i18n.Localize(code, langs...); ok {
-				return NewErrorWithMsg(code, msg)
-			}
-			// 未找到翻译，返回空消息
-			return NewErrorWithMsg(code, "")
-		}
-
-		// 如果参数不是字符串，将它们作为消息内容
-		return NewErrorWithMsg(code, fmt.Sprint(args...))
-	}
-
-	// 没有参数，尝试使用 i18n（无语言指定）
 	if i18n != nil {
-		if msg, ok := i18n.Localize(code); ok {
+		if msg, ok := i18n.Localize(code); ok && msg != "" {
 			return NewErrorWithMsg(code, msg)
 		}
-	}
-
-	if len(args) > 0 {
-		return NewErrorWithMsg(code, fmt.Sprint(args...))
 	}
 
 	return NewErrorWithMsg(code, "")
