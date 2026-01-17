@@ -329,3 +329,70 @@ func TestModelAggregate(t *testing.T) {
 		t.Errorf("expected 2 results, got %d", len(results))
 	}
 }
+
+func TestModelSetNotFound(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create a model
+	model := NewModel(client, User{})
+
+	// Test SetNotFound - verify the method returns Model
+	result := model.SetNotFound(bson.ErrDecodeToNil)
+	if result == nil {
+		t.Error("SetNotFound should return non-nil Model")
+	}
+
+	if result != model {
+		t.Error("SetNotFound should return the same Model instance")
+	}
+}
+
+func TestModelIsNotFound(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create a model
+	model := NewModel(client, User{})
+
+	// Insert a user
+	user := User{
+		ID:        primitive.NewObjectID(),
+		Email:     "test@example.com",
+		Name:      "Test User",
+		Age:       25,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := model.NewScoop().Create(user)
+	if err != nil {
+		t.Errorf("create failed: %v", err)
+	}
+
+	// Try to find non-existent user
+	modelScoop := model.NewScoop().Equal("email", "nonexistent@example.com")
+	_, err = modelScoop.First()
+
+	// Verify IsNotFound returns true
+	if !model.IsNotFound(err) {
+		t.Error("expected IsNotFound to return true for no documents found")
+	}
+
+	// Verify IsNotFound returns false for other errors
+	otherErr := bson.ErrDecodeToNil
+	if model.IsNotFound(otherErr) {
+		t.Error("expected IsNotFound to return false for non-not-found error")
+	}
+}

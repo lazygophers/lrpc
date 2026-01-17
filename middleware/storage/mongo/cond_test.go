@@ -530,3 +530,331 @@ func TestScoopWhereWithTraditional(t *testing.T) {
 		t.Errorf("expected 1 result with traditional Where, got %d", count)
 	}
 }
+
+func TestCondGte(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Gte
+	cond := Gte("age", 25)
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 results for Gte, got %d", count)
+	}
+}
+
+func TestCondLte(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Lte
+	cond := Lte("age", 25)
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 results for Lte, got %d", count)
+	}
+}
+
+func TestCondLeftLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test LeftLike (ends with pattern)
+	cond := LeftLike("name", "User")
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 results for LeftLike, got %d", count)
+	}
+}
+
+func TestCondRightLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test RightLike (starts with pattern)
+	cond := RightLike("name", "Test")
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 result for RightLike, got %d", count)
+	}
+}
+
+func TestCondNotLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test NotLike
+	cond := NotLike("name", "Test")
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 result for NotLike, got %d", count)
+	}
+}
+
+func TestCondNotLeftLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo Tool", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test NotLeftLike
+	cond := NotLeftLike("name", "User")
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 result for NotLeftLike, got %d", count)
+	}
+}
+
+func TestCondNotRightLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test NotRightLike
+	cond := NotRightLike("name", "Test")
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 result for NotRightLike, got %d", count)
+	}
+}
+
+func TestCondNotBetween(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test NotBetween
+	cond := NotBetween("age", 25, 30)
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 result for NotBetween, got %d", count)
+	}
+}
+
+func TestCondReset(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Create a condition with filters
+	cond := Equal("age", 25)
+
+	// Use the condition
+	scoop := client.NewScoop().Collection(User{}).Where(cond)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 result before reset, got %d", count)
+	}
+
+	// Reset condition
+	cond.Reset()
+
+	// Use the reset condition - should match all documents
+	scoop = client.NewScoop().Collection(User{}).Where(cond)
+	count, err = scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 results after reset, got %d", count)
+	}
+}
+
+
+func TestCondOr(t *testing.T) {
+	// Test Or method on Cond - simple test to verify method exists and is callable
+	cond := &Cond{}
+	
+	// Call Or method
+	result := cond.Or("age", 25)
+	if result == nil {
+		t.Error("expected cond from Or, got nil")
+	}
+
+	// Verify it returns the same Cond instance (for method chaining)
+	if result != cond {
+		t.Error("Or should return the same Cond instance for chaining")
+	}
+
+	// Test multiple Or calls for chaining
+	result2 := result.Or("name", "Test")
+	if result2 != cond {
+		t.Error("second Or should still return the same Cond instance")
+	}
+}
+
+func TestCondString(t *testing.T) {
+	// Test String() method
+	cond := Equal("name", "Test")
+	str := cond.String()
+
+	// Just verify it returns a non-empty string
+	if str == "" {
+		t.Error("expected non-empty string from String() method")
+	}
+
+	// Test complex condition
+	cond2 := Gt("age", 25)
+	str2 := cond2.String()
+	if str2 == "" {
+		t.Error("expected non-empty string for Gt condition")
+	}
+}

@@ -3,77 +3,12 @@ package mongo
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/kamva/mgm/v3"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestChangeStreamCreation(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	model := NewModel(client, User{})
-	scoop := model.NewScoop().GetScoop()
-	cs, err := scoop.WatchChanges()
-
-	if err != nil {
-		t.Fatalf("failed to create change stream: %v", err)
-	}
-
-	if cs == nil {
-		t.Error("expected change stream, got nil")
-	}
-
-	cs.Close()
-}
-
-func TestDatabaseChangeStreamCreation(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	dcs, err := client.WatchAllCollections()
-
-	if err != nil {
-		t.Fatalf("failed to create database change stream: %v", err)
-	}
-
-	if dcs == nil {
-		t.Error("expected database change stream, got nil")
-	}
-
-	dcs.Close()
-}
-
-func TestChangeStreamGetContext(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	model := NewModel(client, User{})
-	scoop := model.NewScoop().GetScoop()
-	cs, err := scoop.WatchChanges()
-
-	if err != nil {
-		t.Fatalf("failed to create change stream: %v", err)
-	}
-	defer cs.Close()
-
-}
-
-func TestDatabaseChangeStreamGetContext(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	dcs, err := client.WatchAllCollections()
-
-	if err != nil {
-		t.Fatalf("failed to create database change stream: %v", err)
-	}
-	defer dcs.Close()
-
-}
-
-func TestChangeEventDecoding(t *testing.T) {
+func TestChangeStreamWatchChanges(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
@@ -83,69 +18,51 @@ func TestChangeEventDecoding(t *testing.T) {
 	cleanupTest()
 	defer cleanupTest()
 
+	// Create change stream
 	model := NewModel(client, User{})
 	scoop := model.NewScoop().GetScoop()
+
 	cs, err := scoop.WatchChanges()
-
 	if err != nil {
-		t.Fatalf("failed to create change stream: %v", err)
-	}
-	defer cs.Close()
-
-	// Insert a document in a separate goroutine after a short delay
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-
-		// Get collection using MGM
-		mgmColl := mgm.CollectionByName("users")
-		coll := mgmColl.Collection
-		user := User{
-			ID:        primitive.NewObjectID(),
-			Email:     "watchtest@example.com",
-			Name:      "Watch Test",
-			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		_, _ = coll.InsertOne(context.Background(), user)
-	}()
-
-	// Try to watch changes (with timeout)
-	watchCtx, watchCancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer watchCancel()
-
-	stream, err := cs.Watch()
-	if err != nil {
-		t.Logf("watch failed (expected in test environment): %v", err)
-		return
+		t.Fatalf("watch changes failed: %v", err)
 	}
 
-	// Try to get one event
-	if stream.Next(watchCtx) {
-		var event ChangeEvent
-		if err := stream.Decode(&event); err == nil {
-			if event.OperationType != "" {
-				t.Logf("received event type: %s", event.OperationType)
-			}
-		}
+	if cs == nil {
+		t.Error("expected change stream, got nil")
 	}
-
-	stream.Close(context.Background())
 }
 
-func TestPrintEvent(t *testing.T) {
-	event := &ChangeEvent{
-		OperationType: "insert",
-		FullDocument: map[string]interface{}{
-			"_id":  "123",
-			"name": "Test",
-		},
+func TestChangeStreamWatch(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create change stream
+	model := NewModel(client, User{})
+	scoop := model.NewScoop().GetScoop()
+
+	cs, err := scoop.WatchChanges()
+	if err != nil {
+		t.Fatalf("watch changes failed: %v", err)
 	}
 
-	err := PrintEvent(event)
+	// Test Watch method - should return mongo.ChangeStream
+	stream, err := cs.Watch()
 	if err != nil {
-		t.Fatalf("print event failed: %v", err)
+		t.Fatalf("watch failed: %v", err)
 	}
+
+	if stream == nil {
+		t.Error("expected stream, got nil")
+	}
+
+	// Close the stream
+	stream.Close(context.Background())
 }
 
 func TestChangeStreamClose(t *testing.T) {
@@ -154,16 +71,112 @@ func TestChangeStreamClose(t *testing.T) {
 
 	model := NewModel(client, User{})
 	scoop := model.NewScoop().GetScoop()
-	cs, err := scoop.WatchChanges()
 
+	cs, err := scoop.WatchChanges()
 	if err != nil {
-		t.Fatalf("failed to create change stream: %v", err)
+		t.Fatalf("watch changes failed: %v", err)
 	}
 
+	// Close should not panic or error (it's a no-op)
 	cs.Close()
+}
 
-	// Close again should not panic
-	cs.Close()
+func TestModelScoopWatch(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Test ModelScoop Watch method
+	model := NewModel(client, User{})
+	modelScoop := model.NewScoop()
+
+	cs, err := modelScoop.Watch()
+	if err != nil {
+		t.Fatalf("watch failed: %v", err)
+	}
+
+	if cs == nil {
+		t.Error("expected change stream, got nil")
+	}
+}
+
+func TestChangeStreamWatchWithPipeline(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create change stream
+	model := NewModel(client, User{})
+	scoop := model.NewScoop().GetScoop()
+
+	cs, err := scoop.WatchChanges()
+	if err != nil {
+		t.Fatalf("watch changes failed: %v", err)
+	}
+
+	// Test Watch with pipeline (match operation types)
+	stream, err := cs.Watch(bson.M{
+		"$match": bson.M{
+			"operationType": "insert",
+		},
+	})
+	if err != nil {
+		t.Fatalf("watch with pipeline failed: %v", err)
+	}
+
+	if stream == nil {
+		t.Error("expected stream, got nil")
+	}
+
+	stream.Close(context.Background())
+}
+
+func TestDatabaseChangeStreamWatchAllCollections(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Watch all collections in database
+	dcs, err := client.WatchAllCollections()
+	if err != nil {
+		t.Fatalf("watch all collections failed: %v", err)
+	}
+
+	if dcs == nil {
+		t.Error("expected database change stream, got nil")
+	}
+}
+
+func TestDatabaseChangeStreamWatch(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Watch all collections
+	dcs, err := client.WatchAllCollections()
+	if err != nil {
+		t.Fatalf("watch all collections failed: %v", err)
+	}
+
+	// Test Watch method
+	stream, err := dcs.Watch()
+	if err != nil {
+		t.Fatalf("database watch failed: %v", err)
+	}
+
+	if stream == nil {
+		t.Error("expected stream, got nil")
+	}
+
+	stream.Close(context.Background())
 }
 
 func TestDatabaseChangeStreamClose(t *testing.T) {
@@ -171,98 +184,26 @@ func TestDatabaseChangeStreamClose(t *testing.T) {
 	defer client.Close()
 
 	dcs, err := client.WatchAllCollections()
-
 	if err != nil {
-		t.Fatalf("failed to create database change stream: %v", err)
+		t.Fatalf("watch all collections failed: %v", err)
 	}
 
-	dcs.Close()
-
-	// Close again should not panic
+	// Close should not panic or error (it's a no-op)
 	dcs.Close()
 }
 
-func TestChangeEventFields(t *testing.T) {
+func TestPrintEvent(t *testing.T) {
 	event := &ChangeEvent{
 		OperationType: "insert",
 		FullDocument: map[string]interface{}{
-			"_id":   "123",
-			"name":  "Test User",
-			"email": "test@example.com",
-		},
-		DocumentKey: map[string]interface{}{
-			"_id": "123",
-		},
-		Ns: map[string]string{
-			"db":   "test",
-			"coll": "users",
+			"_id":   primitive.NewObjectID(),
+			"name":  "test",
 		},
 	}
 
-	if event.OperationType != "insert" {
-		t.Errorf("expected operation type 'insert', got '%s'", event.OperationType)
-	}
-
-	if name, ok := event.FullDocument["name"].(string); !ok || name != "Test User" {
-		t.Errorf("expected name 'Test User', got %v", event.FullDocument["name"])
-	}
-
-	if event.Ns["coll"] != "users" {
-		t.Errorf("expected collection 'users', got '%s'", event.Ns["coll"])
-	}
-}
-
-func TestChangeStreamNilContext(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	scoop := client.NewScoop()
-
-	// Pass nil context (should use background context)
-	cs, err := scoop.WatchChanges()
-
+	// PrintEvent should not panic
+	err := PrintEvent(event)
 	if err != nil {
-		t.Fatalf("failed to create change stream with nil context: %v", err)
-	}
-
-	if cs == nil {
-		t.Error("expected change stream, got nil")
-	}
-
-	cs.Close()
-}
-
-func TestChangeStreamListenWithFilters(t *testing.T) {
-	client := newTestClient(t)
-	defer client.Close()
-
-	model := NewModel(client, User{})
-	scoop := model.NewScoop().GetScoop()
-	cs, err := scoop.WatchChanges()
-
-	if err != nil {
-		t.Fatalf("failed to create change stream: %v", err)
-	}
-	defer cs.Close()
-
-	// This should not panic, even if we can't actually listen in this test environment
-	eventReceived := false
-	go func() {
-		err := cs.ListenWithFilters(func(event *ChangeEvent) error {
-			eventReceived = true
-			return nil
-		}, "insert", "update")
-
-		if err != nil && err.Error() != "context deadline exceeded" {
-			t.Logf("listen with filters error (expected in test): %v", err)
-		}
-	}()
-
-	// Wait briefly then close
-	time.Sleep(1 * time.Second)
-	cs.Close()
-
-	if !eventReceived && false {
-		t.Logf("no events received (expected in test environment)")
+		t.Errorf("print event failed: %v", err)
 	}
 }

@@ -475,3 +475,235 @@ func TestSortDescending(t *testing.T) {
 		t.Errorf("expected descending order [30, 25, 20], got [%d, %d, %d]", results[0].Age, results[1].Age, results[2].Age)
 	}
 }
+
+func TestScoopGte(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Gte
+	scoop := client.NewScoop().Collection(User{}).Gte("age", 25)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 results for Gte(age >= 25), got %d", count)
+	}
+}
+
+func TestScoopLte(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Lte
+	scoop := client.NewScoop().Collection(User{}).Lte("age", 25)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 results for Lte(age <= 25), got %d", count)
+	}
+}
+
+func TestScoopLike(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "other@example.com", Name: "Other User", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Like with pattern
+	scoop := client.NewScoop().Like("name", "Test")
+	var results []User
+	err := scoop.Find(&results)
+	if err != nil {
+		t.Errorf("find failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("expected 1 result for Like pattern, got %d", len(results))
+	}
+}
+
+func TestScoopSkip(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test Skip (should be equivalent to Offset)
+	scoop := client.NewScoop().Equal("age", 25).Skip(1).Limit(2)
+	var results []User
+	err := scoop.Find(&results)
+	if err != nil {
+		t.Errorf("find failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("expected 2 results with Skip(1), got %d", len(results))
+	}
+}
+
+func TestScoopClear(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Create a scoop with filter
+	scoop := client.NewScoop().Collection(User{}).Equal("age", 25)
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 result before clear, got %d", count)
+	}
+
+	// Clear the scoop and verify no filters
+	scoop = scoop.Clear()
+	count, err = scoop.Count()
+	if err != nil {
+		t.Errorf("count after clear failed: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 results after clear, got %d", count)
+	}
+}
+
+func TestScoopBatchCreate(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create batch of users as interface{} varargs
+	user1 := User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user2 := User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user3 := User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+
+	// BatchCreate with varargs
+	scoop := client.NewScoop()
+	err := scoop.BatchCreate(user1, user2, user3)
+	if err != nil {
+		t.Errorf("batch create failed: %v", err)
+	}
+
+	// Verify all users were created
+	scoop = client.NewScoop().Collection(User{})
+	count, err := scoop.Count()
+	if err != nil {
+		t.Errorf("count failed: %v", err)
+	}
+
+	if count != 3 {
+		t.Errorf("expected 3 users after batch create, got %d", count)
+	}
+}
+
+func TestScoopIsNotFound(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Create a scoop
+	scoop := client.NewScoop()
+
+	// Insert a user
+	user := User{
+		ID:        primitive.NewObjectID(),
+		Email:     "test@example.com",
+		Name:      "Test User",
+		Age:       25,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := scoop.Create(user)
+	if err != nil {
+		t.Errorf("create failed: %v", err)
+	}
+
+	// Try to find non-existent user
+	scoop = client.NewScoop().Equal("email", "nonexistent@example.com")
+	var result User
+	err = scoop.First(&result)
+
+	// Verify IsNotFound
+	if !scoop.IsNotFound(err) {
+		t.Errorf("expected IsNotFound to return true for no documents found")
+	}
+}
