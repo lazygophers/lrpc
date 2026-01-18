@@ -306,7 +306,7 @@ func TestAggregationExecuteWithPipeline(t *testing.T) {
 		InsertTestData(t, client, "users", user)
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 

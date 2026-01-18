@@ -174,6 +174,30 @@ type User struct {
 	UpdatedAt time.Time   `bson:"updatedAt"`
 }
 
+
+// CustomUser is a test model that implements the Collectioner interface
+type CustomUser struct {
+	ID        interface{} `bson:"_id,omitempty"`
+	Email     string      `bson:"email"`
+	Name      string      `bson:"name"`
+	Age       int         `bson:"age"`
+	CreatedAt time.Time   `bson:"createdAt"`
+	UpdatedAt time.Time   `bson:"updatedAt"`
+}
+
+// Collection implements the Collectioner interface for CustomUser
+func (c CustomUser) Collection() string {
+	return "custom_users"
+}
+
+// NoCollectionUser is a test model without Collection() method
+type NoCollectionUser struct {
+	ID        interface{} `bson:"_id,omitempty"`
+	Email     string      `bson:"email"`
+	CreatedAt time.Time   `bson:"createdAt"`
+	UpdatedAt time.Time   `bson:"updatedAt"`
+}
+
 // Post is a test post model
 type Post struct {
 	ID        interface{} `bson:"_id,omitempty"`

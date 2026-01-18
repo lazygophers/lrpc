@@ -27,7 +27,7 @@ func TestSubCondOr(t *testing.T) {
 
 	// Test Or using package function
 	orCond := Or("age", 25)
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	var results []User
 	err := scoop.Where(orCond).Find(&results)
@@ -64,7 +64,7 @@ func TestSubCondOrWhere(t *testing.T) {
 		t.Error("expected cond, got nil")
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	var results []User
 	err := scoop.Where(cond).Find(&results)
@@ -101,7 +101,7 @@ func TestSubCondAnd(t *testing.T) {
 		t.Error("expected cond, got nil")
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	var results []User
 	err := scoop.Where(cond).Find(&results)
@@ -139,7 +139,7 @@ func TestSubCondNotIn(t *testing.T) {
 		t.Error("expected cond, got nil")
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	var results []User
 	err := scoop.Where(cond).Find(&results)
@@ -182,7 +182,7 @@ func TestSubCondOrFunction(t *testing.T) {
 		t.Error("expected cond, got nil")
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	var results []User
 	err := scoop.Where(cond).Find(&results)

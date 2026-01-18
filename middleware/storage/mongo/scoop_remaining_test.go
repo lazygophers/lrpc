@@ -252,7 +252,7 @@ func TestAggregationWithMultipleStages(t *testing.T) {
 		InsertTestData(t, client, "users", user)
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -307,7 +307,7 @@ func TestAggregationWithGroup(t *testing.T) {
 		InsertTestData(t, client, "users", user)
 	}
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -349,7 +349,7 @@ func TestAggregationExecuteOneSingleResult(t *testing.T) {
 	}
 	InsertTestData(t, client, "users", user)
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -377,7 +377,7 @@ func TestAggregationExecuteOneNoResults(t *testing.T) {
 	cleanupTest()
 	defer cleanupTest()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 

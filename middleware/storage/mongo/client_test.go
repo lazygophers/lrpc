@@ -80,7 +80,7 @@ func TestClientNewModel(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	if model == nil {
 		t.Error("expected model, got nil")
 	}
@@ -173,7 +173,7 @@ func TestClientInsertAndFind(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data using Model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	user := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "test@example.com",
@@ -211,7 +211,7 @@ func TestClientConcurrentOperations(t *testing.T) {
 	cleanupTest()
 	defer cleanupTest()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	// Insert multiple documents
 	docs := []User{
@@ -243,7 +243,7 @@ func TestClientWithDifferentDatabases(t *testing.T) {
 	defer client.Close()
 
 	// Test is simplified as databases are within same MongoDB connection
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	// Insert test data
 	user1 := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}

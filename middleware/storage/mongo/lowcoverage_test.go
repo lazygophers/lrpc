@@ -21,7 +21,7 @@ func TestAggregationExecuteEmpty(t *testing.T) {
 	cleanupTest()
 	defer cleanupTest()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -59,7 +59,7 @@ func TestAggregationExecuteOneWithResults(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	model.NewScoop().Create(user)
 
 	// Test ExecuteOne
@@ -92,7 +92,7 @@ func TestAggregationExecuteOneEmpty(t *testing.T) {
 	cleanupTest()
 	defer cleanupTest()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -131,7 +131,7 @@ func TestAggregationProjectFields(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	model.NewScoop().Create(user)
 
 	// Test with projection

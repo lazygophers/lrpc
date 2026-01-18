@@ -27,7 +27,7 @@ func TestModelScoopLimit(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Limit returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	modelScoop := model.NewScoop().Limit(2)
 
 	// Verify it returns ModelScoop by checking Find
@@ -61,7 +61,7 @@ func TestModelScoopOffset(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Offset returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	modelScoop := model.NewScoop().Offset(1).Limit(2)
 
 	results, err := modelScoop.Find()
@@ -94,7 +94,7 @@ func TestModelScoopSort(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Sort returns ModelScoop and works
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Sort("age", 1).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -126,7 +126,7 @@ func TestModelScoopSelect(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Test Select returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Select("email", "name").Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -156,7 +156,7 @@ func TestModelScoopEqual(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Equal returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Equal("age", 25).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -186,7 +186,7 @@ func TestModelScoopNe(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Ne returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Ne("age", 25).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -217,7 +217,7 @@ func TestModelScoopIn(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test In returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().In("age", 25, 30).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -248,7 +248,7 @@ func TestModelScoopNotIn(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test NotIn returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().NotIn("age", 25, 30).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -278,7 +278,7 @@ func TestModelScoopLike(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Like returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Like("name", "Test").Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -308,7 +308,7 @@ func TestModelScoopGt(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Gt returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Gt("age", 25).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -338,7 +338,7 @@ func TestModelScoopLt(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Lt returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Lt("age", 30).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -368,7 +368,7 @@ func TestModelScoopGte(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Gte returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Gte("age", 25).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -398,7 +398,7 @@ func TestModelScoopLte(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Lte returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Lte("age", 25).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -429,7 +429,7 @@ func TestModelScoopBetween(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Between returns ModelScoop
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Between("age", 25, 30).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -460,7 +460,7 @@ func TestModelScoopSkip(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test Skip returns ModelScoop and is equivalent to Offset
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Skip(1).Limit(2).Find()
 	if err != nil {
 		t.Errorf("find failed: %v", err)
@@ -490,7 +490,7 @@ func TestModelScoopClear(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Create a scoop with filter
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	modelScoop := model.NewScoop().Equal("age", 25)
 
 	// Verify filter works

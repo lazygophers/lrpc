@@ -19,7 +19,7 @@ func TestChangeStreamWatchChanges(t *testing.T) {
 	defer cleanupTest()
 
 	// Create change stream
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 
 	cs, err := scoop.WatchChanges()
@@ -43,7 +43,7 @@ func TestChangeStreamWatch(t *testing.T) {
 	defer cleanupTest()
 
 	// Create change stream
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 
 	cs, err := scoop.WatchChanges()
@@ -69,7 +69,7 @@ func TestChangeStreamClose(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 
 	cs, err := scoop.WatchChanges()
@@ -92,7 +92,7 @@ func TestModelScoopWatch(t *testing.T) {
 	defer cleanupTest()
 
 	// Test ModelScoop Watch method
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	modelScoop := model.NewScoop()
 
 	cs, err := modelScoop.Watch()
@@ -116,7 +116,7 @@ func TestChangeStreamWatchWithPipeline(t *testing.T) {
 	defer cleanupTest()
 
 	// Create change stream
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 
 	cs, err := scoop.WatchChanges()

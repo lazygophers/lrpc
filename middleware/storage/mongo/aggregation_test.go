@@ -29,7 +29,7 @@ func TestAggregationMatch(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test match
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -65,7 +65,7 @@ func TestAggregationGroup(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test group
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -104,7 +104,7 @@ func TestAggregationSort(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test sort
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -136,7 +136,7 @@ func TestAggregationProject(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Test project
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -184,7 +184,7 @@ func TestAggregationLimitSkip(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test limit and skip
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -216,7 +216,7 @@ func TestAggregationAddFields(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Test add fields
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -253,7 +253,7 @@ func TestAggregationCount(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test count
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -289,7 +289,7 @@ func TestAggregationExecuteOne(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Test execute one
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -323,7 +323,7 @@ func TestAggregationPipeline(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test complex pipeline
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate(
 		bson.M{"$match": bson.M{"age": bson.M{"$gte": 25}}},
@@ -346,7 +346,7 @@ func TestAggregationClear(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate(bson.M{"$match": bson.M{"age": 25}})
 
@@ -384,7 +384,7 @@ func TestAggregationLookup(t *testing.T) {
 	InsertTestData(t, client, "orders", orders...)
 
 	// Test lookup
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -503,7 +503,7 @@ func TestAggregationFacet(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test facet
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 
@@ -553,7 +553,7 @@ func TestAggregationAddStage(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Test add stage
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	scoop := model.NewScoop().GetScoop()
 	agg := scoop.Aggregate()
 

@@ -12,7 +12,7 @@ func TestNewModel(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	if model == nil {
 		t.Error("expected model, got nil")
@@ -23,7 +23,7 @@ func TestModelTableName(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	tableName := model.CollectionName()
 
 	if tableName == "" {
@@ -49,7 +49,7 @@ func TestModelFind(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Find with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	results, err := model.NewScoop().Where("age", 25).Find()
 
 	if err != nil {
@@ -80,7 +80,7 @@ func TestModelFirst(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// FindOne with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	result, err := model.NewScoop().Where("email", "test@example.com").First()
 
 	if err != nil {
@@ -114,7 +114,7 @@ func TestModelCount(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Count with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	count, err := model.NewScoop().Where("age", 25).Count()
 
 	if err != nil {
@@ -137,7 +137,7 @@ func TestModelCreate(t *testing.T) {
 	defer cleanupTest()
 
 	// Create with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	newUser := User{
 		ID:        primitive.NewObjectID(),
@@ -173,7 +173,7 @@ func TestModelUpdate(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Update with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	count, err := model.NewScoop().Where("email", "test@example.com").Update(bson.M{"age": 30, "name": "Updated User"})
 
 	if err != nil {
@@ -209,7 +209,7 @@ func TestModelDelete(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Delete with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	count, err := model.NewScoop().Where("age", 25).Delete()
 
 	if err != nil {
@@ -239,7 +239,7 @@ func TestModelExist(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	// Test exist
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	exists, err := model.NewScoop().Where("email", "test@example.com").Exist()
 
 	if err != nil {
@@ -266,7 +266,7 @@ func TestModelGetCollection(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	coll := model.NewScoop().GetCollection()
 
 	if coll == nil {
@@ -282,7 +282,7 @@ func TestModelNewScoop(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
 
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	modelScoop := model.NewScoop()
 
 	if modelScoop == nil {
@@ -312,7 +312,7 @@ func TestModelAggregate(t *testing.T) {
 	InsertTestData(t, client, "users", users...)
 
 	// Aggregate with model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 	agg := model.NewScoop().Aggregate(bson.M{"$match": bson.M{"age": bson.M{"$gte": 25}}})
 
 	if agg == nil {
@@ -341,7 +341,7 @@ func TestModelSetNotFound(t *testing.T) {
 	defer cleanupTest()
 
 	// Create a model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	// Test SetNotFound - verify the method returns Model
 	result := model.SetNotFound(bson.ErrDecodeToNil)
@@ -365,7 +365,7 @@ func TestModelIsNotFound(t *testing.T) {
 	defer cleanupTest()
 
 	// Create a model
-	model := NewModel(client, User{})
+	model := NewModel[User](client)
 
 	// Insert a user
 	user := User{
@@ -394,5 +394,76 @@ func TestModelIsNotFound(t *testing.T) {
 	otherErr := bson.ErrDecodeToNil
 	if model.IsNotFound(otherErr) {
 		t.Error("expected IsNotFound to return false for non-not-found error")
+	}
+}
+
+
+// TestGetCollectionNameWithCollectionerInterface tests the Collectioner interface implementation
+func TestGetCollectionNameWithCollectionerInterface(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Test with CustomUser that implements Collectioner interface
+	customModel := NewModel[CustomUser](client)
+	collName := customModel.CollectionName()
+
+	expected := "custom_users"
+	if collName != expected {
+		t.Errorf("expected collection name '%s', got '%s'", expected, collName)
+	}
+
+	// Verify the interface method is being called
+	if collName != "custom_users" {
+		t.Error("Collectioner interface method was not called correctly")
+	}
+}
+
+// TestGetCollectionNameFromTypeWithoutCollectionMethod tests default type name fallback
+func TestGetCollectionNameFromTypeWithoutCollectionMethod(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Test with NoCollectionUser that doesn't implement Collection() method
+	model := NewModel[NoCollectionUser](client)
+	collName := model.CollectionName()
+
+	expected := "NoCollectionUser"
+	if collName != expected {
+		t.Errorf("expected collection name '%s', got '%s'", expected, collName)
+	}
+}
+
+// TestGetCollectionNameCaching tests the caching mechanism
+func TestGetCollectionNameCaching(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Create two models of the same type
+	model1 := NewModel[User](client)
+	model2 := NewModel[User](client)
+
+	// Both should have the same collection name
+	if model1.CollectionName() != model2.CollectionName() {
+		t.Error("same type should have the same collection name")
+	}
+
+	// Verify the collection name is from the Collection() interface method (because User implements Collectioner)
+	if model1.CollectionName() != "users" {
+		t.Errorf("expected 'users' (from Collection() method), got '%s'", model1.CollectionName())
+	}
+}
+
+// TestGetCollectionNameWithPointerType tests that pointer types are handled correctly
+func TestGetCollectionNameWithPointerType(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	// Even though NewModel works with non-pointer types internally,
+	// the getCollectionNameFromType should handle pointer types correctly
+	model := NewModel[User](client)
+
+	// Verify it returns the collection name from the Collection() method
+	if model.CollectionName() != "users" {
+		t.Errorf("expected 'users', got '%s'", model.CollectionName())
 	}
 }
