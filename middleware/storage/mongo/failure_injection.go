@@ -18,6 +18,10 @@ func (n *NoopFailureInjector) ShouldFailDelete() bool              { return fals
 func (n *NoopFailureInjector) GetDeleteError() error              { return nil }
 func (n *NoopFailureInjector) ShouldFailTransaction() bool         { return false }
 func (n *NoopFailureInjector) GetTransactionError() error         { return nil }
+func (n *NoopFailureInjector) ShouldFailWatch() bool               { return false }
+func (n *NoopFailureInjector) GetWatchError() error               { return nil }
+func (n *NoopFailureInjector) ShouldFailClose() bool               { return false }
+func (n *NoopFailureInjector) GetCloseError() error               { return nil }
 
 var defaultInjector FailureInjector = &NoopFailureInjector{}
 
@@ -34,6 +38,10 @@ type SimulatedFailure struct {
 	deleteErr               error
 	failTransaction         bool
 	transactionErr          error
+	failWatch               bool
+	watchErr                error
+	failClose               bool
+	closeErr                error
 	callCounts              map[string]int
 }
 
@@ -45,6 +53,8 @@ func NewSimulatedFailure() *SimulatedFailure {
 		countErr:       errors.New("simulated count failure"),
 		deleteErr:      errors.New("simulated delete failure"),
 		transactionErr: errors.New("simulated transaction failure"),
+		watchErr:       errors.New("simulated watch failure"),
+		closeErr:       errors.New("simulated close failure"),
 		callCounts:     make(map[string]int),
 	}
 }
@@ -100,6 +110,29 @@ func (sf *SimulatedFailure) FailTransaction(err error) *SimulatedFailure {
 	sf.failTransaction = true
 	if err != nil {
 		sf.transactionErr = err
+	}
+	return sf
+}
+
+
+// FailWatch 启用 Watch 故障
+func (sf *SimulatedFailure) FailWatch(err error) *SimulatedFailure {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
+	sf.failWatch = true
+	if err != nil {
+		sf.watchErr = err
+	}
+	return sf
+}
+
+// FailClose 启用 Close 故障
+func (sf *SimulatedFailure) FailClose(err error) *SimulatedFailure {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
+	sf.failClose = true
+	if err != nil {
+		sf.closeErr = err
 	}
 	return sf
 }
@@ -174,6 +207,35 @@ func (sf *SimulatedFailure) GetTransactionError() error {
 	return sf.transactionErr
 }
 
+
+// ShouldFailWatch 检查是否应该模拟 Watch 失败
+func (sf *SimulatedFailure) ShouldFailWatch() bool {
+	sf.mu.RLock()
+	defer sf.mu.RUnlock()
+	return sf.failWatch
+}
+
+// GetWatchError 获取 Watch 错误
+func (sf *SimulatedFailure) GetWatchError() error {
+	sf.mu.RLock()
+	defer sf.mu.RUnlock()
+	return sf.watchErr
+}
+
+// ShouldFailClose 检查是否应该模拟 Close 失败
+func (sf *SimulatedFailure) ShouldFailClose() bool {
+	sf.mu.RLock()
+	defer sf.mu.RUnlock()
+	return sf.failClose
+}
+
+// GetCloseError 获取 Close 错误
+func (sf *SimulatedFailure) GetCloseError() error {
+	sf.mu.RLock()
+	defer sf.mu.RUnlock()
+	return sf.closeErr
+}
+
 // Reset 重置所有故障
 func (sf *SimulatedFailure) Reset() *SimulatedFailure {
 	sf.mu.Lock()
@@ -183,6 +245,8 @@ func (sf *SimulatedFailure) Reset() *SimulatedFailure {
 	sf.failCount = false
 	sf.failDelete = false
 	sf.failTransaction = false
+	sf.failWatch = false
+	sf.failClose = false
 	sf.callCounts = make(map[string]int)
 	return sf
 }

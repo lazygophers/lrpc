@@ -94,4 +94,16 @@ type FailureInjector interface {
 
 	// GetTransactionError 获取模拟的事务错误
 	GetTransactionError() error
+
+	// ShouldFailWatch 检查是否应该模拟 Watch 失败
+	ShouldFailWatch() bool
+
+	// GetWatchError 获取模拟的 Watch 错误
+	GetWatchError() error
+
+	// ShouldFailClose 检查是否应该模拟 Close 失败
+	ShouldFailClose() bool
+
+	// GetCloseError 获取模拟的 Close 错误
+	GetCloseError() error
 }
