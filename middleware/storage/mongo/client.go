@@ -62,6 +62,12 @@ func New(cfg *Config) (*Client, error) {
 
 // Ping checks the connection to MongoDB
 func (c *Client) Ping() error {
+	// Check for injected failures (test only)
+	injector := GetGlobalInjector()
+	if injector.ShouldFailPing() {
+		return injector.GetPingError()
+	}
+
 	_, client, _, err := mgm.DefaultConfigs()
 	if err != nil {
 		return err
