@@ -1,0 +1,236 @@
+# LRPC - Lightweight RPC Framework
+
+## Project Overview
+
+LRPC is a lightweight, high-performance RPC framework built on top of fasthttp, designed for Go developers who need efficient HTTP-based service communication with built-in middleware support.
+
+**Repository**: github.com/lazygophers/lrpc
+**Language**: Go 1.25+
+**License**: MIT
+**Status**: Production-Ready
+
+## Core Technologies
+
+- **HTTP Server**: FastHTTP (high-performance HTTP server)
+- **Database**: MongoDB (with driver v1.17.6), MySQL, PostgreSQL, SQLite
+- **Caching**: Redis, LevelDB, SugarDB
+- **Service Discovery**: etcd
+- **Serialization**: Protocol Buffers, JSON, YAML
+- **Observability**: Metrics collection, Health checks, Logging (Zap)
+
+## Key Features
+
+1. **High Performance**: Built on FastHTTP for superior performance vs standard library
+2. **Flexible Routing**: Static, parameterized, and wildcard route support
+3. **Rich Middleware Ecosystem**: Auth, caching, compression, rate limiting, etc.
+4. **Type Safety**: Go generics for type-safe routing and middleware
+5. **Automatic Serialization**: Reflection-based request parsing and response serialization
+6. **Connection Pooling**: Built-in connection and object pool optimization
+7. **Observability**: Metrics, health checks, and structured logging
+8. **Plugin System**: Extensible architecture for custom functionality
+9. **Transaction Support**: Full ACID transaction support for databases
+
+## Project Structure
+
+```
+lrpc/
+├── Core Framework
+│   ├── app.go              # Main application entry point
+│   ├── app_routing.go      # Routing system implementation
+│   ├── ctx.go              # Request context wrapper
+│   ├── handler.go          # Handler conversion system
+│   ├── server.go           # Server lifecycle management
+│   └── tree.go             # Search tree routing implementation
+│
+├── Middleware
+│   ├── auth/               # Authentication middleware
+│   ├── cache/              # Caching solutions (Redis, memory, etc.)
+│   ├── compress/           # Compression support
+│   ├── config/             # Configuration management
+│   ├── core/               # Core middleware functionality
+│   ├── errors/             # Error handling
+│   ├── grpc/               # gRPC integration
+│   ├── health/             # Health check endpoints
+│   ├── i18n/               # Internationalization
+│   ├── metrics/            # Metrics collection
+│   ├── plugin/             # Plugin system
+│   ├── pool/               # Connection pooling
+│   ├── recover/            # Panic recovery
+│   ├── security/           # Security features
+│   ├── service_discovery/  # Service discovery
+│   ├── storage/            # Database abstraction layers
+│   │   ├── db/             # GORM-based database layer
+│   │   ├── mongo/          # MongoDB integration (90.8% test coverage)
+│   │   └── cache/          # Caching layer
+│   └── xerror/             # Error handling utilities
+│
+├── Configuration
+│   ├── CLAUDE.md           # Development guidelines
+│   ├── .golangci.yml       # Linting configuration
+│   └── docker-compose.test.yml  # Testing environment setup
+│
+└── Documentation
+    ├── README.md           # Project documentation
+    └── FINAL_WORK_SUMMARY.md   # Recent improvements
+
+```
+
+## Development Commands
+
+### Building and Testing
+
+```bash
+# Build the project
+go build
+
+# Run all tests
+go test ./...
+
+# Run tests for specific package
+go test ./middleware/storage/mongo/...
+
+# Run tests with coverage
+go test -coverprofile=coverage.out ./middleware/storage/mongo/...
+go tool cover -html=coverage.out
+
+# Format code
+go fmt ./...
+
+# Lint code
+golangci-lint run
+
+# Install dependencies
+go mod tidy
+```
+
+### MongoDB Testing
+
+```bash
+# Start MongoDB replica set for testing
+docker-compose -f docker-compose.test.yml up -d
+
+# Run MongoDB tests with coverage
+./scripts/run-mongo-tests.sh
+
+# Stop MongoDB
+docker-compose -f docker-compose.test.yml down
+```
+
+## Architecture Highlights
+
+### Handler System
+
+The framework uses reflection-based handler conversion to support multiple function signatures:
+
+```go
+func(ctx *Ctx) error                                    // Simple handler
+func(ctx *Ctx, req *RequestStruct) error                // With request parsing
+func(ctx *Ctx) (*ResponseStruct, error)                 // With response
+func(ctx *Ctx, req *RequestStruct) (*ResponseStruct, error)  // Full handler
+```
+
+### Generic Routing
+
+Type-safe routing using Go generics:
+
+```go
+// Generic search tree for type-safe routing
+type SearchTree[M any] struct { ... }
+
+// Strongly typed route matching
+routes := client.NewSearchTree[User]()
+```
+
+### Middleware Pipeline
+
+Composable middleware with hooks for extensibility:
+
+- Route hooks: Pre/post route execution
+- Server hooks: Server lifecycle events
+- Error handling hooks: Custom error responses
+
+## Recent Improvements (Test Coverage)
+
+### MongoDB Middleware Enhancement
+
+- **Coverage Progress**: 55.2% → 90.8% (+35.6%)
+- **New Features**:
+  - Fault injection framework for failure simulation
+  - Extended Watch and Close operation support
+  - Comprehensive test suite with 30+ test functions
+
+- **Testing Infrastructure**:
+  - Docker Compose MongoDB replica set configuration
+  - Automated test runner scripts
+  - Integration tests with real database operations
+
+## Error Handling Pattern
+
+Consistent error handling throughout the codebase:
+
+```go
+err := someOperation()
+if err != nil {
+    log.Errorf("err:%v", err)
+    return nil, err
+}
+```
+
+**Characteristics**:
+- Separate error assignment and checking
+- Always log errors with consistent format
+- Explicit error propagation
+- Clear and debuggable error flow
+
+## Code Quality Standards
+
+- **Test Coverage**: Target 90%+ for production code
+- **Type Safety**: Leverages Go generics for compile-time safety
+- **Performance**: Built on FastHTTP for high throughput
+- **Observability**: Comprehensive logging and metrics
+- **Error Handling**: Explicit, consistent error propagation
+- **Code Organization**: Clear separation of concerns with middleware pattern
+
+## Key Files for AI Assistance
+
+### Entry Points
+- `app.go` - Application initialization
+- `app_routing.go` - Route registration and matching
+- `ctx.go` - Request context handling
+
+### Middleware Development
+- `middleware/storage/mongo/` - MongoDB integration (primary example)
+- `middleware/cache/` - Caching implementations
+- `middleware/auth/` - Authentication strategies
+
+### Testing Infrastructure
+- `middleware/storage/mongo/failure_injection_test.go` - Fault injection patterns
+- `docker-compose.test.yml` - Test environment setup
+- `scripts/run-mongo-tests.sh` - Test automation
+
+## Important Notes for LLMs
+
+1. **Error Handling**: Always use the standard error handling pattern shown above
+2. **Testing**: Use existing test infrastructure and patterns as reference
+3. **Middleware**: New middleware should implement the hook system
+4. **Generic Types**: Leverage Go generics for type safety where applicable
+5. **Documentation**: Update CLAUDE.md when establishing new patterns
+6. **Dependencies**: Check go.mod for version constraints before updating
+
+## Contributing
+
+When working with this codebase:
+
+1. Read CLAUDE.md for development guidelines
+2. Follow the error handling pattern consistently
+3. Add tests for new functionality targeting 90%+ coverage
+4. Use the provided middleware patterns as templates
+5. Maintain compatibility with the existing hook system
+6. Update documentation for architectural changes
+
+## Related Documentation
+
+- `CLAUDE.md` - Development guidelines and error handling patterns
+- `README.md` - Comprehensive project documentation
+- `FINAL_WORK_SUMMARY.md` - Recent improvements and test coverage analysis
+- Test files - Refer to `*_test.go` files for testing patterns and examples
