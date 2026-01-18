@@ -1241,3 +1241,73 @@ func TestAggregateWithData(t *testing.T) {
 		t.Logf("Aggregate correctly returned an Aggregation object")
 	}
 }
+
+// TestFailureInjectorWatchClose 测试 Watch 和 Close 故障注入
+func TestFailureInjectorWatchClose(t *testing.T) {
+	sf := NewSimulatedFailure()
+
+	// 测试 FailWatch 方法链式调用
+	watchErr := errors.New("watch injection failed")
+	result := sf.FailWatch(watchErr)
+	if result != sf {
+		t.Error("FailWatch should return self for method chaining")
+	}
+
+	// 验证故障标志已设置
+	if !sf.ShouldFailWatch() {
+		t.Error("ShouldFailWatch should return true after FailWatch")
+	}
+
+	// 验证错误已设置
+	if sf.GetWatchError() != watchErr {
+		t.Error("GetWatchError should return the set error")
+	}
+
+	// 测试 FailClose 方法链式调用
+	closeErr := errors.New("close injection failed")
+	result = sf.FailClose(closeErr)
+	if result != sf {
+		t.Error("FailClose should return self for method chaining")
+	}
+
+	// 验证故障标志已设置
+	if !sf.ShouldFailClose() {
+		t.Error("ShouldFailClose should return true after FailClose")
+	}
+
+	// 验证错误已设置
+	if sf.GetCloseError() != closeErr {
+		t.Error("GetCloseError should return the set error")
+	}
+
+	// 测试 Reset 清除故障标志（不清除错误对象）
+	sf.Reset()
+	if sf.ShouldFailWatch() || sf.ShouldFailClose() {
+		t.Error("Reset should clear all failure flags")
+	}
+
+	t.Logf("Watch and Close failure injection working correctly")
+}
+
+// TestNoopFailureInjectorWatchClose 测试 NoopFailureInjector 的 Watch 和 Close 方法
+func TestNoopFailureInjectorWatchClose(t *testing.T) {
+	noop := &NoopFailureInjector{}
+
+	// 所有 ShouldFail 方法应该返回 false
+	if noop.ShouldFailWatch() {
+		t.Error("NoopFailureInjector.ShouldFailWatch should return false")
+	}
+	if noop.ShouldFailClose() {
+		t.Error("NoopFailureInjector.ShouldFailClose should return false")
+	}
+
+	// 所有 GetError 方法应该返回 nil
+	if noop.GetWatchError() != nil {
+		t.Error("NoopFailureInjector.GetWatchError should return nil")
+	}
+	if noop.GetCloseError() != nil {
+		t.Error("NoopFailureInjector.GetCloseError should return nil")
+	}
+
+	t.Logf("NoopFailureInjector Watch/Close methods working correctly")
+}
