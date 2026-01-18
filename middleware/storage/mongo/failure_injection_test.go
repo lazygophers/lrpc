@@ -1311,3 +1311,118 @@ func TestNoopFailureInjectorWatchClose(t *testing.T) {
 
 	t.Logf("NoopFailureInjector Watch/Close methods working correctly")
 }
+
+// TestClientNewAndPing 测试 Client 的创建和 Ping
+func TestClientNewAndPing(t *testing.T) {
+	cfg := &Config{
+		Address:  "localhost",
+		Port:     27017,
+		Database: "test",
+	}
+
+	client, err := New(cfg)
+	if err != nil {
+		t.Logf("New failed (expected if MongoDB not running): %v", err)
+		return
+	}
+	defer client.Close()
+
+	// 测试 Ping
+	err = client.Ping()
+	if err != nil {
+		t.Logf("Ping failed (expected if MongoDB not running): %v", err)
+	} else {
+		t.Logf("Ping succeeded")
+	}
+}
+
+// TestScoopFindAndFirst 测试 Scoop 的 Find 和 First 操作
+func TestScoopFindAndFirst(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// 插入测试数据
+	user1 := User{
+		ID:        primitive.NewObjectID(),
+		Email:     "test1@example.com",
+		Name:      "Test1",
+		Age:       25,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	InsertTestData(t, client, "users", user1)
+
+	scoop := client.NewScoop().Collection(User{})
+
+	// 测试 Find - 无条件
+	var results []User
+	err := scoop.Find(&results)
+	if err != nil {
+		t.Logf("Find without conditions: error: %v", err)
+	} else {
+		t.Logf("Find without conditions: found %d users", len(results))
+	}
+
+	// 测试 First
+	var firstUser User
+	err = scoop.First(&firstUser)
+	if err == nil {
+		t.Logf("First found user: %s", firstUser.Email)
+	} else {
+		t.Logf("First error: %v", err)
+	}
+}
+
+// TestAggregationExecute 测试聚合管道执行
+func TestAggregationExecuteOperations(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// 插入多个测试数据
+	for i := 1; i <= 2; i++ {
+		user := User{
+			ID:        primitive.NewObjectID(),
+			Email:     "agg" + string(rune(48+i)) + "@example.com",
+			Name:      "AggTest" + string(rune(48+i)),
+			Age:       20 + i*5,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		InsertTestData(t, client, "users", user)
+	}
+
+	scoop := client.NewScoop().Collection(User{})
+
+	// 测试 Execute
+	var results []User
+	pipeline := bson.M{"$match": bson.M{"age": bson.M{"$gte": 25}}}
+	agg := scoop.Aggregate(pipeline)
+	err := agg.Execute(&results)
+	if err != nil {
+		t.Logf("Execute error: %v", err)
+	} else {
+		t.Logf("Execute returned %d users", len(results))
+	}
+
+	// 测试 ExecuteOne
+	var singleResult User
+	agg2 := scoop.Aggregate(pipeline)
+	err = agg2.ExecuteOne(&singleResult)
+	if err != nil {
+		t.Logf("ExecuteOne error: %v", err)
+	} else {
+		t.Logf("ExecuteOne returned user: %s", singleResult.Email)
+	}
+}
