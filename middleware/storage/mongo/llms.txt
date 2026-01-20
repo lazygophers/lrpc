@@ -145,8 +145,41 @@ mockModel.
     SetupCollectionName("users").
     SetupIsNotFound(false)
 
+// 设置模型数据（用于测试查询返回值）
+mockModel.SetData("user_123", &User{ID: "123", Name: "John"})
+
+// 获取设置的数据
+if data, ok := mockModel.GetData("user_123"); ok {
+    user := data.(*User)
+    fmt.Printf("User: %+v\n", user)
+}
+
 // 验证调用
 assert.True(t, mockModel.AssertCalled("CollectionName"))
+```
+
+**MockModel Setup Methods:**
+
+```go
+// 基础设置
+SetupCollectionName(name string) *MockModel[M]
+SetupModel(model M) *MockModel[M]
+SetupScoop(scoop *ModelScoop[M]) *MockModel[M]
+
+// 错误处理
+SetupIsNotFound(result bool) *MockModel[M]
+SetupNotFoundError(err error) *MockModel[M]
+
+// 数据存储（用于查询结果测试）
+SetData(key string, value interface{}) *MockModel[M]      // 存储数据
+GetData(key string) (interface{}, bool)                    // 获取数据
+
+// 调用跟踪
+GetCalls() []CallRecord
+GetCallCount(method string) int
+AssertCalled(method string) bool
+AssertNotCalled(method string) bool
+ResetCalls()
 ```
 
 ## 使用示例

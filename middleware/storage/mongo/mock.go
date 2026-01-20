@@ -222,6 +222,9 @@ type MockModel[M any] struct {
 	ScoopRet          *ModelScoop[M]
 	IsNotFoundRet     bool
 
+	// Data storage for serialization support
+	data map[string]interface{} // For JSON serialization
+
 	// Call tracking
 	calls      []CallRecord
 	callCounts map[string]int
@@ -232,6 +235,7 @@ func NewMockModel[M any]() *MockModel[M] {
 	return &MockModel[M]{
 		calls:      make([]CallRecord, 0),
 		callCounts: make(map[string]int),
+		data:       make(map[string]interface{}),
 	}
 }
 
@@ -341,4 +345,25 @@ func (m *MockModel[M]) SetupIsNotFound(result bool) *MockModel[M] {
 func (m *MockModel[M]) SetupNotFoundError(err error) *MockModel[M] {
 	m.NotFoundErrorRet = err
 	return m
+}
+
+// SetData sets model data for serialization (enables cache hit testing)
+func (m *MockModel[M]) SetData(key string, value interface{}) *MockModel[M] {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.data == nil {
+		m.data = make(map[string]interface{})
+	}
+	m.data[key] = value
+	return m
+}
+
+// GetData retrieves set model data
+func (m *MockModel[M]) GetData(key string) (interface{}, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	val, ok := m.data[key]
+	return val, ok
 }

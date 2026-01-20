@@ -1,9 +1,12 @@
 package cache
 
 import (
+	"encoding/json"
 	"google.golang.org/protobuf/proto"
 	"sync"
 	"time"
+
+	"github.com/lazygophers/log"
 )
 
 // CallRecord records a method call on Mock for assertion purposes
@@ -172,17 +175,19 @@ type MockCache struct {
 	callCounts map[string]int
 
 	// Storage for mock data
-	data  map[string]string
-	hdata map[string]map[string]string
+	jsonData map[string]interface{}  // For JSON/Proto serialization
+	pbData   map[string][]byte        // For Protobuf raw bytes
+	hJsonData map[string]map[string]interface{} // For hash JSON data
 }
 
 // NewMockCache creates a new MockCache instance
 func NewMockCache() *MockCache {
 	return &MockCache{
-		calls:      make([]CallRecord, 0),
-		callCounts: make(map[string]int),
-		data:       make(map[string]string),
-		hdata:      make(map[string]map[string]string),
+		calls:        make([]CallRecord, 0),
+		callCounts:   make(map[string]int),
+		jsonData:     make(map[string]interface{}),
+		pbData:       make(map[string][]byte),
+		hJsonData:    make(map[string]map[string]interface{}),
 	}
 }
 
@@ -643,32 +648,131 @@ func (m *MockCache) GetFloat64Slice(key string) ([]float64, error) {
 }
 
 // GetJson implements Cache.GetJson
+// Now supports returning cached data set via SetData()
 func (m *MockCache) GetJson(key string, j interface{}) error {
 	m.recordCall("GetJson", key, j)
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if data was set via SetData()
+	if val, ok := m.jsonData[key]; ok {
+		// Serialize the stored value to JSON then unmarshal into j
+		b, err := json.Marshal(val)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		err = json.Unmarshal(b, j)
+		if err != nil {
+			log.Errorf("err:%v", err)
+		}
+		return err
+	}
+
+	// Otherwise return the configured error
 	return m.GetJsonErr
 }
 
 // SetPb implements Cache.SetPb
+// Now supports storing protobuf data for later retrieval
 func (m *MockCache) SetPb(key string, j proto.Message) error {
 	m.recordCall("SetPb", key, j)
-	return m.SetPbErr
+
+	if m.SetPbErr != nil {
+		return m.SetPbErr
+	}
+
+	// Store the protobuf data for potential retrieval via GetPb
+	b, err := proto.Marshal(j)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.pbData == nil {
+		m.pbData = make(map[string][]byte)
+	}
+	m.pbData[key] = append([]byte{}, b...)
+	return nil
 }
 
 // SetPbEx implements Cache.SetPbEx
+// Now supports storing protobuf data with timeout for later retrieval
 func (m *MockCache) SetPbEx(key string, j proto.Message, timeout time.Duration) error {
 	m.recordCall("SetPbEx", key, j, timeout)
-	return m.SetPbExErr
+
+	if m.SetPbExErr != nil {
+		return m.SetPbExErr
+	}
+
+	// Store the protobuf data (timeout handling is left to specific implementation)
+	b, err := proto.Marshal(j)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.pbData == nil {
+		m.pbData = make(map[string][]byte)
+	}
+	m.pbData[key] = append([]byte{}, b...)
+	return nil
 }
 
 // GetPb implements Cache.GetPb
+// Now supports returning cached protobuf data set via SetPb/SetPbEx/SetPbData
 func (m *MockCache) GetPb(key string, j proto.Message) error {
 	m.recordCall("GetPb", key, j)
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if protobuf data was set
+	if data, ok := m.pbData[key]; ok {
+		err := proto.Unmarshal(data, j)
+		if err != nil {
+			log.Errorf("err:%v", err)
+		}
+		return err
+	}
+
+	// Otherwise return the configured error
 	return m.GetPbErr
 }
 
 // HGetJson implements Cache.HGetJson
+// Now supports returning cached hash data set via SetHashData()
 func (m *MockCache) HGetJson(key, field string, j interface{}) error {
 	m.recordCall("HGetJson", key, field, j)
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if hash data was set via SetHashData()
+	if hashData, ok := m.hJsonData[key]; ok {
+		if val, fieldOk := hashData[field]; fieldOk {
+			// Serialize the stored value to JSON then unmarshal into j
+			b, err := json.Marshal(val)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+			err = json.Unmarshal(b, j)
+			if err != nil {
+				log.Errorf("err:%v", err)
+			}
+			return err
+		}
+	}
+
+	// Otherwise return the configured error
 	return m.HGetJsonErr
 }
 
@@ -703,4 +807,66 @@ func (m *MockCache) SetupError(err error) *MockCache {
 // SetupSuccess sets all error returns to nil
 func (m *MockCache) SetupSuccess() *MockCache {
 	return m.SetupError(nil)
+}
+
+// Data Setup Methods for Serialization Support
+
+// SetData sets a value that will be returned by GetJson/HGetJson (P0 feature)
+// This allows testing cache hit scenarios with actual data
+func (m *MockCache) SetData(key string, value interface{}) *MockCache {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.jsonData == nil {
+		m.jsonData = make(map[string]interface{})
+	}
+	m.jsonData[key] = value
+	return m
+}
+
+// SetHashData sets hash field data that will be returned by HGetJson
+func (m *MockCache) SetHashData(key, field string, value interface{}) *MockCache {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.hJsonData == nil {
+		m.hJsonData = make(map[string]map[string]interface{})
+	}
+	if m.hJsonData[key] == nil {
+		m.hJsonData[key] = make(map[string]interface{})
+	}
+	m.hJsonData[key][field] = value
+	return m
+}
+
+// SetJsonString sets raw JSON string that will be returned by GetJson
+func (m *MockCache) SetJsonString(key, jsonStr string) *MockCache {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.jsonData == nil {
+		m.jsonData = make(map[string]interface{})
+	}
+
+	// Parse JSON string to validate and store
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		log.Errorf("err:%v", err)
+		return m
+	}
+	m.jsonData[key] = data
+	return m
+}
+
+// SetPbData sets protobuf data that will be returned by GetPb
+func (m *MockCache) SetPbData(key string, data []byte) *MockCache {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.pbData == nil {
+		m.pbData = make(map[string][]byte)
+	}
+	// Make a copy to avoid external modifications
+	m.pbData[key] = append([]byte{}, data...)
+	return m
 }

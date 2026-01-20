@@ -192,6 +192,17 @@ SetupCountError(err error) *MockModel[M]
 SetupExists(exists bool) *MockModel[M]
 SetupExistsError(err error) *MockModel[M]
 SetupScoop(scoop *ModelScoop[M]) *MockModel[M]
+
+// 数据存储（用于测试查询返回值）
+SetData(key string, value interface{}) *MockModel[M]      // 存储数据
+GetData(key string) (interface{}, bool)                    // 获取数据
+
+// 调用跟踪
+GetCalls() []CallRecord
+GetCallCount(method string) int
+AssertCalled(method string) bool
+AssertNotCalled(method string) bool
+ResetCalls()
 ```
 
 ## 使用示例
