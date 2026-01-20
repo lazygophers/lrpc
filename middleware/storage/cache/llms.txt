@@ -1,0 +1,462 @@
+---
+title: Cache Storage Module
+description: Distributed caching middleware for LRPC framework with Redis, Memory, BBolt, LevelDB support and Mock functionality
+---
+
+# Cache Storage Module (lrpc/middleware/storage/cache)
+
+## 概述
+
+`cache` 模块提供了分布式缓存存储中间件，用于 LRPC 框架。支持多种缓存后端（Redis、内存、BBolt、LevelDB），提供统一的接口和完整的 Mock 支持。
+
+### 核心特性
+- **多后端支持**：Redis、Memory、BBolt、LevelDB
+- **丰富的数据类型**：字符串、哈希、集合、流等
+- **发布订阅**：支持 Pub/Sub 消息传递
+- **流处理**：支持 Redis Streams 消费者组
+- **完整的 Mock 支持**：用于单元测试和本地调试
+- **调用跟踪**：记录所有方法调用以支持三路测试
+- **序列化支持**：JSON 和 Protobuf 数据序列化
+
+### 应用场景
+- **单元测试**：模拟缓存依赖，快速执行测试
+- **集成测试**：验证缓存交互和数据一致性
+- **本地调试**：无需启动 Redis 即可开发
+- **演示和原型开发**：快速验证功能
+- **多环境支持**：轻松切换各种缓存后端
+
+## 核心接口
+
+### BaseCache 接口
+
+基础缓存操作接口，提供所有缓存后端都支持的操作。
+
+```go
+type BaseCache interface {
+    SetPrefix(prefix string)
+    Get(key string) (string, error)
+    Set(key string, value any) error
+    SetEx(key string, value any, timeout time.Duration) error
+    SetNx(key string, value interface{}) (bool, error)
+    SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error)
+    Ttl(key string) (time.Duration, error)
+    Expire(key string, timeout time.Duration) (bool, error)
+    Incr(key string) (int64, error)
+    Decr(key string) (int64, error)
+    IncrBy(key string, value int64) (int64, error)
+    DecrBy(key string, value int64) (int64, error)
+    Exists(keys ...string) (bool, error)
+    HSet(key, field string, value interface{}) (bool, error)
+    HGet(key, field string) (string, error)
+    HDel(key string, fields ...string) (int64, error)
+    HKeys(key string) ([]string, error)
+    HGetAll(key string) (map[string]string, error)
+    HExists(key, field string) (bool, error)
+    HIncr(key, subKey string) (int64, error)
+    HIncrBy(key, field string, increment int64) (int64, error)
+    HDecr(key, field string) (int64, error)
+    HDecrBy(key, field string, increment int64) (int64, error)
+    SAdd(key string, members ...string) (int64, error)
+    SMembers(key string) ([]string, error)
+    SRem(key string, members ...string) (int64, error)
+    SRandMember(key string, count ...int64) ([]string, error)
+    SPop(key string) (string, error)
+    SisMember(key, field string) (bool, error)
+    Publish(channel string, message interface{}) (int64, error)
+    Subscribe(handler func(channel string, message []byte) error, channels ...string) error
+    XAdd(stream string, values map[string]interface{}) (string, error)
+    XLen(stream string) (int64, error)
+    XRange(stream, start, stop string, count ...int64) ([]map[string]interface{}, error)
+    XRevRange(stream, start, stop string, count ...int64) ([]map[string]interface{}, error)
+    XDel(stream string, ids ...string) (int64, error)
+    XTrim(stream string, maxLen int64) (int64, error)
+    XGroupCreate(stream, group, start string) error
+    XGroupDestroy(stream, group string) error
+    XGroupSetID(stream, group, id string) error
+    XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error
+    XAck(stream, group string, ids ...string) (int64, error)
+    XPending(stream, group string) (int64, error)
+    Del(key ...string) error
+    Clean() error
+    Close() error
+    Ping() error
+}
+```
+
+### Cache 接口
+
+扩展缓存接口，提供高级数据转换和序列化操作。
+
+```go
+type Cache interface {
+    BaseCache
+    Base() BaseCache
+    GetBool(key string) (bool, error)
+    GetInt(key string) (int, error)
+    GetUint(key string) (uint, error)
+    GetInt32(key string) (int32, error)
+    GetUint32(key string) (uint32, error)
+    GetInt64(key string) (int64, error)
+    GetUint64(key string) (uint64, error)
+    GetFloat32(key string) (float32, error)
+    GetFloat64(key string) (float64, error)
+    GetSlice(key string) ([]string, error)
+    GetBoolSlice(key string) ([]bool, error)
+    GetIntSlice(key string) ([]int, error)
+    GetUintSlice(key string) ([]uint, error)
+    GetInt32Slice(key string) ([]int32, error)
+    GetUint32Slice(key string) ([]uint32, error)
+    GetInt64Slice(key string) ([]int64, error)
+    GetUint64Slice(key string) ([]uint64, error)
+    GetFloat32Slice(key string) ([]float32, error)
+    GetFloat64Slice(key string) ([]float64, error)
+    GetJson(key string, j interface{}) error
+    SetPb(key string, j proto.Message) error
+    SetPbEx(key string, j proto.Message, timeout time.Duration) error
+    GetPb(key string, j proto.Message) error
+    HGetJson(key, field string, j interface{}) error
+    Limit(key string, limit int64, timeout time.Duration) (bool, error)
+    LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error)
+}
+```
+
+## Mock 支持
+
+### MockCache - 完整模拟
+
+用于模拟 Cache 接口的所有操作。
+
+```go
+// 创建 Mock 缓存
+mockCache := NewMockCache()
+
+// 设置返回值
+mockCache.
+    SetupSuccess().
+    GetRet = "cached_value"
+
+// 执行操作
+val, err := mockCache.Get("mykey")
+
+// 验证调用
+assert.True(t, mockCache.AssertCalled("Get"))
+assert.Equal(t, 1, mockCache.GetCallCount("Get"))
+```
+
+**Key Setup Methods:**
+
+```go
+// 通用设置
+SetupSuccess() *MockCache         // 所有操作成功
+SetupError(err error) *MockCache  // 设置统一错误
+
+// KV 操作设置
+GetRet string
+GetErr error
+SetErr error
+SetExErr error
+SetNxRet bool
+SetNxErr error
+
+// 数值操作设置
+IncrRet int64
+IncrErr error
+DecrRet int64
+DecrErr error
+
+// 哈希操作设置
+HSetRet bool
+HSetErr error
+HGetRet string
+HGetErr error
+HGetAllRet map[string]string
+HGetAllErr error
+
+// 集合操作设置
+SAddRet int64
+SAddErr error
+SMembersRet []string
+SMembersErr error
+
+// 流操作设置
+XAddRet string
+XAddErr error
+XLenRet int64
+XLenErr error
+XRangeRet []map[string]interface{}
+XRangeErr error
+
+// 类型转换设置
+GetBoolRet bool
+GetBoolErr error
+GetIntRet int
+GetIntErr error
+GetInt64Ret int64
+GetInt64Err error
+// ... 更多类型
+
+// 序列化设置
+GetJsonErr error
+SetPbErr error
+GetPbErr error
+
+// 限流设置
+LimitRet bool
+LimitErr error
+
+// 调用跟踪
+GetCalls() []CallRecord
+GetCallCount(method string) int
+AssertCalled(method string) bool
+AssertNotCalled(method string) bool
+ResetCalls()
+```
+
+## 使用示例
+
+### 基础使用（Redis 后端）
+
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/cache"
+
+// 创建 Redis 缓存
+cache, err := cache.New(cache.WithBackend("redis"), cache.WithUrl("localhost:6379"))
+if err != nil {
+    log.Fatalf("Failed to create cache: %v", err)
+}
+defer cache.Close()
+
+// 健康检查
+if err := cache.Ping(); err != nil {
+    log.Fatalf("Cache unreachable: %v", err)
+}
+
+// 基础操作
+cache.Set("user:1", "John")
+val, _ := cache.Get("user:1")
+
+// 带过期时间的操作
+cache.SetEx("session:123", "data", 1*time.Hour)
+
+// 计数器
+cache.Incr("page_views")
+```
+
+### 单元测试示例
+
+```go
+func TestUserService(t *testing.T) {
+    // 创建 Mock 缓存
+    mockCache := cache.NewMockCache()
+    mockCache.
+        SetupSuccess().
+        GetRet = "cached_user"
+
+    // 初始化服务
+    service := NewUserService(mockCache)
+
+    // 执行测试
+    user, err := service.GetUser("1")
+    require.NoError(t, err)
+    require.Equal(t, "cached_user", user)
+
+    // 验证调用
+    require.Equal(t, 1, mockCache.GetCallCount("Get"))
+}
+```
+
+### 哈希操作示例
+
+```go
+func TestHashCache(t *testing.T) {
+    // 真实缓存
+    c, _ := cache.New(cache.WithBackend("memory"))
+    defer c.Close()
+
+    // 存储哈希
+    c.HSet("user:profile", "name", "John")
+    c.HSet("user:profile", "age", "30")
+
+    // 获取哈希值
+    name, _ := c.HGet("user:profile", "name")
+    
+    // 获取所有字段
+    all, _ := c.HGetAll("user:profile")
+    // all = {"name": "John", "age": "30"}
+
+    // 测试版本
+    mockCache := cache.NewMockCache()
+    mockCache.HGetAllRet = map[string]string{"name": "Jane", "age": "25"}
+    all2, _ := mockCache.HGetAll("user:profile")
+}
+```
+
+### 集合操作示例
+
+```go
+func TestSetCache(t *testing.T) {
+    mockCache := cache.NewMockCache()
+    mockCache.
+        SAddRet = 2.
+        SMembersRet = []string{"user1", "user2"}
+
+    // 添加成员
+    count, _ := mockCache.SAdd("online_users", "user1", "user2")
+    require.Equal(t, int64(2), count)
+
+    // 获取所有成员
+    members, _ := mockCache.SMembers("online_users")
+    require.Equal(t, 2, len(members))
+
+    // 验证调用
+    require.True(t, mockCache.AssertCalled("SAdd"))
+}
+```
+
+### 流操作示例
+
+```go
+func TestStreamCache(t *testing.T) {
+    mockCache := cache.NewMockCache()
+    mockCache.XAddRet = "1234567890-0"
+
+    // 添加消息到流
+    id, _ := mockCache.XAdd("events", map[string]interface{}{
+        "type": "user_login",
+        "user": "john",
+    })
+    require.Equal(t, "1234567890-0", id)
+
+    // 创建消费者组
+    _ = mockCache.XGroupCreate("events", "handlers", "0")
+
+    // 验证调用
+    require.Equal(t, 1, mockCache.GetCallCount("XAdd"))
+    require.Equal(t, 1, mockCache.GetCallCount("XGroupCreate"))
+}
+```
+
+### 本地开发示例
+
+```go
+func main() {
+    var c cache.Cache
+    
+    if os.Getenv("USE_MOCK_CACHE") == "true" {
+        // 本地开发使用 Mock
+        c = cache.NewMockCache().SetupSuccess()
+    } else if os.Getenv("USE_MEMORY_CACHE") == "true" {
+        // 测试环境使用内存缓存
+        c, _ = cache.New(cache.WithBackend("memory"))
+    } else {
+        // 生产环境使用 Redis
+        c, _ = cache.New(
+            cache.WithBackend("redis"),
+            cache.WithUrl(os.Getenv("REDIS_URL")),
+        )
+    }
+    defer c.Close()
+
+    if err := c.Ping(); err != nil {
+        log.Fatalf("Cache unavailable: %v", err)
+    }
+}
+```
+
+### 类型转换示例
+
+```go
+func TestTypeConversion(t *testing.T) {
+    mockCache := cache.NewMockCache()
+    mockCache.
+        GetInt64Ret = 12345.
+        GetBoolRet = true.
+        GetFloat64Ret = 3.14
+
+    // 获取不同类型的值
+    i64, _ := mockCache.GetInt64("counter")
+    b, _ := mockCache.GetBool("enabled")
+    f64, _ := mockCache.GetFloat64("score")
+
+    require.Equal(t, int64(12345), i64)
+    require.True(t, b)
+    require.Equal(t, 3.14, f64)
+}
+```
+
+### 序列化支持示例
+
+```go
+func TestProtobufSerialization(t *testing.T) {
+    mockCache := cache.NewMockCache()
+    mockCache.SetPbErr = nil
+
+    // 定义数据结构
+    type User struct {
+        ID   int32
+        Name string
+    }
+
+    user := &User{ID: 1, Name: "John"}
+
+    // 存储 Protobuf 消息
+    _ = mockCache.SetPb("user:1", user.(proto.Message))
+
+    // 验证调用
+    require.True(t, mockCache.AssertCalled("SetPb"))
+}
+```
+
+## 缓存后端对比
+
+| 后端 | 特性 | 用途 | 持久化 |
+|------|------|------|--------|
+| Redis | 分布式、高性能、丰富数据类型 | 生产环境 | 可选 |
+| Memory | 简单、快速、无网络 | 单机开发、测试 | 否 |
+| BBolt | 嵌入式、事务支持 | 本地存储 | 是 |
+| LevelDB | 高性能、LSM 树 | 时间序列、日志 | 是 |
+
+## 最佳实践
+
+1. **总是关闭连接**：使用 `defer cache.Close()`
+2. **检查健康状态**：在启动时执行 `Ping()` 检查
+3. **使用 Mock 测试**：为所有缓存操作编写 Mock 测试
+4. **设置合理的过期时间**：避免缓存无限增长
+5. **环境切换**：使用环境变量切换不同的缓存后端
+6. **错误处理**：始终检查错误返回值
+7. **性能优化**：使用批量操作而非逐条操作
+
+## 常见操作模式
+
+### 缓存穿透保护
+
+```go
+mockCache := cache.NewMockCache()
+mockCache.SetNxRet = true
+mockCache.SetNxErr = nil
+
+// 使用 SetNx 防止缓存穿透
+if ok, err := mockCache.SetNx("lock:"+key, "1"); ok && err == nil {
+    // 执行操作
+}
+```
+
+### 分布式锁
+
+```go
+mockCache := cache.NewMockCache()
+
+// 获取锁
+locked, _ := mockCache.SetNxWithTimeout("lock:resource", "owner", 10*time.Second)
+if locked {
+    defer mockCache.Del("lock:resource")
+    // 执行临界区操作
+}
+```
+
+## 参考资源
+
+- [Redis 文档](https://redis.io/documentation)
+- [LRPC 框架](https://github.com/lazygophers/lrpc)
+- [分布式缓存最佳实践](https://en.wikipedia.org/wiki/Web_cache)
+- [缓存策略](https://en.wikipedia.org/wiki/Cache_replacement_policies)

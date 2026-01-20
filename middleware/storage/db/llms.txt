@@ -1,0 +1,396 @@
+---
+title: Database Storage Module
+description: SQL database storage middleware for LRPC framework with GORM and Mock support
+---
+
+# Database Storage Module (lrpc/middleware/storage/db)
+
+## 概述
+
+`db` 模块提供了基于 SQL 数据库的存储中间件，用于 LRPC 框架。它基于 GORM (Go Object-Relational Mapping) 框架，支持多种 SQL 数据库（MySQL、PostgreSQL、SQLite 等），并提供完整的 Mock 支持。
+
+### 核心特性
+- **多数据库支持**：MySQL、PostgreSQL、SQLite、SQL Server 等
+- **类型安全**：使用 Go 泛型实现的类型安全 ORM 操作
+- **灵活的迁移**：自动数据表结构迁移
+- **完整的 Mock 支持**：用于单元测试、集成测试和本地调试
+- **调用跟踪**：记录所有方法调用以支持三路测试
+
+### 应用场景
+- **单元测试**：模拟数据库依赖，快速执行测试
+- **集成测试**：验证数据库交互和事务处理
+- **本地调试**：无需配置真实数据库即可开发
+- **演示和原型开发**：快速验证功能
+- **多环境开发**：轻松切换真实和模拟数据库
+
+## 核心接口
+
+### Client 接口（底层）
+
+SQL 数据库客户端的核心接口。
+
+```go
+type Client interface {
+    AutoMigrates(dst ...interface{}) error
+    AutoMigrate(table interface{}) error
+    Database() *gorm.DB
+    SqlDB() (*sql.DB, error)
+    DriverType() string
+    NewScoop() *Scoop
+    Ping() error
+    Close() error
+}
+```
+
+**方法说明：**
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `AutoMigrates(dst ...)` | 多个表结构体 | `error` | 批量自动迁移表结构 |
+| `AutoMigrate(table)` | 单个表结构体 | `error` | 自动迁移单个表结构 |
+| `Database()` | 无 | `*gorm.DB` | 获取 GORM DB 实例 |
+| `SqlDB()` | 无 | `(*sql.DB, error)` | 获取原生 sql.DB 连接 |
+| `DriverType()` | 无 | `string` | 获取驱动类型（如 "mysql"） |
+| `NewScoop()` | 无 | `*Scoop` | 创建新的查询建造器 |
+| `Ping()` | 无 | `error` | 检测数据库连接 |
+| `Close()` | 无 | `error` | 关闭数据库连接 |
+
+### Model 接口（高层）
+
+用于特定数据模型的 ORM 操作。
+
+```go
+type Model[M any] interface {
+    Save() error
+    Update() error
+    Delete() error
+    Find(cond interface{}) error
+    FindByID(id interface{}) error
+    All(cond interface{}) error
+    Count() (int64, error)
+    Exists(cond interface{}) (bool, error)
+    NewScoop() *ModelScoop[M]
+}
+```
+
+**方法说明：**
+
+| 方法 | 说明 |
+|------|------|
+| `Save()` | 保存模型（新增或更新） |
+| `Update()` | 更新模型 |
+| `Delete()` | 删除模型 |
+| `Find(cond)` | 查询单条记录 |
+| `FindByID(id)` | 根据 ID 查询记录 |
+| `All(cond)` | 查询多条记录 |
+| `Count()` | 获取记录总数 |
+| `Exists(cond)` | 判断记录是否存在 |
+| `NewScoop()` | 创建查询建造器 |
+
+## Mock 支持
+
+### MockClient - 底层模拟
+
+用于模拟 SQL Database Client 的操作。
+
+```go
+// 创建 Mock 客户端
+mockClient := NewMockClient()
+
+// 设置返回值
+mockClient.
+    SetupAutoMigratesSuccess().
+    SetupPingSuccess().
+    SetupDriverType("mysql")
+
+// 执行操作
+err := mockClient.AutoMigrates(&User{}, &Post{})
+
+// 验证调用
+assert.True(t, mockClient.AssertCalled("AutoMigrates"))
+assert.Equal(t, 1, mockClient.GetCallCount("AutoMigrates"))
+```
+
+**Available Setup Methods:**
+
+```go
+// 迁移操作
+SetupAutoMigratesSuccess() *MockClient
+SetupAutoMigratesError(err error) *MockClient
+SetupAutoMigrateSuccess() *MockClient
+SetupAutoMigrateError(err error) *MockClient
+
+// 连接操作
+SetupPingSuccess() *MockClient
+SetupPingError(err error) *MockClient
+SetupCloseSuccess() *MockClient
+SetupCloseError(err error) *MockClient
+
+// 返回值设置
+SetupDatabase(db *gorm.DB) *MockClient
+SetupSqlDB(db *sql.DB) *MockClient
+SetupSqlDBError(err error) *MockClient
+SetupDriverType(driverType string) *MockClient
+SetupScoop(scoop *Scoop) *MockClient
+
+// 调用跟踪
+GetCalls() []CallRecord          // 获取所有调用记录
+GetCallCount(method string) int  // 获取特定方法的调用次数
+AssertCalled(method string) bool // 断言方法被调用
+AssertNotCalled(method string) bool
+ResetCalls()                      // 清除调用记录
+```
+
+### MockModel - 模型层模拟
+
+用于模拟特定数据模型的 ORM 操作。
+
+```go
+// 创建 Mock 模型
+type User struct {
+    ID   uint
+    Name string
+}
+
+mockModel := NewMockModel[User]()
+
+// 设置返回值
+mockModel.
+    SetupSaveSuccess().
+    SetupCount(100).
+    SetupExists(true)
+
+// 执行操作
+count, _ := mockModel.Count()
+exists, _ := mockModel.Exists(nil)
+
+// 验证调用
+assert.Equal(t, int64(100), count)
+assert.True(t, exists)
+```
+
+**Available Setup Methods:**
+
+```go
+// 操作成功/失败设置
+SetupSaveSuccess() *MockModel[M]
+SetupSaveError(err error) *MockModel[M]
+SetupUpdateSuccess() *MockModel[M]
+SetupUpdateError(err error) *MockModel[M]
+SetupDeleteSuccess() *MockModel[M]
+SetupDeleteError(err error) *MockModel[M]
+SetupFindSuccess() *MockModel[M]
+SetupFindError(err error) *MockModel[M]
+SetupFindByIDSuccess() *MockModel[M]
+SetupFindByIDError(err error) *MockModel[M]
+SetupAllSuccess() *MockModel[M]
+SetupAllError(err error) *MockModel[M]
+
+// 查询结果设置
+SetupCount(count int64) *MockModel[M]
+SetupCountError(err error) *MockModel[M]
+SetupExists(exists bool) *MockModel[M]
+SetupExistsError(err error) *MockModel[M]
+SetupScoop(scoop *ModelScoop[M]) *MockModel[M]
+```
+
+## 使用示例
+
+### 基础使用（真实客户端）
+
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/db"
+
+// 创建配置
+cfg := &db.Config{
+    Driver:  "mysql",
+    DSN:     "user:password@tcp(localhost:3306)/mydb",
+}
+
+// 初始化客户端
+client, err := db.New(cfg)
+if err != nil {
+    log.Fatalf("Failed to connect: %v", err)
+}
+defer client.Close()
+
+// 自动迁移表结构
+type User struct {
+    ID   uint
+    Name string
+}
+
+if err := client.AutoMigrate(&User{}); err != nil {
+    log.Fatalf("Migration failed: %v", err)
+}
+
+// 检查连接
+if err := client.Ping(); err != nil {
+    log.Fatalf("Ping failed: %v", err)
+}
+```
+
+### 单元测试示例
+
+```go
+func TestUserService(t *testing.T) {
+    // 创建 Mock 客户端
+    mockClient := db.NewMockClient()
+    mockClient.
+        SetupAutoMigrateSuccess().
+        SetupPingSuccess().
+        SetupDriverType("mysql")
+
+    // 初始化服务（使用 Mock 客户端）
+    service := NewUserService(mockClient)
+
+    // 执行测试
+    err := service.Initialize()
+    require.NoError(t, err)
+
+    // 验证迁移被调用
+    require.True(t, mockClient.AssertCalled("AutoMigrate"))
+}
+```
+
+### 模型测试示例
+
+```go
+func TestUserModel(t *testing.T) {
+    // 创建 Mock 模型
+    type User struct {
+        ID   uint
+        Name string
+    }
+
+    mockModel := db.NewMockModel[User]()
+    mockModel.SetupExists(true).SetupCount(42)
+
+    // 执行操作
+    exists, _ := mockModel.Exists(nil)
+    count, _ := mockModel.Count()
+
+    // 验证结果
+    require.True(t, exists)
+    require.Equal(t, int64(42), count)
+
+    // 验证调用
+    require.Equal(t, 1, mockModel.GetCallCount("Exists"))
+    require.Equal(t, 1, mockModel.GetCallCount("Count"))
+}
+```
+
+### 本地开发示例
+
+```go
+func main() {
+    var client db.Client
+    
+    if os.Getenv("USE_MOCK_DB") == "true" {
+        // 本地开发使用 Mock
+        client = db.NewMockClient().
+            SetupPingSuccess().
+            SetupDriverType("sqlite")
+    } else {
+        // 生产环境使用真实数据库
+        cfg := &db.Config{
+            Driver: "mysql",
+            DSN:    os.Getenv("DATABASE_DSN"),
+        }
+        var err error
+        client, err = db.New(cfg)
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    // 后续代码可以统一处理两种情况
+    if err := client.Ping(); err != nil {
+        log.Fatalf("Connection failed: %v", err)
+    }
+}
+```
+
+## 常见错误处理
+
+### 迁移错误
+
+```go
+// 批量迁移
+err := client.AutoMigrates(&User{}, &Post{}, &Comment{})
+if err != nil {
+    log.Printf("Migration error: %v", err)
+    // 使用 Mock 测试此场景
+}
+
+// Mock 测试迁移失败
+mockClient := db.NewMockClient()
+mockClient.SetupAutoMigratesError(errors.New("table already exists"))
+```
+
+### 连接问题
+
+```go
+// 检查连接
+if err := client.Ping(); err != nil {
+    log.Printf("Database unreachable: %v", err)
+}
+
+// Mock 测试连接失败
+mockClient := db.NewMockClient()
+mockClient.SetupPingError(errors.New("connection timeout"))
+```
+
+### 驱动类型识别
+
+```go
+// 获取数据库驱动类型
+driverType := client.DriverType()
+switch driverType {
+case "mysql":
+    log.Println("Using MySQL")
+case "postgres":
+    log.Println("Using PostgreSQL")
+case "sqlite":
+    log.Println("Using SQLite")
+}
+
+// Mock 中设置特定驱动
+mockClient := db.NewMockClient()
+mockClient.SetupDriverType("postgres")
+```
+
+## 存储方案说明
+
+SQL 存储方案采用以下策略：
+
+1. **驱动支持**：支持 MySQL、PostgreSQL、SQLite、SQL Server 等
+2. **自动迁移**：通过 GORM 的自动迁移功能管理数据库模式
+3. **事务支持**：通过 Scoop 支持数据库事务
+4. **连接池**：GORM 内置连接池管理
+
+## 支持的数据库
+
+| 数据库 | 驱动 | 用途 |
+|--------|------|------|
+| MySQL | mysql | 生产环境 |
+| PostgreSQL | postgres | 生产环境 |
+| SQLite | sqlite | 本地开发、测试 |
+| SQL Server | sqlserver | 企业环境 |
+| TiDB | mysql | 分布式场景 |
+
+## 最佳实践
+
+1. **总是关闭连接**：使用 `defer client.Close()`
+2. **检查健康状态**：在启动时执行 `Ping()` 检查
+3. **使用 Mock 测试**：为所有数据库操作编写 Mock 测试
+4. **批量迁移**：使用 `AutoMigrates` 批量处理表结构
+5. **环境切换**：使用环境变量切换真实客户端和 Mock 客户端
+6. **异常处理**：始终检查错误并适当处理
+
+## 参考资源
+
+- [GORM 文档](https://gorm.io/)
+- [GORM 数据库驱动](https://gorm.io/docs/connecting_to_the_database.html)
+- [LRPC 框架](https://github.com/lazygophers/lrpc)
+- [Scoop 查询建造器](../README.md)

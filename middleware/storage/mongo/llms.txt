@@ -1,0 +1,281 @@
+---
+title: MongoDB Storage Module
+description: MongoDB storage middleware for LRPC framework with Mock support
+---
+
+# MongoDB Storage Module (lrpc/middleware/storage/mongo)
+
+## 概述
+
+`mongo` 模块提供了基于 MongoDB 的存储中间件，用于 LRPC 框架。它封装了 MGM (mongo-go-model) 库，提供了类型安全的数据库操作和 Mock 支持。
+
+### 核心特性
+- **类型安全**：使用 Go 泛型实现的类型安全数据库操作
+- **轻量级包装**：在 MGM 基础上最小化封装
+- **完整的 Mock 支持**：用于单元测试、集成测试和本地调试
+- **调用跟踪**：记录所有方法调用以支持三路测试
+
+### 应用场景
+- **单元测试**：模拟数据库依赖
+- **集成测试**：验证数据库交互
+- **本地调试**：无需启动真实 MongoDB 服务
+- **演示和原型开发**：快速验证功能
+
+## 核心接口
+
+### Client 接口（底层）
+
+MongoDB 客户端的核心接口，用于数据库连接和操作。
+
+```go
+type Client interface {
+    Ping() error
+    Close() error
+    GetConfig() *Config
+    Context() context.Context
+    GetDatabase() string
+    Health() error
+    NewScoop(tx ...*Scoop) *Scoop
+    WatchAllCollections() (*DatabaseChangeStream, error)
+}
+```
+
+**方法说明：**
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `Ping()` | 无 | `error` | 检测 MongoDB 连接状态 |
+| `Close()` | 无 | `error` | 关闭数据库连接 |
+| `GetConfig()` | 无 | `*Config` | 获取客户端配置 |
+| `Context()` | 无 | `context.Context` | 获取上下文对象 |
+| `GetDatabase()` | 无 | `string` | 获取数据库名称 |
+| `Health()` | 无 | `error` | 检测数据库健康状态 |
+| `NewScoop(tx ...*Scoop)` | `tx` 可选事务 | `*Scoop` | 创建新的查询建造器 |
+| `WatchAllCollections()` | 无 | `(*DatabaseChangeStream, error)` | 监听所有集合变化 |
+
+### Model 接口（高层）
+
+用于特定数据模型的操作。
+
+```go
+type Model[M any] interface {
+    CollectionName() string
+    IsNotFound(err error) bool
+    NewScoop(tx ...*Scoop) *ModelScoop[M]
+    SetNotFound(err error) *Model[M]
+}
+```
+
+**方法说明：**
+
+| 方法 | 说明 |
+|------|------|
+| `CollectionName()` | 获取集合名称 |
+| `IsNotFound(err)` | 判断错误是否为"记录不存在" |
+| `NewScoop(tx)` | 为当前模型创建查询建造器 |
+| `SetNotFound(err)` | 设置"未找到"错误类型 |
+
+## Mock 支持
+
+### MockClient - 底层模拟
+
+用于模拟 MongoDB Client 的操作。
+
+```go
+// 创建 Mock 客户端
+mockClient := NewMockClient()
+
+// 设置返回值
+mockClient.
+    SetupPingSuccess().
+    SetupConfig(&Config{...}).
+    SetupDatabase("mydb")
+
+// 执行操作
+err := mockClient.Ping()
+
+// 验证调用
+assert.True(t, mockClient.AssertCalled("Ping"))
+assert.Equal(t, 1, mockClient.GetCallCount("Ping"))
+```
+
+**Available Setup Methods:**
+
+```go
+// 成功设置
+SetupPingSuccess() *MockClient
+SetupCloseSuccess() *MockClient
+SetupHealthSuccess() *MockClient
+
+// 错误设置
+SetupPingError(err error) *MockClient
+SetupCloseError(err error) *MockClient
+SetupHealthError(err error) *MockClient
+
+// 返回值设置
+SetupConfig(cfg *Config) *MockClient
+SetupContext(ctx context.Context) *MockClient
+SetupDatabase(name string) *MockClient
+SetupScoop(scoop *Scoop) *MockClient
+SetupWatchError(err error) *MockClient
+
+// 调用跟踪
+GetCalls() []CallRecord          // 获取所有调用记录
+GetCallCount(method string) int  // 获取特定方法的调用次数
+AssertCalled(method string) bool // 断言方法被调用
+AssertNotCalled(method string) bool
+ResetCalls()                      // 清除调用记录
+```
+
+### MockModel - 模型层模拟
+
+用于模拟特定数据模型的操作。
+
+```go
+// 创建 Mock 模型
+type User struct {
+    ID   string
+    Name string
+}
+
+mockModel := NewMockModel[User]()
+
+// 设置返回值
+mockModel.
+    SetupCollectionName("users").
+    SetupIsNotFound(false)
+
+// 验证调用
+assert.True(t, mockModel.AssertCalled("CollectionName"))
+```
+
+## 使用示例
+
+### 基础使用（真实客户端）
+
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/mongo"
+
+// 创建配置
+cfg := &mongo.Config{
+    URI:      "mongodb://localhost:27017",
+    Database: "myapp",
+}
+
+// 初始化客户端
+client, err := mongo.New(cfg)
+if err != nil {
+    log.Fatalf("Failed to connect: %v", err)
+}
+defer client.Close()
+
+// 健康检查
+if err := client.Health(); err != nil {
+    log.Fatalf("Health check failed: %v", err)
+}
+```
+
+### 单元测试示例
+
+```go
+func TestUserService(t *testing.T) {
+    // 创建 Mock 客户端
+    mockClient := mongo.NewMockClient()
+    mockClient.SetupPingSuccess()
+    mockClient.SetupDatabase("testdb")
+
+    // 初始化服务（使用 Mock 客户端）
+    service := NewUserService(mockClient)
+
+    // 执行测试
+    err := service.SomeOperation()
+    require.NoError(t, err)
+
+    // 验证调用
+    require.True(t, mockClient.AssertCalled("Ping"))
+}
+```
+
+### 集成测试示例
+
+```go
+func TestUserServiceIntegration(t *testing.T) {
+    // 使用 Mock 模型
+    mockModel := mongo.NewMockModel[User]()
+    mockModel.SetupCollectionName("users")
+    mockModel.SetupIsNotFound(false)
+
+    // 执行操作
+    collName := mockModel.CollectionName()
+    require.Equal(t, "users", collName)
+
+    // 验证调用跟踪
+    calls := mockModel.GetCalls()
+    require.Equal(t, 1, len(calls))
+    require.Equal(t, "CollectionName", calls[0].Method)
+}
+```
+
+### 本地调试示例
+
+```go
+func main() {
+    // 在本地开发中使用 Mock
+    if os.Getenv("USE_MOCK") == "true" {
+        mockClient := mongo.NewMockClient().
+            SetupPingSuccess().
+            SetupHealthSuccess()
+        // 使用 mockClient 进行测试
+    }
+}
+```
+
+## 常见错误处理
+
+### 错误识别
+
+```go
+// 判断是否为"记录不存在"错误
+model := mongo.NewModel[User]()
+model.SetNotFound(mongo.ErrNoDocuments)
+
+if model.IsNotFound(err) {
+    log.Println("User not found")
+}
+```
+
+### 连接问题
+
+```go
+// 检查连接状态
+if err := client.Health(); err != nil {
+    log.Printf("Database unhealthy: %v", err)
+}
+
+// 使用 Mock 进行测试
+mockClient := mongo.NewMockClient()
+mockClient.SetupHealthError(errors.New("connection timeout"))
+```
+
+## 存储方案说明
+
+MongoDB 存储方案采用以下策略：
+
+1. **集合命名**：默认遵循约定俗成的命名规则（如 `users`、`products` 等）
+2. **文档结构**：支持任意 Go 结构体作为文档模型
+3. **批量操作**：通过 Scoop（查询建造器）支持高效的批量操作
+4. **事务支持**：通过 `NewScoop(tx)` 支持 MongoDB 事务
+
+## 最佳实践
+
+1. **总是关闭连接**：使用 `defer client.Close()`
+2. **检查健康状态**：在启动时执行 `Health()` 检查
+3. **使用 Mock 测试**：为所有数据库操作编写 Mock 测试
+4. **记录调用**：利用 Mock 的调用跟踪功能验证行为
+5. **环境切换**：使用环境变量切换真实客户端和 Mock 客户端
+
+## 参考资源
+
+- [MGM Library](https://github.com/Kamva/mgm)
+- [MongoDB Go Driver](https://www.mongodb.com/docs/drivers/go/)
+- [LRPC 框架](https://github.com/lazygophers/lrpc)
