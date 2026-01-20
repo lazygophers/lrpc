@@ -13,6 +13,7 @@ require (
 	github.com/gomodule/redigo v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
+	github.com/kamva/mgm/v3 v3.5.0
 	github.com/lazygophers/log v0.0.0-20251229002445-3573dbfe9e95
 	github.com/lazygophers/utils v0.0.0-20251229065828-c33cebc192d4
 	github.com/mattn/go-sqlite3 v1.14.32
@@ -44,7 +45,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.69.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.42.0 // indirect
-	github.com/FZambia/go-sentinel v0.0.0-20171204085413-76bd05e8e22f // indirect
 	github.com/agiledragon/gomonkey/v2 v2.14.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -59,7 +59,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/garyburd/redigo v1.6.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
@@ -90,7 +89,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kamva/mgm/v3 v3.5.0 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
