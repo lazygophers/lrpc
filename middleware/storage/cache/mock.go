@@ -161,7 +161,6 @@ type MockCache struct {
 	SetPbErr      error
 	SetPbExErr    error
 	GetPbErr      error
-	HGetJsonErr   error
 
 	// Return values for limiting
 	LimitRet           bool
