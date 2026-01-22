@@ -489,7 +489,8 @@ func TestUpdateWithZeroMatches(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{}).
 		Equal("email", "nonexistent@example.com")
 
-	updated, err := scoop.Update(bson.M{"$set": bson.M{"age": 99}})
+	updateResult := scoop.Update(bson.M{"$set": bson.M{"age": 99}}
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with zero matches failed: %v", err)
 	}
@@ -513,7 +514,8 @@ func TestDeleteWithZeroMatches(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{}).
 		Equal("email", "nonexistent@example.com")
 
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with zero matches failed: %v", err)
 	}
@@ -727,4 +729,4 @@ func TestExistWithoutResults(t *testing.T) {
 	if exists {
 		t.Error("expected document to not exist")
 	}
-}
+})

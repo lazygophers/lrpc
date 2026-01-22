@@ -130,7 +130,8 @@ func TestDeleteEmptyCollectionPathway(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete empty failed: %v", err)
 	}
@@ -161,7 +162,8 @@ func TestDeleteSingleItemPathway(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete single failed: %v", err)
 	}
@@ -194,7 +196,8 @@ func TestDeleteManyItemsPathway(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete many failed: %v", err)
 	}

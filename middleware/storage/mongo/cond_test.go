@@ -317,7 +317,8 @@ func TestCondUpdate(t *testing.T) {
 	// Update with condition
 	cond := Gt("age", 25)
 	scoop := client.NewScoop().Collection(User{}).Where(cond)
-	count, err := scoop.Update(bson.M{"name": "Updated"})
+	updateResult := scoop.Update(bson.M{"name": "Updated"})
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -348,7 +349,8 @@ func TestCondDelete(t *testing.T) {
 	// Delete with condition
 	cond := Gt("age", 25)
 	scoop := client.NewScoop().Collection(User{}).Where(cond)
-	count, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	count, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
@@ -818,11 +820,10 @@ func TestCondReset(t *testing.T) {
 	}
 }
 
-
 func TestCondOr(t *testing.T) {
 	// Test Or method on Cond - simple test to verify method exists and is callable
 	cond := &Cond{}
-	
+
 	// Call Or method
 	result := cond.Or("age", 25)
 	if result == nil {

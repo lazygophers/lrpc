@@ -102,7 +102,8 @@ func TestDeleteWithFilters(t *testing.T) {
 
 	// Delete with filter
 	scoop := client.NewScoop().Collection(User{}).Gt("age", 25)
-	count, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	count, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}

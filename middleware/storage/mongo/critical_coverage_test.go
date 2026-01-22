@@ -141,7 +141,8 @@ func TestScoopUpdateMultiple(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	updated, err := scoop.Update(bson.M{"$set": bson.M{"age": 30}})
+	updateResult := scoop.Update(bson.M{"$set": bson.M{"age": 30}})
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update multiple failed: %v", err)
 	}
@@ -176,7 +177,8 @@ func TestScoopDeleteMultiple(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete multiple failed: %v", err)
 	}
@@ -348,12 +350,13 @@ func TestScoopUpdateWithBsonM(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "bsonm@example.com")
-	updated, err := scoop.Update(bson.M{
+	updateResult := scoop.Update(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 			"age":  30,
 		},
 	})
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with bson.M failed: %v", err)
 	}
@@ -529,4 +532,4 @@ func TestScoopCloneAndModify(t *testing.T) {
 	if baseCount != 1 {
 		t.Errorf("expected 1 match for age 22, got %d", baseCount)
 	}
-}
+})

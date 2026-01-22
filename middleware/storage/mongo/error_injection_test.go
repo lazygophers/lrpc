@@ -37,7 +37,8 @@ func TestDeleteWithClosedClient(t *testing.T) {
 	_ = client.Close()
 	
 	// Try to delete - should trigger error path
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Logf("Delete with closed client returned error (expected): %v", err)
 	} else {
@@ -157,11 +158,12 @@ func TestUpdateWithInvalidBSON(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "update@example.com")
 	
 	// Try update with valid BSON
-	updated, err := scoop.Update(bson.M{
+	updateResult := scoop.Update(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 		},
-	})
+	}
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Logf("Update returned error: %v", err)
 	} else if updated != 1 {
@@ -355,4 +357,4 @@ func TestFindWithMultipleConditions(t *testing.T) {
 	} else {
 		t.Logf("Find returned %d results", len(results))
 	}
-}
+})

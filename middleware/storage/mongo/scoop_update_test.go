@@ -29,7 +29,8 @@ func TestUpdateWithBsonM(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := bson.M{"age": 35, "name": "Updated Name"}
-	count, err := scoop.Update(updateData)
+	updateResult := scoop.Update(updateData
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -66,7 +67,8 @@ func TestUpdateWithMapOperators(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := map[string]interface{}{"$set": map[string]interface{}{"age": 40}}
-	count, err := scoop.Update(updateData)
+	updateResult := scoop.Update(updateData
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -103,7 +105,8 @@ func TestUpdateWithMapNoOperators(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := map[string]interface{}{"age": 45, "name": "Another Update"}
-	count, err := scoop.Update(updateData)
+	updateResult := scoop.Update(updateData
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -127,7 +130,8 @@ func TestUpdateWithoutCollection(t *testing.T) {
 	// Create scoop without setting collection
 	scoop := client.NewScoop()
 
-	count, err := scoop.Update(bson.M{"age": 30})
+	updateResult := scoop.Update(bson.M{"age": 30}
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err == nil {
 		t.Error("expected error when collection not set")
 	}
@@ -161,7 +165,8 @@ func TestUpdateMultipleDocuments(t *testing.T) {
 	scoop = scoop.Collection(User{})
 	scoop = scoop.Equal("age", 25)
 
-	count, err := scoop.Update(bson.M{"status": "updated"})
+	updateResult := scoop.Update(bson.M{"status": "updated"}
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -186,7 +191,8 @@ func TestUpdateZeroResults(t *testing.T) {
 		Collection(User{}).
 		Equal("email", "nonexistent@example.com")
 
-	count, err := scoop.Update(bson.M{"age": 99})
+	updateResult := scoop.Update(bson.M{"age": 99}
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -194,4 +200,4 @@ func TestUpdateZeroResults(t *testing.T) {
 	if count != 0 {
 		t.Errorf("expected 0 updated documents, got %d", count)
 	}
-}
+})

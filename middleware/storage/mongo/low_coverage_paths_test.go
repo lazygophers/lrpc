@@ -175,7 +175,8 @@ func TestDeleteSingleDocumentPaths(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "delete_single@example.com")
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
@@ -282,7 +283,8 @@ func TestUpdateFields(t *testing.T) {
 	// Update specific field
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "update_test@example.com")
 	updated := bson.M{"name": "Updated", "age": 30}
-	count, err := scoop.Update(updated)
+	updateResult := scoop.Update(updated
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -302,4 +304,4 @@ func TestCloneScoop(t *testing.T) {
 	if scoop2 == nil {
 		t.Error("expected cloned scoop to be non-nil")
 	}
-}
+})

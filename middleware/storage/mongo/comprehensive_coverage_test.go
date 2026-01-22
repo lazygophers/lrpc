@@ -125,7 +125,8 @@ func TestScoopDeleteWithMultipleConditions(t *testing.T) {
 
 	// Delete one category
 	scoop := client.NewScoop().Collection(User{}).Equal("age", 35)
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with condition failed: %v", err)
 	}
@@ -173,7 +174,8 @@ func TestScoopDeleteAllThenVerify(t *testing.T) {
 
 	// Delete all
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete all failed: %v", err)
 	}
@@ -399,7 +401,8 @@ func TestDeleteWithInOperator(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{}).
 		Where("email", bson.M{"$in": []string{"a@test.com", "c@test.com"}})
 
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with $in failed: %v", err)
 	}
@@ -515,7 +518,8 @@ func TestDeletePartialThenCountRemaining(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{}).
 		Where("age", bson.M{"$lt": 25})
 
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete young users failed: %v", err)
 	}

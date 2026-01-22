@@ -84,7 +84,8 @@ func TestDeleteDocumentsWithConditions(t *testing.T) {
 
 	// Delete with age filter (ages 20-24)
 	scoop := client.NewScoop().Collection(User{}).Where("age", bson.M{"$lt": 25})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with filter failed: %v", err)
 	}
@@ -134,7 +135,8 @@ func TestDeleteEmptyCollectionScenario(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete on empty collection failed: %v", err)
 	}
@@ -179,7 +181,8 @@ func TestCountAndDeleteSequence(t *testing.T) {
 	}
 
 	// Delete all
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}

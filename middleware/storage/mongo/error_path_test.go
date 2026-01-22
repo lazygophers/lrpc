@@ -157,7 +157,8 @@ func TestScoopDeleteFromEmptyCollection(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete from empty collection failed: %v", err)
 	}
@@ -190,7 +191,8 @@ func TestScoopDeleteSingleDocument(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete single document failed: %v", err)
 	}
@@ -244,7 +246,8 @@ func TestScoopDeleteByCondition(t *testing.T) {
 
 	// Delete only users with age 20
 	scoop := client.NewScoop().Collection(User{}).Equal("age", 20)
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete by condition failed: %v", err)
 	}
@@ -307,7 +310,7 @@ func TestClientPingReturnsNoError(t *testing.T) {
 // TestClientCloseHandlesNilClient tests Close when client is nil (edge case)
 func TestClientCloseHandlesNilClient(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	// First close should work
 	err := client.Close()
 	if err != nil {
@@ -421,7 +424,8 @@ func TestCountAndDeleteIntegration(t *testing.T) {
 	}
 
 	// Delete all
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}

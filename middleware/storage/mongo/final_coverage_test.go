@@ -26,7 +26,7 @@ func TestStreamChangeStreamCloseDirect(t *testing.T) {
 
 	// This should not panic
 	cs.Close()
-	
+
 	// Calling again should also not panic
 	cs.Close()
 }
@@ -43,7 +43,7 @@ func TestDatabaseChangeStreamCloseDirect(t *testing.T) {
 
 	// This should not panic
 	dcs.Close()
-	
+
 	// Calling again should also not panic
 	dcs.Close()
 }
@@ -55,7 +55,7 @@ func TestClientHealthDirect(t *testing.T) {
 
 	// Health should either succeed or return a wrapped error
 	err := client.Health()
-	
+
 	// Just ensure it doesn't panic and returns appropriate value
 	if err != nil {
 		// Check that error message contains health check context
@@ -73,7 +73,7 @@ func TestClientPingDirect(t *testing.T) {
 
 	// Ping should work or return error
 	err := client.Ping()
-	
+
 	// Just ensure no panic
 	if err != nil {
 		t.Logf("Ping error (may be expected): %v", err)
@@ -106,7 +106,7 @@ func TestScoopCountDirectNormal(t *testing.T) {
 
 	scoop := client.NewScoop().Collection(User{})
 	count, err := scoop.Count()
-	
+
 	if err != nil {
 		t.Errorf("Count returned error: %v", err)
 		return
@@ -130,7 +130,7 @@ func TestScoopCountDirectZero(t *testing.T) {
 
 	scoop := client.NewScoop().Collection(User{})
 	count, err := scoop.Count()
-	
+
 	if err != nil {
 		t.Errorf("Count on empty collection failed: %v", err)
 		return
@@ -166,8 +166,9 @@ func TestScoopDeleteDirectNormal(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
-	
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
+
 	if err != nil {
 		t.Errorf("Delete returned error: %v", err)
 		return
@@ -190,8 +191,9 @@ func TestScoopDeleteDirectZero(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
-	
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
+
 	if err != nil {
 		t.Errorf("Delete on empty collection failed: %v", err)
 		return
@@ -246,7 +248,7 @@ func TestClientGetDatabaseDirect(t *testing.T) {
 	defer client.Close()
 
 	db := client.GetDatabase()
-	
+
 	// Should not be empty - either has explicit value or returns "test" default
 	if db == "" {
 		t.Error("expected non-empty database name")

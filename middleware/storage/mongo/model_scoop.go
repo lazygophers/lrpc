@@ -14,9 +14,9 @@ type ModelScoop[M any] struct {
 // Find finds documents matching the filter and returns typed results
 func (ms *ModelScoop[M]) Find() ([]M, error) {
 	var results []M
-	err := ms.Scoop.Find(&results)
-	if err != nil {
-		return nil, err
+	findResult := ms.Scoop.Find(&results)
+	if findResult.Error != nil {
+		return nil, findResult.Error
 	}
 
 	return results, nil
@@ -25,9 +25,9 @@ func (ms *ModelScoop[M]) Find() ([]M, error) {
 // First finds a single document matching the filter
 func (ms *ModelScoop[M]) First() (*M, error) {
 	var result M
-	err := ms.Scoop.First(&result)
-	if err != nil {
-		return nil, err
+	firstResult := ms.Scoop.First(&result)
+	if firstResult.Error != nil {
+		return nil, firstResult.Error
 	}
 
 	return &result, nil
@@ -45,13 +45,13 @@ func (ms *ModelScoop[M]) Create(doc M) error {
 }
 
 // Update updates documents matching the filter
-func (ms *ModelScoop[M]) Update(update interface{}) (int64, error) {
+func (ms *ModelScoop[M]) Update(update interface{}) *UpdateResult {
 	ms.Scoop.Collection(ms.m)
 	return ms.Scoop.Update(update)
 }
 
 // Delete deletes documents matching the filter
-func (ms *ModelScoop[M]) Delete() (int64, error) {
+func (ms *ModelScoop[M]) Delete() *DeleteResult {
 	ms.Scoop.Collection(ms.m)
 	return ms.Scoop.Delete()
 }

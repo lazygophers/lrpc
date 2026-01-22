@@ -150,10 +150,11 @@ func TestUpdateWithStructMarshaling(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "struct@example.com")
-	updated, err := scoop.Update(UpdateData{
+	updateResult := scoop.Update(UpdateData{
 		Name: "Updated",
 		Age:  30,
-	})
+	}
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with struct failed: %v", err)
 	}
@@ -188,11 +189,12 @@ func TestUpdateWithOperators(t *testing.T) {
 
 	// Update with MongoDB operators
 	scoop := client.NewScoop().Collection(User{})
-	updated, err := scoop.Update(bson.M{
+	updateResult := scoop.Update(bson.M{
 		"$inc": bson.M{
 			"age": 5,
 		},
-	})
+	}
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with operators failed: %v", err)
 	}
@@ -228,7 +230,8 @@ func TestDeleteWithComplexFilterAdvanced(t *testing.T) {
 
 	// Delete with filter
 	scoop := client.NewScoop().Collection(User{}).Where("age", bson.M{"$gte": 30})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with filter failed: %v", err)
 	}
@@ -430,7 +433,8 @@ func TestScoopUpdateNoMatches(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	updated, err := scoop.Update(bson.M{"$set": bson.M{"age": 99}})
+	updateResult := scoop.Update(bson.M{"$set": bson.M{"age": 99}}
+	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with no matches failed: %v", err)
 	}
@@ -452,7 +456,8 @@ func TestScoopDeleteNoMatches(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("delete with no matches failed: %v", err)
 	}
@@ -654,4 +659,4 @@ func TestClientContextReturnsBackground(t *testing.T) {
 	default:
 		// Expected behavior
 	}
-}
+})

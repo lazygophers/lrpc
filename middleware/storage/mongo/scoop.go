@@ -15,6 +15,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// FindResult contains the result of a Find operation
+type FindResult struct {
+	DocsAffected int64
+	Error        error
+}
+
+// FirstResult contains the result of a First operation
+type FirstResult struct {
+	Error error
+}
+
+// DeleteResult contains the result of a Delete operation
+type DeleteResult struct {
+	DocsAffected int64
+	Error        error
+}
+
+// UpdateResult contains the result of an Update operation
+type UpdateResult struct {
+	DocsAffected int64
+	Error        error
+}
+
 // Scoop is a generic MongoDB query builder for simplified operations
 type Scoop struct {
 	client        *Client
@@ -248,12 +271,14 @@ func (s *Scoop) Select(fields ...string) *Scoop {
 	return s
 }
 
-// Find finds documents matching the filter
-func (s *Scoop) Find(result interface{}) error {
+// Find finds documents matching the filter and returns a FindResult
+func (s *Scoop) Find(result interface{}) *FindResult {
 	// Check for injected failures (test only)
 	injector := GetGlobalInjector()
 	if injector.ShouldFailFind() {
-		return injector.GetFindError()
+		return &FindResult{
+			Error: injector.GetFindError(),
+		}
 	}
 
 	begin := time.Now()
@@ -262,7 +287,10 @@ func (s *Scoop) Find(result interface{}) error {
 	err := s.ensureCollection(result)
 	if err != nil {
 		log.Errorf("err:%v", err)
-		return err
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
+		return &FindResult{Error: err}
 	}
 
 	// Build FindOptions from scoop fields
@@ -287,7 +315,7 @@ func (s *Scoop) Find(result interface{}) error {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), 0
 		}, err)
-		return err
+		return &FindResult{Error: err}
 	}
 	defer cursor.Close(ctx)
 
@@ -297,7 +325,7 @@ func (s *Scoop) Find(result interface{}) error {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), 0
 		}, err)
-		return err
+		return &FindResult{Error: err}
 	}
 
 	// Count the documents returned
@@ -309,17 +337,23 @@ func (s *Scoop) Find(result interface{}) error {
 		return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), docsCount
 	}, nil)
 
-	return nil
+	return &FindResult{
+		DocsAffected: docsCount,
+		Error:        nil,
+	}
 }
 
-// First finds a single document, returns error if not found
-func (s *Scoop) First(result interface{}) error {
+// First finds a single document and returns a FirstResult
+func (s *Scoop) First(result interface{}) *FirstResult {
 	begin := time.Now()
 
 	err := s.ensureCollection(result)
 	if err != nil {
 		log.Errorf("err:%v", err)
-		return err
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
+		return &FirstResult{Error: err}
 	}
 
 	ctx := s.getContext()
@@ -333,7 +367,7 @@ func (s *Scoop) First(result interface{}) error {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
 		}, sr.Err())
-		return sr.Err()
+		return &FirstResult{Error: sr.Err()}
 	}
 
 	err = sr.Decode(result)
@@ -342,14 +376,14 @@ func (s *Scoop) First(result interface{}) error {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
 		}, err)
-		return err
+		return &FirstResult{Error: err}
 	}
 
 	s.logger.Log(s.depth, begin, func() (string, int64) {
 		return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 1
 	}, nil)
 
-	return nil
+	return &FirstResult{Error: nil}
 }
 
 // Count counts documents matching the filter
@@ -458,14 +492,17 @@ func (s *Scoop) BatchCreate(docs ...interface{}) error {
 	return nil
 }
 
-// Update updates documents matching the filter
-func (s *Scoop) Update(update interface{}) (int64, error) {
+// Update updates documents matching the filter and returns an UpdateResult
+func (s *Scoop) Update(update interface{}) *UpdateResult {
 	begin := time.Now()
 
 	if s.coll == nil {
 		err := fmt.Errorf("collection not set, call Collection(model) or use Find/Create first")
 		log.Errorf("err:%v", err)
-		return 0, err
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db collection not set"), 0
+		}, err)
+		return &UpdateResult{Error: err}
 	}
 
 	updateDoc := bson.M{}
@@ -497,14 +534,20 @@ func (s *Scoop) Update(update interface{}) (int64, error) {
 		data, err := json.Marshal(v)
 		if err != nil {
 			log.Errorf("err:%v", err)
-			return 0, err
+			s.logger.Log(s.depth, begin, func() (string, int64) {
+				return fmt.Sprintf("db.%s marshal update", s.coll.Name()), 0
+			}, err)
+			return &UpdateResult{Error: err}
 		}
 
 		var m map[string]interface{}
 		err = json.Unmarshal(data, &m)
 		if err != nil {
 			log.Errorf("err:%v", err)
-			return 0, err
+			s.logger.Log(s.depth, begin, func() (string, int64) {
+				return fmt.Sprintf("db.%s unmarshal update", s.coll.Name()), 0
+			}, err)
+			return &UpdateResult{Error: err}
 		}
 
 		updateDoc = bson.M{"$set": m}
@@ -516,24 +559,31 @@ func (s *Scoop) Update(update interface{}) (int64, error) {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.updateMany(%v, %v)", s.coll.Name(), s.filter.ToBson(), updateDoc), 0
 		}, err)
-		return 0, err
+		return &UpdateResult{Error: err}
 	}
 
 	s.logger.Log(s.depth, begin, func() (string, int64) {
 		return fmt.Sprintf("db.%s.updateMany(%v, %v)", s.coll.Name(), s.filter.ToBson(), updateDoc), result.ModifiedCount
 	}, nil)
 
-	return result.ModifiedCount, nil
+	return &UpdateResult{
+		DocsAffected: result.ModifiedCount,
+		Error:        nil,
+	}
 }
 
-// Delete deletes documents matching the filter
-func (s *Scoop) Delete() (int64, error) {
+// Delete deletes documents matching the filter and returns a DeleteResult
+func (s *Scoop) Delete() *DeleteResult {
 	begin := time.Now()
 
 	// Check for injected failures (test only)
 	injector := GetGlobalInjector()
 	if injector.ShouldFailDelete() {
-		return 0, injector.GetDeleteError()
+		err := injector.GetDeleteError()
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
+		return &DeleteResult{Error: err}
 	}
 
 	result, err := s.coll.DeleteMany(s.getContext(), s.filter.ToBson())
@@ -542,14 +592,17 @@ func (s *Scoop) Delete() (int64, error) {
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), 0
 		}, err)
-		return 0, err
+		return &DeleteResult{Error: err}
 	}
 
 	s.logger.Log(s.depth, begin, func() (string, int64) {
 		return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), result.DeletedCount
 	}, nil)
 
-	return result.DeletedCount, nil
+	return &DeleteResult{
+		DocsAffected: result.DeletedCount,
+		Error:        nil,
+	}
 }
 
 // Aggregate creates an aggregation pipeline
@@ -744,10 +797,10 @@ func (s *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, er
 	s.inc()
 	defer s.dec()
 
-	err := s.Find(values)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
+	findResult := s.Find(values)
+	if findResult.Error != nil {
+		log.Errorf("err:%v", findResult.Error)
+		return nil, findResult.Error
 	}
 
 	if opt.ShowTotal {

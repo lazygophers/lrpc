@@ -224,7 +224,8 @@ func TestDeleteWithoutFilters(t *testing.T) {
 	}
 
 	// Delete all documents
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("failed to delete: %v", err)
 	}
@@ -270,7 +271,7 @@ func TestDeleteSpecificDocuments(t *testing.T) {
 
 	// Create a new scoop for the delete operation (fresh filter)
 	deleteScoop := client.NewScoop().Collection(User{})
-	
+
 	// Delete documents with age >= 23 (that's ages 23, 24)
 	deleted, err := deleteScoop.Where("age", map[string]interface{}{"$gte": 23}).Delete()
 	if err != nil {

@@ -68,7 +68,8 @@ func TestDeleteErrorHandling(t *testing.T) {
 
 	// Delete should work normally
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Logf("Delete returned error: %v", err)
 	} else if deleted != 5 {
@@ -333,7 +334,8 @@ func TestDeleteEdgeCases(t *testing.T) {
 
 	// Test 1: Delete from empty collection
 	scoop := client.NewScoop().Collection(User{})
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Logf("Delete from empty collection failed: %v", err)
 	}

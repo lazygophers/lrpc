@@ -105,7 +105,8 @@ func TestDeleteWithInjectedFailure(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{})
 
 	// Delete 应该返回注入的错误
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err == nil {
 		t.Error("Expected Delete to fail, but it succeeded")
 	} else if err.Error() != "permission denied" {
@@ -194,7 +195,8 @@ func TestMultipleFailureInjections(t *testing.T) {
 	}
 
 	// 测试 Delete 故障
-	_, err = scoop.Delete()
+	deleteResult := scoop.Delete()
+	err = deleteResult.Error
 	if err == nil || err.Error() != "delete error" {
 		t.Errorf("Delete should fail with 'delete error', got %v", err)
 	}
@@ -325,7 +327,8 @@ func TestSelectiveFailureInjection(t *testing.T) {
 	}
 
 	// Delete 应该成功（未被注入）
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Errorf("Delete should succeed, got %v", err)
 	} else if deleted != 1 {
@@ -680,7 +683,8 @@ func TestUpdateOperation(t *testing.T) {
 	updateData := User{
 		Age: 26,
 	}
-	modifiedCount, err := scoop.Update(&updateData)
+	updateResult := scoop.Update(&updateData
+	modifiedCount, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Errorf("Expected Update to succeed, got error: %v", err)
 	} else if modifiedCount == 0 {
@@ -1425,4 +1429,4 @@ func TestAggregationExecuteOperations(t *testing.T) {
 	} else {
 		t.Logf("ExecuteOne returned user: %s", singleResult.Email)
 	}
-}
+})

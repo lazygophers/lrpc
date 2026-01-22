@@ -31,9 +31,9 @@ func TestScoopFind(t *testing.T) {
 	scoop = scoop.Equal("age", 25)
 
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 1 {
@@ -64,8 +64,8 @@ func TestScoopFirst(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	var result User
-	err := scoop.First(&result)
-	if err != nil {
+	firstResult := scoop.First(&result)
+	if firstResult.Error != nil {
 		t.Fatalf("find one failed: %v", err)
 	}
 
@@ -199,7 +199,8 @@ func TestScoopUpdate(t *testing.T) {
 	scoop = scoop.Collection(User{})
 	scoop = scoop.Equal("email", "test@example.com")
 
-	count, err := scoop.Update(bson.M{"age": 30, "name": "Updated User"})
+	updateResult := scoop.Update(bson.M{"age": 30, "name": "Updated User"}
+	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -237,9 +238,9 @@ func TestScoopDelete(t *testing.T) {
 	scoop = scoop.Collection(User{})
 	scoop = scoop.Equal("age", 25)
 
-	count, err := scoop.Delete()
-	if err != nil {
-		t.Fatalf("delete failed: %v", err)
+	deleteResult := scoop.Delete()
+	if deleteResult.Error != nil {
+		t.Fatalf("delete failed: %v", deleteResult.Error)
 	}
 
 	if count != 2 {
@@ -273,9 +274,9 @@ func TestScoopLimitOffset(t *testing.T) {
 	scoop = scoop.Equal("age", 25).Limit(2).Offset(1)
 
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 2 {
@@ -302,9 +303,9 @@ func TestScoopSelect(t *testing.T) {
 	scoop = scoop.Select("email", "name")
 
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) == 0 {
@@ -380,9 +381,9 @@ func TestScoopIn(t *testing.T) {
 	scoop := client.NewScoop()
 	scoop = scoop.In("age", 25, 30)
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 2 {
@@ -425,9 +426,9 @@ func TestSortAscending(t *testing.T) {
 	// Test Sort ascending - default (no direction param)
 	scoop := client.NewScoop().Collection(User{}).Sort("age")
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 3 {
@@ -462,9 +463,9 @@ func TestSortDescending(t *testing.T) {
 	// Test Sort descending
 	scoop := client.NewScoop().Collection(User{}).Sort("age", -1)
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 3 {
@@ -558,8 +559,8 @@ func TestScoopLike(t *testing.T) {
 	// Test Like with pattern
 	scoop := client.NewScoop().Like("name", "Test")
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
 		t.Errorf("find failed: %v", err)
 	}
 
@@ -589,8 +590,8 @@ func TestScoopSkip(t *testing.T) {
 	// Test Skip (should be equivalent to Offset)
 	scoop := client.NewScoop().Equal("age", 25).Skip(1).Limit(2)
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
 		t.Errorf("find failed: %v", err)
 	}
 
@@ -912,8 +913,8 @@ func TestScoopLogging(t *testing.T) {
 
 	// Test Find logging
 	var results []User
-	err := scoop.Find(&results)
-	if err != nil {
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
 
@@ -934,7 +935,8 @@ func TestScoopLogging(t *testing.T) {
 
 	// Test Update logging
 	scoop = client.NewScoop().Equal("age", 25)
-	modified, err := scoop.Update(bson.M{"name": "Updated User 1"})
+	updateResult := scoop.Update(bson.M{"name": "Updated User 1"}
+	modified, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("Update failed: %v", err)
 	}
@@ -945,12 +947,14 @@ func TestScoopLogging(t *testing.T) {
 
 	// Test Delete logging
 	scoop = client.NewScoop().Equal("age", 30)
-	deleted, err := scoop.Delete()
+	deleteResult := scoop.Delete()
+	deleted, err := deleteResult.DocsAffected, deleteResult.Error
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
 
+	deleted := deleteResult.DocsAffected
 	if deleted != 1 {
 		t.Errorf("expected 1 deleted, got %d", deleted)
 	}
-}
+})
