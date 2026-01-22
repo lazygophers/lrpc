@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -216,7 +217,23 @@ func (p *Scoop) getDuplicatedKeyError() error {
 }
 
 func (p *Scoop) IsNotFound(err error) bool {
-	return err == p.getNotFoundError() || err == gorm.ErrRecordNotFound
+	if err == nil {
+		return false
+	}
+
+	if p.notFoundError != nil {
+		if x, ok := err.(*xerror.Error); ok {
+			return xerror.CheckCode(err, x.Code)
+		}
+
+		return errors.Is(err, p.getNotFoundError())
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+
+	return false
 }
 
 func (p *Scoop) IsDuplicatedKeyError(err error) bool {
@@ -224,11 +241,15 @@ func (p *Scoop) IsDuplicatedKeyError(err error) bool {
 		return false
 	}
 
-	if err == p.getDuplicatedKeyError() {
-		return true
+	if p.duplicatedKeyError != nil {
+		if x, ok := err.(*xerror.Error); ok {
+			return xerror.CheckCode(err, x.Code)
+		}
+
+		return errors.Is(err, p.duplicatedKeyError)
 	}
 
-	if err == gorm.ErrDuplicatedKey {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
 		return true
 	}
 

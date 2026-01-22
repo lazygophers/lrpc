@@ -252,49 +252,45 @@ func (p *ModelScoop[M]) FirstOrCreate(m *M) *FirstOrCreateResult[M] {
 
 	var mm M
 	err := p.Scoop.First(&mm).Error
-	if err != nil {
-		if p.IsNotFound(err) {
-			err = p.Scoop.Create(m).Error
-			if err != nil {
-				if p.IsDuplicatedKeyError(err) {
-					err = p.Scoop.First(&mm).Error
-					if err != nil {
-						if p.IsNotFound(err) {
-							log.Errorf("err:%v", p.getDuplicatedKeyError())
-							return &FirstOrCreateResult[M]{
-								Error: p.getDuplicatedKeyError(),
-							}
-						}
-
-						log.Errorf("err:%v", err)
-						return &FirstOrCreateResult[M]{
-							Error: err,
-						}
-					}
-
-					return &FirstOrCreateResult[M]{
-						IsCreated: false,
-						Object:    &mm,
-					}
-				}
-
-				log.Errorf("err:%v", err)
-				return &FirstOrCreateResult[M]{
-					Error: err,
-				}
-			}
-			return &FirstOrCreateResult[M]{
-				IsCreated: true,
-				Object:    m,
-			}
+	if err == nil {
+		return &FirstOrCreateResult[M]{
+			Object: &mm,
 		}
+	}
+
+	if !p.IsNotFound(err) {
 		log.Errorf("err:%v", err)
 		return &FirstOrCreateResult[M]{
 			Error: err,
 		}
 	}
+
+	err = p.Scoop.Create(m).Error
+	if err == nil {
+		return &FirstOrCreateResult[M]{
+			IsCreated: true,
+			Object:    m,
+		}
+	}
+
+	if !p.IsDuplicatedKeyError(err) {
+		log.Errorf("err:%v", err)
+		return &FirstOrCreateResult[M]{
+			Error: err,
+		}
+	}
+
+	err = p.Scoop.First(&mm).Error
+	if err == nil {
+		return &FirstOrCreateResult[M]{
+			IsCreated: false,
+			Object:    &mm,
+		}
+	}
+
+	log.Errorf("err:%v", err)
 	return &FirstOrCreateResult[M]{
-		Object: &mm,
+		Error: err,
 	}
 }
 

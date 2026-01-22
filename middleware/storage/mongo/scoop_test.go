@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lazygophers/lrpc/middleware/core"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -705,5 +706,251 @@ func TestScoopIsNotFound(t *testing.T) {
 	// Verify IsNotFound
 	if !scoop.IsNotFound(err) {
 		t.Errorf("expected IsNotFound to return true for no documents found")
+	}
+}
+
+func TestScoopFindByPage(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data - 25 users for pagination testing
+	users := make([]interface{}, 25)
+	for i := 0; i < 25; i++ {
+		users[i] = User{
+			ID:        primitive.NewObjectID(),
+			Email:     "user" + string(rune(i)) + "@example.com",
+			Name:      "User " + string(rune(i)),
+			Age:       20 + i,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test 1: Basic FindByPage with default options
+	scoop := client.NewScoop()
+	opt := &core.ListOption{
+		Offset:    0,
+		Limit:     10,
+		ShowTotal: true,
+	}
+
+	var results []User
+	paginate, err := scoop.FindByPage(opt, &results)
+	if err != nil {
+		t.Fatalf("FindByPage failed: %v", err)
+	}
+
+	if len(results) != 10 {
+		t.Errorf("expected 10 results, got %d", len(results))
+	}
+
+	if paginate.Offset != 0 {
+		t.Errorf("expected offset 0, got %d", paginate.Offset)
+	}
+
+	if paginate.Limit != 10 {
+		t.Errorf("expected limit 10, got %d", paginate.Limit)
+	}
+
+	if paginate.Total != 25 {
+		t.Errorf("expected total 25, got %d", paginate.Total)
+	}
+
+	// Test 2: FindByPage with offset
+	scoop = client.NewScoop()
+	opt = &core.ListOption{
+		Offset:    10,
+		Limit:     10,
+		ShowTotal: true,
+	}
+
+	results = []User{}
+	paginate, err = scoop.FindByPage(opt, &results)
+	if err != nil {
+		t.Fatalf("FindByPage with offset failed: %v", err)
+	}
+
+	if len(results) != 10 {
+		t.Errorf("expected 10 results, got %d", len(results))
+	}
+
+	if paginate.Total != 25 {
+		t.Errorf("expected total 25, got %d", paginate.Total)
+	}
+
+	// Test 3: FindByPage without showing total
+	scoop = client.NewScoop()
+	opt = &core.ListOption{
+		Offset:    0,
+		Limit:     5,
+		ShowTotal: false,
+	}
+
+	results = []User{}
+	paginate, err = scoop.FindByPage(opt, &results)
+	if err != nil {
+		t.Fatalf("FindByPage without total failed: %v", err)
+	}
+
+	if len(results) != 5 {
+		t.Errorf("expected 5 results, got %d", len(results))
+	}
+
+	if paginate.Total != 0 {
+		t.Errorf("expected total 0 (ShowTotal=false), got %d", paginate.Total)
+	}
+
+	// Test 4: FindByPage with where condition
+	scoop = client.NewScoop().Gte("age", 30)
+	opt = &core.ListOption{
+		Offset:    0,
+		Limit:     10,
+		ShowTotal: true,
+	}
+
+	results = []User{}
+	paginate, err = scoop.FindByPage(opt, &results)
+	if err != nil {
+		t.Fatalf("FindByPage with condition failed: %v", err)
+	}
+
+	// We should have 20 users with age >= 30 (users with age 20-44, so 24-44 is 20 users)
+	expectedCount := uint64(20)
+	if paginate.Total != expectedCount {
+		t.Errorf("expected total %d, got %d", expectedCount, paginate.Total)
+	}
+
+	// Test 5: FindByPage with nil options (should use defaults)
+	scoop = client.NewScoop()
+	results = []User{}
+	paginate, err = scoop.FindByPage(nil, &results)
+	if err != nil {
+		t.Fatalf("FindByPage with nil options failed: %v", err)
+	}
+
+	if len(results) != 20 { // Default limit is 20
+		t.Errorf("expected 20 results (default limit), got %d", len(results))
+	}
+
+	if paginate.Offset != 0 {
+		t.Errorf("expected offset 0 (default), got %d", paginate.Offset)
+	}
+
+	if paginate.Limit != 20 {
+		t.Errorf("expected limit 20 (default), got %d", paginate.Limit)
+	}
+}
+
+func TestScoopFindByPageDepth(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test depth tracking
+	scoop := client.NewScoop()
+	initialDepth := scoop.depth
+	if initialDepth != 3 {
+		t.Errorf("expected initial depth 3, got %d", initialDepth)
+	}
+
+	opt := &core.ListOption{
+		Offset:    0,
+		Limit:     10,
+		ShowTotal: true,
+	}
+
+	var results []User
+	_, err := scoop.FindByPage(opt, &results)
+	if err != nil {
+		t.Fatalf("FindByPage failed: %v", err)
+	}
+
+	// After FindByPage, depth should be restored to initial value
+	if scoop.depth != initialDepth {
+		t.Errorf("expected depth %d after FindByPage, got %d", initialDepth, scoop.depth)
+	}
+}
+
+func TestScoopLogging(t *testing.T) {
+	client := newTestClient(t)
+	defer client.Close()
+
+	cleanupTest := func() {
+		CleanupTestCollections(t, client, "users")
+	}
+	cleanupTest()
+	defer cleanupTest()
+
+	// Insert test data
+	users := []interface{}{
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+	InsertTestData(t, client, "users", users...)
+
+	// Test logging in various operations
+	scoop := client.NewScoop()
+
+	// Test Find logging
+	var results []User
+	err := scoop.Find(&results)
+	if err != nil {
+		t.Fatalf("Find failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("expected 2 results, got %d", len(results))
+	}
+
+	// Test Count logging
+	scoop = client.NewScoop()
+	count, err := scoop.Count()
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected count 2, got %d", count)
+	}
+
+	// Test Update logging
+	scoop = client.NewScoop().Equal("age", 25)
+	modified, err := scoop.Update(bson.M{"name": "Updated User 1"})
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	if modified != 1 {
+		t.Errorf("expected 1 modified, got %d", modified)
+	}
+
+	// Test Delete logging
+	scoop = client.NewScoop().Equal("age", 30)
+	deleted, err := scoop.Delete()
+	if err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+
+	if deleted != 1 {
+		t.Errorf("expected 1 deleted, got %d", deleted)
 	}
 }

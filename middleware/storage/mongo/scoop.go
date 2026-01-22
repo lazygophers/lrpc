@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/kamva/mgm/v3"
 	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/core"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,6 +26,8 @@ type Scoop struct {
 	projection    bson.M
 	session       mongo.Session
 	notFoundError error
+	depth         int
+	logger        Logger
 }
 
 // NewScoop creates a new scoop instance, optionally accepting a transaction scoop
@@ -34,11 +38,14 @@ func (c *Client) NewScoop(tx ...*Scoop) *Scoop {
 		sort:          bson.M{},
 		projection:    bson.M{},
 		notFoundError: mongo.ErrNoDocuments,
+		depth:         3,
+		logger:        GetDefaultLogger(),
 	}
 
 	// If a transaction scoop is provided, inherit its session and notFoundError
 	if len(tx) > 0 && tx[0] != nil {
 		scoop.session = tx[0].session
+		scoop.logger = tx[0].logger
 	}
 
 	return scoop
@@ -249,6 +256,9 @@ func (s *Scoop) Find(result interface{}) error {
 		return injector.GetFindError()
 	}
 
+	begin := time.Now()
+	var docsCount int64
+
 	err := s.ensureCollection(result)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -274,6 +284,9 @@ func (s *Scoop) Find(result interface{}) error {
 	cursor, err := s.coll.Find(ctx, s.filter.ToBson(), opts)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
 		return err
 	}
 	defer cursor.Close(ctx)
@@ -281,14 +294,28 @@ func (s *Scoop) Find(result interface{}) error {
 	err = cursor.All(ctx, result)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
 		return err
 	}
+
+	// Count the documents returned
+	if resultVal := reflect.ValueOf(result); resultVal.Kind() == reflect.Ptr && resultVal.Elem().Kind() == reflect.Slice {
+		docsCount = int64(resultVal.Elem().Len())
+	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.find(%v)", s.coll.Name(), s.filter.ToBson()), docsCount
+	}, nil)
 
 	return nil
 }
 
 // First finds a single document, returns error if not found
 func (s *Scoop) First(result interface{}) error {
+	begin := time.Now()
+
 	err := s.ensureCollection(result)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -303,20 +330,32 @@ func (s *Scoop) First(result interface{}) error {
 	sr := s.coll.FindOne(ctx, s.filter.ToBson(), opts)
 	if sr.Err() != nil {
 		log.Errorf("err:%v", sr.Err())
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, sr.Err())
 		return sr.Err()
 	}
 
 	err = sr.Decode(result)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
 		return err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 1
+	}, nil)
 
 	return nil
 }
 
 // Count counts documents matching the filter
 func (s *Scoop) Count() (int64, error) {
+	begin := time.Now()
+
 	// Check for injected failures (test only)
 	injector := GetGlobalInjector()
 	if injector.ShouldFailCount() {
@@ -326,8 +365,15 @@ func (s *Scoop) Count() (int64, error) {
 	count, err := s.coll.CountDocuments(s.getContext(), s.filter.ToBson())
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.countDocuments(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
 		return 0, err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.countDocuments(%v)", s.coll.Name(), s.filter.ToBson()), count
+	}, nil)
 
 	return count, nil
 }
@@ -356,6 +402,8 @@ func (s *Scoop) Exist() (bool, error) {
 
 // Create inserts a new document
 func (s *Scoop) Create(doc interface{}) error {
+	begin := time.Now()
+
 	err := s.ensureCollection(doc)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -365,14 +413,23 @@ func (s *Scoop) Create(doc interface{}) error {
 	_, err = s.coll.InsertOne(s.getContext(), doc)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.insertOne(...)", s.coll.Name()), 0
+		}, err)
 		return err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.insertOne(...)", s.coll.Name()), 1
+	}, nil)
 
 	return nil
 }
 
 // BatchCreate inserts multiple documents
 func (s *Scoop) BatchCreate(docs ...interface{}) error {
+	begin := time.Now()
+
 	if len(docs) == 0 {
 		err := fmt.Errorf("no documents to insert")
 		log.Errorf("err:%v", err)
@@ -385,17 +442,26 @@ func (s *Scoop) BatchCreate(docs ...interface{}) error {
 		return err
 	}
 
-	_, err = s.coll.InsertMany(s.getContext(), docs)
+	result, err := s.coll.InsertMany(s.getContext(), docs)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.insertMany(...) [%d docs]", s.coll.Name(), len(docs)), 0
+		}, err)
 		return err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.insertMany(...) [%d docs]", s.coll.Name(), len(docs)), int64(len(result.InsertedIDs))
+	}, nil)
 
 	return nil
 }
 
 // Update updates documents matching the filter
 func (s *Scoop) Update(update interface{}) (int64, error) {
+	begin := time.Now()
+
 	if s.coll == nil {
 		err := fmt.Errorf("collection not set, call Collection(model) or use Find/Create first")
 		log.Errorf("err:%v", err)
@@ -447,14 +513,23 @@ func (s *Scoop) Update(update interface{}) (int64, error) {
 	result, err := s.coll.UpdateMany(s.getContext(), s.filter.ToBson(), updateDoc)
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.updateMany(%v, %v)", s.coll.Name(), s.filter.ToBson(), updateDoc), 0
+		}, err)
 		return 0, err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.updateMany(%v, %v)", s.coll.Name(), s.filter.ToBson(), updateDoc), result.ModifiedCount
+	}, nil)
 
 	return result.ModifiedCount, nil
 }
 
 // Delete deletes documents matching the filter
 func (s *Scoop) Delete() (int64, error) {
+	begin := time.Now()
+
 	// Check for injected failures (test only)
 	injector := GetGlobalInjector()
 	if injector.ShouldFailDelete() {
@@ -464,8 +539,15 @@ func (s *Scoop) Delete() (int64, error) {
 	result, err := s.coll.DeleteMany(s.getContext(), s.filter.ToBson())
 	if err != nil {
 		log.Errorf("err:%v", err)
+		s.logger.Log(s.depth, begin, func() (string, int64) {
+			return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), 0
+		}, err)
 		return 0, err
 	}
+
+	s.logger.Log(s.depth, begin, func() (string, int64) {
+		return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), result.DeletedCount
+	}, nil)
 
 	return result.DeletedCount, nil
 }
@@ -485,6 +567,8 @@ func (s *Scoop) Clone() *Scoop {
 		projection:    bson.M{},
 		session:       s.session,
 		notFoundError: s.notFoundError,
+		depth:         s.depth,
+		logger:        s.logger,
 	}
 
 	// Deep copy filter conditions
@@ -628,4 +712,54 @@ func (s *Scoop) Rollback() error {
 
 	s.session.EndSession(context.Background())
 	return nil
+}
+
+// inc increments the depth counter
+func (s *Scoop) inc() {
+	s.depth++
+}
+
+// dec decrements the depth counter
+func (s *Scoop) dec() {
+	s.depth--
+}
+
+// FindByPage finds documents matching the filter with pagination support
+// Returns paginated results along with total count if ShowTotal is true
+func (s *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, error) {
+	if opt == nil {
+		opt = &core.ListOption{
+			Offset: core.DefaultOffset,
+			Limit:  core.DefaultLimit,
+		}
+	}
+
+	s.Offset(int64(opt.Offset)).Limit(int64(opt.Limit))
+
+	page := &core.Paginate{
+		Offset: opt.Offset,
+		Limit:  opt.Limit,
+	}
+
+	s.inc()
+	defer s.dec()
+
+	err := s.Find(values)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	if opt.ShowTotal {
+		// Create a new scoop for counting to avoid modifying the current one's state
+		countScoop := s.Clone()
+		count, err := countScoop.Count()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return nil, err
+		}
+		page.Total = uint64(count)
+	}
+
+	return page, nil
 }
