@@ -15,8 +15,8 @@ type ModelScoop[M any] struct {
 }
 
 // Find finds documents matching the filter and returns typed results
-func (ms *ModelScoop[M]) Find() ([]M, error) {
-	var results []M
+func (ms *ModelScoop[M]) Find() ([]*M, error) {
+	var results []*M
 	findResult := ms.Scoop.Find(&results)
 	if findResult.Error != nil {
 		return nil, findResult.Error
@@ -43,7 +43,7 @@ func (ms *ModelScoop[M]) Count() (int64, error) {
 }
 
 // Create creates a new document
-func (ms *ModelScoop[M]) Create(doc M) error {
+func (ms *ModelScoop[M]) Create(doc *M) error {
 	return ms.Scoop.Create(doc)
 }
 
