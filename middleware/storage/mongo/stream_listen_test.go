@@ -159,7 +159,7 @@ func TestChangeStreamListenWithMultipleOperationTypes(t *testing.T) {
 
 	// Update the document
 	updateScoop := client.NewScoop().Collection(User{}).Equal("email", "multi@example.com")
-	updateScoop.Update(bson.M{"$set": bson.M{"age": 30}})
+	updateScoop.Updates(bson.M{"$set": bson.M{"age": 30}})
 
 	// Wait briefly
 	time.Sleep(200 * time.Millisecond)

@@ -150,7 +150,7 @@ func TestUpdateWithStructMarshaling(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "struct@example.com")
-	updateResult := scoop.Update(UpdateData{
+	updateResult := scoop.Updates(UpdateData{
 		Name: "Updated",
 		Age:  30,
 	}
@@ -189,7 +189,7 @@ func TestUpdateWithOperators(t *testing.T) {
 
 	// Update with MongoDB operators
 	scoop := client.NewScoop().Collection(User{})
-	updateResult := scoop.Update(bson.M{
+	updateResult := scoop.Updates(bson.M{
 		"$inc": bson.M{
 			"age": 5,
 		},
@@ -372,7 +372,7 @@ func TestClientPingSuccessAdvanced(t *testing.T) {
 // TestClientCloseSuccessAdvanced tests successful client close
 func TestClientCloseSuccessAdvanced(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	// Close should succeed
 	err := client.Close()
 	if err != nil {
@@ -433,7 +433,7 @@ func TestScoopUpdateNoMatches(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	updateResult := scoop.Update(bson.M{"$set": bson.M{"age": 99}}
+	updateResult := scoop.Updates(bson.M{"$set": bson.M{"age": 99}}
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with no matches failed: %v", err)

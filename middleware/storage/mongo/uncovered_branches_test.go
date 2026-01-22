@@ -407,7 +407,7 @@ func TestTransactionWithCreateUpdate(t *testing.T) {
 	}
 
 	// Update user (same scoop)
-	updated, err := txScoop.Equal("email", "tx_create@example.com").Update(bson.M{
+	updated, err := txScoop.Equal("email", "tx_create@example.com").Updates(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 		},

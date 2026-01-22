@@ -12,12 +12,12 @@ import (
 // TestCountWithClosedClient tests Count behavior when client is closed
 func TestCountWithClosedClient(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Close the client
 	_ = client.Close()
-	
+
 	// Try to count - should trigger error path
 	count, err := scoop.Count()
 	if err != nil {
@@ -30,12 +30,12 @@ func TestCountWithClosedClient(t *testing.T) {
 // TestDeleteWithClosedClient tests Delete behavior when client is closed
 func TestDeleteWithClosedClient(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Close the client
 	_ = client.Close()
-	
+
 	// Try to delete - should trigger error path
 	deleteResult := scoop.Delete()
 	deleted, err := deleteResult.DocsAffected, deleteResult.Error
@@ -49,10 +49,10 @@ func TestDeleteWithClosedClient(t *testing.T) {
 // TestHealthWithClosedClient tests Health behavior when client is closed
 func TestHealthWithClosedClient(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	// Close the client
 	_ = client.Close()
-	
+
 	// Try to check health - should trigger error path
 	err := client.Health()
 	if err != nil {
@@ -65,10 +65,10 @@ func TestHealthWithClosedClient(t *testing.T) {
 // TestPingWithClosedClient tests Ping behavior when client is closed
 func TestPingWithClosedClient(t *testing.T) {
 	client := newTestClient(t)
-	
+
 	// Close the client
 	_ = client.Close()
-	
+
 	// Try to ping - should trigger error path
 	err := client.Ping()
 	if err != nil {
@@ -90,7 +90,7 @@ func TestFirstWithInvalidFilter(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	
+
 	var result User
 	err := scoop.First(&result)
 	if err != nil {
@@ -156,9 +156,9 @@ func TestUpdateWithInvalidBSON(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "update@example.com")
-	
+
 	// Try update with valid BSON
-	updateResult := scoop.Update(bson.M{
+	updateResult := scoop.Updates(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 		},
@@ -191,7 +191,7 @@ func TestContextTimeout(t *testing.T) {
 
 	// This should timeout but the scoop uses its own context
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Try count
 	count, err := scoop.Count()
 	if err != nil {
@@ -227,7 +227,7 @@ func TestAggregateExecuteWithLargeResult(t *testing.T) {
 
 	scoop := client.NewScoop().Collection(User{})
 	agg := scoop.Aggregate()
-	
+
 	// Execute should handle large result sets
 	var results []bson.M
 	err := agg.Execute(&results)
@@ -251,10 +251,10 @@ func TestExecuteOneWithEmptyResult(t *testing.T) {
 
 	scoop := client.NewScoop().Collection(User{})
 	agg := scoop.Aggregate()
-	
+
 	// Match non-existent documents
 	agg.Match(bson.M{"email": "nonexistent@example.com"})
-	
+
 	var result bson.M
 	err := agg.ExecuteOne(&result)
 	if err != nil {
@@ -276,13 +276,13 @@ func TestChangeStreamWithContextCancel(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	cs, err := scoop.WatchChanges()
 	if err != nil {
 		t.Logf("WatchChanges returned error: %v", err)
 		return
 	}
-	
+
 	// Close immediately
 	cs.Close()
 }
@@ -297,7 +297,7 @@ func TestDatabaseChangeStreamWithContextCancel(t *testing.T) {
 		t.Logf("WatchAllCollections returned error: %v", err)
 		return
 	}
-	
+
 	// Close immediately
 	dcs.Close()
 }

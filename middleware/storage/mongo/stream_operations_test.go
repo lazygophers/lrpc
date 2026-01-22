@@ -393,7 +393,7 @@ func TestCountAfterUpdate(t *testing.T) {
 
 	// Update all to new age
 	updateScoop := client.NewScoop().Collection(User{})
-	_, err := updateScoop.Update(bson.M{"$set": bson.M{"age": 30}})
+	_, err := updateScoop.Updates(bson.M{"$set": bson.M{"age": 30}})
 	if err != nil {
 		t.Logf("update operation result: %v", err)
 	}

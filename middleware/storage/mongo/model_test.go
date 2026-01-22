@@ -174,7 +174,7 @@ func TestModelUpdate(t *testing.T) {
 
 	// Update with model
 	model := NewModel[User](client)
-	count, err := model.NewScoop().Where("email", "test@example.com").Update(bson.M{"age": 30, "name": "Updated User"})
+	count, err := model.NewScoop().Where("email", "test@example.com").Updates(bson.M{"age": 30, "name": "Updated User"})
 
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -396,7 +396,6 @@ func TestModelIsNotFound(t *testing.T) {
 		t.Error("expected IsNotFound to return false for non-not-found error")
 	}
 }
-
 
 // TestGetCollectionNameWithCollectionerInterface tests the Collectioner interface implementation
 func TestGetCollectionNameWithCollectionerInterface(t *testing.T) {

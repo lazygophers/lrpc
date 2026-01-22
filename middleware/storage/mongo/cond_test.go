@@ -317,7 +317,7 @@ func TestCondUpdate(t *testing.T) {
 	// Update with condition
 	cond := Gt("age", 25)
 	scoop := client.NewScoop().Collection(User{}).Where(cond)
-	updateResult := scoop.Update(bson.M{"name": "Updated"})
+	updateResult := scoop.Updates(bson.M{"name": "Updated"})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)

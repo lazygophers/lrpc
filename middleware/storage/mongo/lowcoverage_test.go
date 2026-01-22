@@ -101,7 +101,7 @@ func TestAggregationExecuteOneEmpty(t *testing.T) {
 
 	var result bson.M
 	err := agg.ExecuteOne(&result)
-	
+
 	// When there are no results, ExecuteOne should not error but result will be empty/default
 	if err != nil {
 		// This is acceptable
@@ -378,7 +378,7 @@ func TestScoopUpdateWithZeroResults(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{})
 
 	// Try to update non-existent document
-	updated, err := scoop.Where("email", "nonexistent@example.com").Update(map[string]interface{}{
+	updated, err := scoop.Where("email", "nonexistent@example.com").Updates(map[string]interface{}{
 		"name": "Updated",
 	})
 	if err != nil {

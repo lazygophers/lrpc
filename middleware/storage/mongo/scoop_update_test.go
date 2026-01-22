@@ -29,7 +29,7 @@ func TestUpdateWithBsonM(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := bson.M{"age": 35, "name": "Updated Name"}
-	updateResult := scoop.Update(updateData
+	updateResult := scoop.Updates(updateData)
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -67,7 +67,7 @@ func TestUpdateWithMapOperators(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := map[string]interface{}{"$set": map[string]interface{}{"age": 40}}
-	updateResult := scoop.Update(updateData
+	updateResult := scoop.Updates(updateData)
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -105,7 +105,7 @@ func TestUpdateWithMapNoOperators(t *testing.T) {
 	scoop = scoop.Equal("email", "test@example.com")
 
 	updateData := map[string]interface{}{"age": 45, "name": "Another Update"}
-	updateResult := scoop.Update(updateData
+	updateResult := scoop.Updates(updateData)
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -130,7 +130,7 @@ func TestUpdateWithoutCollection(t *testing.T) {
 	// Create scoop without setting collection
 	scoop := client.NewScoop()
 
-	updateResult := scoop.Update(bson.M{"age": 30}
+	updateResult := scoop.Updates(bson.M{"age": 30})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err == nil {
 		t.Error("expected error when collection not set")
@@ -165,7 +165,7 @@ func TestUpdateMultipleDocuments(t *testing.T) {
 	scoop = scoop.Collection(User{})
 	scoop = scoop.Equal("age", 25)
 
-	updateResult := scoop.Update(bson.M{"status": "updated"}
+	updateResult := scoop.Updates(bson.M{"status": "updated"})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -191,7 +191,7 @@ func TestUpdateZeroResults(t *testing.T) {
 		Collection(User{}).
 		Equal("email", "nonexistent@example.com")
 
-	updateResult := scoop.Update(bson.M{"age": 99}
+	updateResult := scoop.Updates(bson.M{"age": 99})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)

@@ -199,7 +199,7 @@ func TestScoopUpdate(t *testing.T) {
 	scoop = scoop.Collection(User{})
 	scoop = scoop.Equal("email", "test@example.com")
 
-	updateResult := scoop.Update(bson.M{"age": 30, "name": "Updated User"}
+	updateResult := scoop.Updates(bson.M{"age": 30, "name": "Updated User"}
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -935,7 +935,7 @@ func TestScoopLogging(t *testing.T) {
 
 	// Test Update logging
 	scoop = client.NewScoop().Equal("age", 25)
-	updateResult := scoop.Update(bson.M{"name": "Updated User 1"}
+	updateResult := scoop.Updates(bson.M{"name": "Updated User 1"}
 	modified, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("Update failed: %v", err)

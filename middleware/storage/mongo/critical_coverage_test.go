@@ -141,7 +141,7 @@ func TestScoopUpdateMultiple(t *testing.T) {
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	updateResult := scoop.Update(bson.M{"$set": bson.M{"age": 30}})
+	updateResult := scoop.Updates(bson.M{"$set": bson.M{"age": 30}})
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update multiple failed: %v", err)
@@ -350,7 +350,7 @@ func TestScoopUpdateWithBsonM(t *testing.T) {
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "bsonm@example.com")
-	updateResult := scoop.Update(bson.M{
+	updateResult := scoop.Updates(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 			"age":  30,

@@ -283,7 +283,7 @@ func TestUpdateFields(t *testing.T) {
 	// Update specific field
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "update_test@example.com")
 	updated := bson.M{"name": "Updated", "age": 30}
-	updateResult := scoop.Update(updated
+	updateResult := scoop.Updates(updated)
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -304,4 +304,4 @@ func TestCloneScoop(t *testing.T) {
 	if scoop2 == nil {
 		t.Error("expected cloned scoop to be non-nil")
 	}
-})
+}

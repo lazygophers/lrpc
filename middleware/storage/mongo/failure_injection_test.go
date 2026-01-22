@@ -683,7 +683,7 @@ func TestUpdateOperation(t *testing.T) {
 	updateData := User{
 		Age: 26,
 	}
-	updateResult := scoop.Update(&updateData
+	updateResult := scoop.Updates(&updateData)
 	modifiedCount, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Errorf("Expected Update to succeed, got error: %v", err)

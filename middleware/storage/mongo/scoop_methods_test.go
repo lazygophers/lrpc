@@ -360,7 +360,7 @@ func TestUpdateSingleField(t *testing.T) {
 	scoop.Create(user)
 
 	// Update the name
-	updated, err := scoop.Where("email", "test@example.com").Update(map[string]interface{}{
+	updated, err := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
 		"name": "Updated Name",
 	})
 	if err != nil {
@@ -405,7 +405,7 @@ func TestUpdateMultipleFields(t *testing.T) {
 	scoop.Create(user)
 
 	// Update multiple fields
-	updated, err := scoop.Where("email", "test@example.com").Update(map[string]interface{}{
+	updated, err := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
 		"name": "Updated",
 		"age":  30,
 	})

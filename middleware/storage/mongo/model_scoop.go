@@ -3,6 +3,9 @@ package mongo
 import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/lazygophers/log"
+	"github.com/lazygophers/lrpc/middleware/core"
 )
 
 // ModelScoop[M] is a type-safe query builder wrapping Scoop with model-specific methods
@@ -44,10 +47,10 @@ func (ms *ModelScoop[M]) Create(doc M) error {
 	return ms.Scoop.Create(doc)
 }
 
-// Update updates documents matching the filter
-func (ms *ModelScoop[M]) Update(update interface{}) *UpdateResult {
+// Updates updates documents matching the filter
+func (ms *ModelScoop[M]) Updates(update interface{}) *UpdateResult {
 	ms.Scoop.Collection(ms.m)
-	return ms.Scoop.Update(update)
+	return ms.Scoop.Updates(update)
 }
 
 // Delete deletes documents matching the filter
@@ -182,4 +185,14 @@ func (ms *ModelScoop[M]) Skip(skip int64) *ModelScoop[M] {
 func (ms *ModelScoop[M]) Clear() *ModelScoop[M] {
 	ms.Scoop.Clear()
 	return ms
+}
+
+// FindByPage finds documents with pagination and returns typed results
+func (ms *ModelScoop[M]) FindByPage(opt *core.ListOption) (page *core.Paginate, values []*M, err error) {
+	ms.Scoop.Collection(ms.m)
+	page, err = ms.Scoop.FindByPage(opt, &values)
+	if err != nil {
+		log.Errorf("err:%v", err)
+	}
+	return page, values, err
 }

@@ -492,8 +492,8 @@ func (s *Scoop) BatchCreate(docs ...interface{}) error {
 	return nil
 }
 
-// Update updates documents matching the filter and returns an UpdateResult
-func (s *Scoop) Update(update interface{}) *UpdateResult {
+// Updates updates documents matching the filter and returns an UpdateResult
+func (s *Scoop) Updates(update interface{}) *UpdateResult {
 	begin := time.Now()
 
 	if s.coll == nil {
