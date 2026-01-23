@@ -26,8 +26,8 @@ func TestFindAll(t *testing.T) {
 			Email:     "findall" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -63,8 +63,8 @@ func TestFirstWithAllOptions(t *testing.T) {
 			Email:     "first_opt" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -116,10 +116,10 @@ func TestCountWithMultipleConditionTypes(t *testing.T) {
 
 	// Insert test data with specific ages
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "type1@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "type2@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "type3@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "type4@example.com", Name: "David", Age: 40, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "type1@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "type2@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "type3@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "type4@example.com", Name: "David", Age: 40, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -171,8 +171,8 @@ func TestFindWithProjection(t *testing.T) {
 		Email:     "proj@example.com",
 		Name:      "Test User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -211,8 +211,8 @@ func TestCountVariousDataTypes(t *testing.T) {
 			Email:     "dtype" + string(rune(48+i)) + "@example.com",
 			Name:      name,
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -256,8 +256,8 @@ func TestFirstWithMultipleResults(t *testing.T) {
 			Email:     "multi" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -297,8 +297,8 @@ func TestBatchCreateWithMixedTypes(t *testing.T) {
 		Email:     "batch1@example.com",
 		Name:      "User1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	user2 := User{
@@ -306,8 +306,8 @@ func TestBatchCreateWithMixedTypes(t *testing.T) {
 		Email:     "batch2@example.com",
 		Name:      "User2",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.BatchCreate(user1, user2)
@@ -341,8 +341,8 @@ func TestFindWithOrdering(t *testing.T) {
 			Email:     "order" + name + "@example.com",
 			Name:      name,
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 		time.Sleep(10 * time.Millisecond) // Small delay to ensure order
@@ -379,8 +379,8 @@ func TestCountAfterUpdate(t *testing.T) {
 			Email:     "update" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}
@@ -393,9 +393,9 @@ func TestCountAfterUpdate(t *testing.T) {
 
 	// Update all to new age
 	updateScoop := client.NewScoop().Collection(User{})
-	_, err := updateScoop.Updates(bson.M{"$set": bson.M{"age": 30}})
-	if err != nil {
-		t.Logf("update operation result: %v", err)
+	updateResult := updateScoop.Updates(bson.M{"$set": bson.M{"age": 30}})
+	if updateResult.Error != nil {
+		t.Logf("update operation result: %v", updateResult.Error)
 	}
 
 	// Count should still be 5
@@ -444,8 +444,8 @@ func TestFirstWithSpecificField(t *testing.T) {
 		Email:     "target@example.com",
 		Name:      "Target",
 		Age:       99,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", targetUser)
 
@@ -456,8 +456,8 @@ func TestFirstWithSpecificField(t *testing.T) {
 			Email:     "other" + string(rune(48+i)) + "@example.com",
 			Name:      "Other",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

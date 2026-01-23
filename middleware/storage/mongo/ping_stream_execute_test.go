@@ -42,8 +42,8 @@ func TestPingAfterOperations(t *testing.T) {
 		Email:     "ping_after@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.Create(user)
@@ -59,9 +59,9 @@ func TestPingAfterOperations(t *testing.T) {
 
 	// Query
 	var results []User
-	err = scoop.Find(&results)
-	if err != nil {
-		t.Logf("Find error: %v", err)
+	findResult := scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Logf("Find error: %v", findResult.Error)
 	}
 
 	// Ping again
@@ -145,8 +145,8 @@ func TestExecuteOneWithEmptyPipeline(t *testing.T) {
 			Email:     "exec_one_empty_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i*5,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -185,8 +185,8 @@ func TestExecuteOneWithMatchAndProject(t *testing.T) {
 			Email:     "exec_proj_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i*10,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -225,8 +225,8 @@ func TestExecuteOneWithSort(t *testing.T) {
 			Email:     "exec_sort_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       30 - i*5, // 30, 25, 20, 15, 10
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -265,8 +265,8 @@ func TestExecuteWithComplexAggregation(t *testing.T) {
 			Email:     "complex_agg_" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -327,8 +327,8 @@ func TestExecuteWithLimitStage(t *testing.T) {
 			Email:     "limit_test_" + string(rune(48+(i%10))) + "_" + string(rune(48+i/10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -368,8 +368,8 @@ func TestExecuteWithSkipAndLimit(t *testing.T) {
 			Email:     "skip_limit_" + fmt.Sprintf("%02d", i) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -411,8 +411,8 @@ func TestContinuousOperations(t *testing.T) {
 			Email:     "continuous_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 
 		err := scoop.Create(user)
@@ -448,8 +448,8 @@ func TestExecuteWithFacetStage(t *testing.T) {
 			Email:     "facet_" + string(rune(48+(i%10))) + "_" + string(rune(48+i/10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -493,8 +493,8 @@ func TestContextWithTimeout(t *testing.T) {
 		Email:     "timeout@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 

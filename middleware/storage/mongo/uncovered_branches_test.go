@@ -25,8 +25,8 @@ func TestCountErrorHandling(t *testing.T) {
 		Email:     "count_error@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -60,8 +60,8 @@ func TestDeleteErrorHandling(t *testing.T) {
 			Email:     "delete_error_" + string(rune(48+i)) + "@example.com",
 			Name:      "Test",
 			Age:       25 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -137,8 +137,8 @@ func TestCommitAfterBegin(t *testing.T) {
 		Email:     "transaction@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	err = txScoop.Create(user)
 	if err != nil {
@@ -176,8 +176,8 @@ func TestRollbackAfterBegin(t *testing.T) {
 		Email:     "rollback_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	err = txScoop.Create(user)
 	if err != nil {
@@ -294,8 +294,8 @@ func TestCountEdgeCases(t *testing.T) {
 		Email:     "edge1@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -335,12 +335,11 @@ func TestDeleteEdgeCases(t *testing.T) {
 	// Test 1: Delete from empty collection
 	scoop := client.NewScoop().Collection(User{})
 	deleteResult := scoop.Delete()
-	deleted, err := deleteResult.DocsAffected, deleteResult.Error
-	if err != nil {
-		t.Logf("Delete from empty collection failed: %v", err)
+	if deleteResult.Error != nil {
+		t.Logf("Delete from empty collection failed: %v", deleteResult.Error)
 	}
-	if deleted != 0 {
-		t.Errorf("Expected 0 deleted on empty collection, got %d", deleted)
+	if deleteResult.DocsAffected != 0 {
+		t.Errorf("Expected 0 deleted on empty collection, got %d", deleteResult.DocsAffected)
 	}
 
 	// Test 2: Insert and delete all
@@ -350,27 +349,27 @@ func TestDeleteEdgeCases(t *testing.T) {
 			Email:     "del_edge_" + string(rune(48+i)) + "@example.com",
 			Name:      "Test",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
 
-	deleted, err = scoop.Delete()
-	if err != nil {
-		t.Logf("Delete all failed: %v", err)
+	deleteResult = scoop.Delete()
+	if deleteResult.Error != nil {
+		t.Logf("Delete all failed: %v", deleteResult.Error)
 	}
-	if deleted != 3 {
-		t.Errorf("Expected 3 deleted, got %d", deleted)
+	if deleteResult.DocsAffected != 3 {
+		t.Errorf("Expected 3 deleted, got %d", deleteResult.DocsAffected)
 	}
 
 	// Test 3: Delete with no matches
-	deleted, err = scoop.Delete()
-	if err != nil {
-		t.Logf("Delete from empty collection (after previous delete) failed: %v", err)
+	deleteResult = scoop.Delete()
+	if deleteResult.Error != nil {
+		t.Logf("Delete from empty collection (after previous delete) failed: %v", deleteResult.Error)
 	}
-	if deleted != 0 {
-		t.Errorf("Expected 0 deleted (no matches), got %d", deleted)
+	if deleteResult.DocsAffected != 0 {
+		t.Errorf("Expected 0 deleted (no matches), got %d", deleteResult.DocsAffected)
 	}
 }
 
@@ -398,8 +397,8 @@ func TestTransactionWithCreateUpdate(t *testing.T) {
 		Email:     "tx_create@example.com",
 		Name:      "Original",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	err = txScoop.Create(user)
 	if err != nil {
@@ -407,15 +406,15 @@ func TestTransactionWithCreateUpdate(t *testing.T) {
 	}
 
 	// Update user (same scoop)
-	updated, err := txScoop.Equal("email", "tx_create@example.com").Updates(bson.M{
+	updateResult := txScoop.Equal("email", "tx_create@example.com").Updates(bson.M{
 		"$set": bson.M{
 			"name": "Updated",
 		},
 	})
-	if err != nil {
-		t.Logf("Update in transaction failed: %v", err)
-	} else if updated != 1 {
-		t.Logf("Expected 1 updated, got %d", updated)
+	if updateResult.Error != nil {
+		t.Logf("Update in transaction failed: %v", updateResult.Error)
+	} else if updateResult.DocsAffected != 1 {
+		t.Logf("Expected 1 updated, got %d", updateResult.DocsAffected)
 	}
 
 	// Commit transaction

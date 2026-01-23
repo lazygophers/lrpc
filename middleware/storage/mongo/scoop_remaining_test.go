@@ -29,8 +29,8 @@ func TestCountWithSpecialConditions(t *testing.T) {
 			Email:     "count" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}
@@ -79,9 +79,9 @@ func TestFirstWithComplexSort(t *testing.T) {
 
 	// Insert test data
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "first1@example.com", Name: "Charlie", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "first2@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "first3@example.com", Name: "Bob", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "first1@example.com", Name: "Charlie", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "first2@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "first3@example.com", Name: "Bob", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	for _, u := range users {
 		InsertTestData(t, client, "users", u)
@@ -130,8 +130,8 @@ func TestFirstWithFilterAndSort(t *testing.T) {
 			Email:     "filter" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -171,8 +171,8 @@ func TestBatchCreateWithLargeData(t *testing.T) {
 			Email:     "batch" + string(rune(48+i%10)) + string(rune(48+i/10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 	}
 
@@ -208,16 +208,16 @@ func TestBatchCreateWithDuplicateID(t *testing.T) {
 			Email:     "dup1@example.com",
 			Name:      "User 1",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		},
 		User{
 			ID:        id,
 			Email:     "dup2@example.com",
 			Name:      "User 2",
 			Age:       30,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		},
 	}
 
@@ -246,8 +246,8 @@ func TestAggregationWithMultipleStages(t *testing.T) {
 			Email:     "agg" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -301,8 +301,8 @@ func TestAggregationWithGroup(t *testing.T) {
 			Email:     "group" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -344,8 +344,8 @@ func TestAggregationExecuteOneSingleResult(t *testing.T) {
 		Email:     "single@example.com",
 		Name:      "Single User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -405,9 +405,9 @@ func TestScoopFindWithSortField(t *testing.T) {
 
 	// Insert data
 	data := []User{
-		{ID: primitive.NewObjectID(), Email: "sort_multi1@example.com", Name: "Alice", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "sort_multi2@example.com", Name: "Bob", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "sort_multi3@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "sort_multi1@example.com", Name: "Alice", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "sort_multi2@example.com", Name: "Bob", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "sort_multi3@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	for _, u := range data {
 		InsertTestData(t, client, "users", u)
@@ -445,8 +445,8 @@ func TestCountWithCombinedConditions(t *testing.T) {
 			Email:     "combined" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -565,8 +565,8 @@ func TestCondComplexChaining(t *testing.T) {
 			Email:     "chaining" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 10),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -604,8 +604,8 @@ func TestFindWithSkip(t *testing.T) {
 			Email:     "skip" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -642,8 +642,8 @@ func TestFindWithLimitAndSkip(t *testing.T) {
 			Email:     "limskip" + string(rune(48+i%10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -691,8 +691,8 @@ func TestExistWithResults(t *testing.T) {
 		Email:     "exist@example.com",
 		Name:      "Exists",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 

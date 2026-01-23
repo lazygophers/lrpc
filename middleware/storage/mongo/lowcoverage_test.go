@@ -56,11 +56,11 @@ func TestAggregationExecuteOneWithResults(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	model := NewModel[User](client)
-	model.NewScoop().Create(user)
+	model.NewScoop().Create(&user)
 
 	// Test ExecuteOne
 	scoop := model.NewScoop().GetScoop()
@@ -128,11 +128,11 @@ func TestAggregationProjectFields(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	model := NewModel[User](client)
-	model.NewScoop().Create(user)
+	model.NewScoop().Create(&user)
 
 	// Test with projection
 	scoop := model.NewScoop().GetScoop()
@@ -232,10 +232,10 @@ func TestScoopCountWithLargeDataset(t *testing.T) {
 			Email:     "user" + string(rune('0'+i/10)) + string(rune('0'+i%10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
-		scoop.Create(user)
+		scoop.Create(&user)
 	}
 
 	// Count all
@@ -272,13 +272,13 @@ func TestScoopFirstWithFilter(t *testing.T) {
 
 	// Create multiple users
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
-		scoop.Create(user)
+		scoop.Create(&user)
 	}
 
 	// First with filter
@@ -312,10 +312,10 @@ func TestScoopFindWithProjection(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
-	scoop.Create(user)
+	scoop.Create(&user)
 
 	// Find with Select (projection)
 	var found []User
@@ -344,9 +344,9 @@ func TestScoopBatchCreateWithMultiple(t *testing.T) {
 
 	// Create multiple documents in one call
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	err := scoop.BatchCreate(users...)
@@ -378,14 +378,14 @@ func TestScoopUpdateWithZeroResults(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{})
 
 	// Try to update non-existent document
-	updated, err := scoop.Where("email", "nonexistent@example.com").Updates(map[string]interface{}{
+	result := scoop.Where("email", "nonexistent@example.com").Updates(map[string]interface{}{
 		"name": "Updated",
 	})
-	if err != nil {
-		t.Fatalf("update failed: %v", err)
+	if result.Error != nil {
+		t.Fatalf("update failed: %v", result.Error)
 	}
-	if updated != 0 {
-		t.Errorf("expected 0 updated, got %d", updated)
+	if result.DocsAffected != 0 {
+		t.Errorf("expected 0 updated, got %d", result.DocsAffected)
 	}
 }
 
@@ -409,10 +409,10 @@ func TestScoopFindWithLimit(t *testing.T) {
 			Email:     "user" + string(rune('0'+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
-		scoop.Create(user)
+		scoop.Create(&user)
 	}
 
 	// Find with limit
@@ -447,10 +447,10 @@ func TestScoopFindWithSkip(t *testing.T) {
 			Email:     "user" + string(rune('0'+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
-		scoop.Create(user)
+		scoop.Create(&user)
 	}
 
 	// Find with skip

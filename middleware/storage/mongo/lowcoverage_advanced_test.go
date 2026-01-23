@@ -25,8 +25,8 @@ func TestScoopFirstWithProjection(t *testing.T) {
 		Email:     "proj@example.com",
 		Name:      "Test User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -61,8 +61,8 @@ func TestScoopFirstWithSort(t *testing.T) {
 			Email:     "sort" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -99,8 +99,8 @@ func TestCountWithComplexConditions(t *testing.T) {
 			Email:     "complex" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -138,8 +138,8 @@ func TestUpdateWithStructMarshaling(t *testing.T) {
 		Email:     "struct@example.com",
 		Name:      "Original",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -182,8 +182,8 @@ func TestUpdateWithOperators(t *testing.T) {
 		Email:     "ops@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -222,8 +222,8 @@ func TestDeleteWithComplexFilterAdvanced(t *testing.T) {
 			Email:     "del" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -485,8 +485,8 @@ func TestScoopFirstWithOffset(t *testing.T) {
 			Email:     "offset" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -528,8 +528,8 @@ func TestCountWithLimitAndOffset(t *testing.T) {
 			Email:     "countlimit" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -599,8 +599,8 @@ func TestScoopWithMultipleFiltersChained(t *testing.T) {
 			Email:     "chain" + string(rune(48+i)) + "@example.com",
 			Name:      "User" + string(rune(48+i)),
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

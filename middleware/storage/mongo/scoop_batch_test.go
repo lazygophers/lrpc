@@ -20,8 +20,8 @@ func TestCreateWithError(t *testing.T) {
 		Email:     "noexist@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.Create(user)
@@ -61,8 +61,8 @@ func TestBatchCreateSingleDocument(t *testing.T) {
 		Email:     "single@example.com",
 		Name:      "Single",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.BatchCreate(user)
@@ -90,8 +90,8 @@ func TestUpdateWithoutFilter(t *testing.T) {
 
 	// Insert some test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "all1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "all2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "all1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "all2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -120,7 +120,7 @@ func TestUpdateWithNullValue(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "null@example.com", Name: "Test", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "null@example.com", Name: "Test", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Update with null/empty value
@@ -191,8 +191,8 @@ func TestDeleteAll(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "del_all1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "del_all2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "del_all1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "del_all2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -228,9 +228,9 @@ func TestDeleteWithComplexFilter(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "complex1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "complex2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "complex3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "complex1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "complex2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "complex3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -261,8 +261,8 @@ func TestCloneWithFilters(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "clone1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "clone2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "clone1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "clone2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -303,8 +303,8 @@ func TestCloneWithSortAndLimit(t *testing.T) {
 			Email:     "sort_limit" + string(rune(48+i)) + "@example.com",
 			Name:      "User " + string(rune(48+i)),
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -368,7 +368,7 @@ func TestRollback(t *testing.T) {
 	}
 
 	// Try to create document in transaction
-	user := User{ID: primitive.NewObjectID(), Email: "tx@example.com", Name: "TX User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "tx@example.com", Name: "TX User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	txScoop.Collection(User{})
 	_ = txScoop.Create(user)
 
@@ -404,7 +404,7 @@ func TestCommit(t *testing.T) {
 	}
 
 	// Try to create document in transaction
-	user := User{ID: primitive.NewObjectID(), Email: "commit@example.com", Name: "Commit User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "commit@example.com", Name: "Commit User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	txScoop.Collection(User{})
 	_ = txScoop.Create(user)
 
@@ -436,8 +436,8 @@ func TestFirstWithSort(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "first_sort1@example.com", Name: "User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "first_sort2@example.com", Name: "User", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "first_sort1@example.com", Name: "User", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "first_sort2@example.com", Name: "User", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 

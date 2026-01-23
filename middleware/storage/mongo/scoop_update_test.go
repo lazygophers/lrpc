@@ -20,7 +20,7 @@ func TestUpdateWithBsonM(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Update with bson.M
@@ -58,7 +58,7 @@ func TestUpdateWithMapOperators(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Update with map operators ($set)
@@ -96,7 +96,7 @@ func TestUpdateWithMapNoOperators(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Update with plain map
@@ -154,9 +154,9 @@ func TestUpdateMultipleDocuments(t *testing.T) {
 
 	// Insert multiple test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 

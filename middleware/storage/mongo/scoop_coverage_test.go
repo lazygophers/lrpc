@@ -20,8 +20,8 @@ func TestFirstWithResults(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -51,10 +51,10 @@ func TestCountWithFilters(t *testing.T) {
 
 	// Insert test data with different ages
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user4@example.com", Name: "User 4", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user4@example.com", Name: "User 4", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -94,9 +94,9 @@ func TestDeleteWithFilters(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -137,9 +137,9 @@ func TestFindWithMultipleFilters(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -168,7 +168,7 @@ func TestFindWithSelectProjection(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Find with projection
@@ -197,9 +197,9 @@ func TestCloneAndModifyIndependently(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -253,9 +253,9 @@ func TestSortDescendingMultiple(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "Bob", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "Charlie", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "Bob", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "Charlie", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -289,7 +289,7 @@ func TestExistFiltered(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Test exist with matching filter
@@ -328,8 +328,8 @@ func TestCondEqualOperator(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -360,8 +360,8 @@ func TestCondNeOperator(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -396,8 +396,8 @@ func TestClearScoop(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 

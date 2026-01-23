@@ -70,8 +70,8 @@ func TestCountSingleItemPathway(t *testing.T) {
 		Email:     "count_pathway_single@example.com",
 		Name:      "User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -102,8 +102,8 @@ func TestCountManyItemsPathway(t *testing.T) {
 			Email:     fmt.Sprintf("count_pathway_many_%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -156,8 +156,8 @@ func TestDeleteSingleItemPathway(t *testing.T) {
 		Email:     "delete_pathway_single@example.com",
 		Name:      "User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -189,8 +189,8 @@ func TestDeleteManyItemsPathway(t *testing.T) {
 			Email:     fmt.Sprintf("delete_pathway_many_%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

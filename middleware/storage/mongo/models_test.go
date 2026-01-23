@@ -170,10 +170,9 @@ type User struct {
 	Email     string      `bson:"email"`
 	Name      string      `bson:"name"`
 	Age       int         `bson:"age"`
-	CreatedAt time.Time   `bson:"createdAt"`
-	UpdatedAt time.Time   `bson:"updatedAt"`
+	CreatedAt int64       `bson:"createdAt"`
+	UpdatedAt int64       `bson:"updatedAt"`
 }
-
 
 // CustomUser is a test model that implements the Collectioner interface
 type CustomUser struct {
@@ -181,8 +180,8 @@ type CustomUser struct {
 	Email     string      `bson:"email"`
 	Name      string      `bson:"name"`
 	Age       int         `bson:"age"`
-	CreatedAt time.Time   `bson:"createdAt"`
-	UpdatedAt time.Time   `bson:"updatedAt"`
+	CreatedAt int64       `bson:"createdAt"`
+	UpdatedAt int64       `bson:"updatedAt"`
 }
 
 // Collection implements the Collectioner interface for CustomUser
@@ -194,8 +193,8 @@ func (c CustomUser) Collection() string {
 type NoCollectionUser struct {
 	ID        interface{} `bson:"_id,omitempty"`
 	Email     string      `bson:"email"`
-	CreatedAt time.Time   `bson:"createdAt"`
-	UpdatedAt time.Time   `bson:"updatedAt"`
+	CreatedAt int64       `bson:"createdAt"`
+	UpdatedAt int64       `bson:"updatedAt"`
 }
 
 // Post is a test post model
@@ -204,8 +203,8 @@ type Post struct {
 	UserID    interface{} `bson:"userId"`
 	Title     string      `bson:"title"`
 	Content   string      `bson:"content"`
-	CreatedAt time.Time   `bson:"createdAt"`
-	UpdatedAt time.Time   `bson:"updatedAt"`
+	CreatedAt int64       `bson:"createdAt"`
+	UpdatedAt int64       `bson:"updatedAt"`
 }
 
 // Comment is a test comment model
@@ -214,8 +213,8 @@ type Comment struct {
 	PostID    interface{} `bson:"postId"`
 	UserID    interface{} `bson:"userId"`
 	Content   string      `bson:"content"`
-	CreatedAt time.Time   `bson:"createdAt"`
-	UpdatedAt time.Time   `bson:"updatedAt"`
+	CreatedAt int64       `bson:"createdAt"`
+	UpdatedAt int64       `bson:"updatedAt"`
 }
 
 // Collection returns the collection name for User

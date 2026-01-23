@@ -179,11 +179,11 @@ func TestClientInsertAndFind(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
-	err := model.NewScoop().Create(user)
+	err := model.NewScoop().Create(&user)
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
 	}
@@ -215,13 +215,13 @@ func TestClientConcurrentOperations(t *testing.T) {
 
 	// Insert multiple documents
 	docs := []User{
-		{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, doc := range docs {
-		err := model.NewScoop().Create(doc)
+		err := model.NewScoop().Create(&doc)
 		if err != nil {
 			t.Fatalf("create failed: %v", err)
 		}
@@ -246,8 +246,8 @@ func TestClientWithDifferentDatabases(t *testing.T) {
 	model := NewModel[User](client)
 
 	// Insert test data
-	user1 := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
-	err := model.NewScoop().Create(user1)
+	user1 := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
+	err := model.NewScoop().Create(&user1)
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
 	}

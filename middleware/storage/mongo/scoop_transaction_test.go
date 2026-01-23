@@ -95,8 +95,8 @@ func TestTransactionWithInsertAndRollback(t *testing.T) {
 		Email:     "tx@example.com",
 		Name:      "Transaction User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -146,8 +146,8 @@ func TestTransactionWithInsertAndCommit(t *testing.T) {
 		Email:     "commit@example.com",
 		Name:      "Commit User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -249,9 +249,9 @@ func TestWhereAndFirstChaining(t *testing.T) {
 
 	// Create test documents
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {

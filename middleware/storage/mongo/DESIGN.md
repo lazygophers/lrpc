@@ -482,12 +482,12 @@ type Model[M any] struct {
 ```go
 // 数据模型
 type User struct {
-    ID        ObjectID  `bson:"_id"`
-    Email     string    `bson:"email"`
-    Name      string    `bson:"name"`
-    Age       int       `bson:"age"`
-    Status    string    `bson:"status"`
-    CreatedAt time.Time `bson:"createdAt"`
+    ID        ObjectID `bson:"_id"`
+    Email     string   `bson:"email"`
+    Name      string   `bson:"name"`
+    Age       int      `bson:"age"`
+    Status    string   `bson:"status"`
+    CreatedAt int64    `bson:"createdAt"`  // Unix 时间戳，单位为秒
 }
 
 func (u User) Collection() string {

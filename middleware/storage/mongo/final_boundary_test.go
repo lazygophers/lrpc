@@ -16,10 +16,10 @@ func TestFindWithNilCollection(t *testing.T) {
 
 	scoop := client.NewScoop()
 	// Don't set collection explicitly
-	
+
 	var results []User
 	err := scoop.Find(&results)
-	
+
 	// Should return an error about collection not being set
 	if err != nil {
 		t.Logf("Find with nil collection returned error (expected): %v", err)
@@ -45,19 +45,19 @@ func TestFindWithInvalidProjection(t *testing.T) {
 		Email:     "projection@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Test with negative limit (invalid)
 	scoop.Limit(-1)
-	
+
 	var results []User
 	err := scoop.Find(&results)
-	
+
 	if err != nil {
 		t.Logf("Find with negative limit returned error: %v", err)
 	} else {
@@ -83,8 +83,8 @@ func TestFindWithComplexFilter(t *testing.T) {
 			Email:     "complex_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i*5,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -124,24 +124,24 @@ func TestFindWithContextCancellation(t *testing.T) {
 			Email:     "cancel_" + string(rune(48+i%10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i%30,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
 
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Create a cancellation context but use normal scoop context
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
-	
+
 	_ = ctx // Use ctx to avoid unused variable
-	
+
 	var results []User
 	// Note: scoop uses its own context, not the cancelled one
 	err := scoop.Find(&results)
-	
+
 	if err != nil {
 		t.Logf("Find with cancelled context returned error: %v", err)
 	} else {
@@ -161,20 +161,20 @@ func TestBeginWithNoSession(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{})
-	
+
 	// Try to begin transaction
 	txScoop, err := scoop.Begin()
-	
+
 	if err != nil {
 		t.Logf("Begin returned error: %v", err)
 		return
 	}
-	
+
 	if txScoop == nil {
 		t.Error("Begin returned nil scoop")
 		return
 	}
-	
+
 	// Try to commit
 	err = txScoop.Commit()
 	if err != nil {
@@ -215,8 +215,8 @@ func TestBeginThenCommit(t *testing.T) {
 		Email:     "txn@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -251,24 +251,24 @@ func TestAggregateExecuteWithInvalidPipeline(t *testing.T) {
 			Email:     "agg_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i*5,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
 
 	scoop := client.NewScoop().Collection(User{})
 	agg := scoop.Aggregate()
-	
+
 	// Add a $match stage
 	agg.Match(bson.M{"age": bson.M{"$gt": 20}})
-	
+
 	// Add an invalid $group stage (missing _id)
 	agg.AddStage(bson.M{"$group": bson.M{"count": 1}})
-	
+
 	var results []bson.M
 	err := agg.Execute(&results)
-	
+
 	if err != nil {
 		t.Logf("Execute with invalid pipeline returned error (expected): %v", err)
 	} else {
@@ -294,22 +294,22 @@ func TestAggregateExecuteOneWithInvalidPipeline(t *testing.T) {
 			Email:     "agg_one_" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i*5,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
 
 	scoop := client.NewScoop().Collection(User{})
 	agg := scoop.Aggregate()
-	
+
 	// Add stages that might cause issues
 	agg.Match(bson.M{"email": "nonexistent@example.com"})
 	agg.Limit(1)
-	
+
 	var result bson.M
 	err := agg.ExecuteOne(&result)
-	
+
 	if err != nil {
 		t.Logf("ExecuteOne returned error: %v", err)
 	} else {
@@ -329,10 +329,10 @@ func TestFindWithEmptyResult(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	
+
 	var results []User
 	err := scoop.Find(&results)
-	
+
 	if err != nil {
 		t.Errorf("Find with empty result returned error: %v", err)
 	} else if len(results) != 0 {
@@ -360,8 +360,8 @@ func TestFindWithSingleSort(t *testing.T) {
 			Email:     "sort_" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User" + string(rune(48+i)),
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now().Add(-time.Duration(i) * time.Hour),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Add(-time.Duration(i) * time.Hour).Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -399,18 +399,18 @@ func TestFindWithProjectionAndSort(t *testing.T) {
 		Email:     "proj_sort@example.com",
 		Name:      "Test",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
 	scoop := client.NewScoop().Collection(User{})
 	scoop.Select("name", "email", "age")
 	scoop.Sort("age", -1)
-	
+
 	var results []User
 	err := scoop.Find(&results)
-	
+
 	if err != nil {
 		t.Errorf("Find with projection and sort returned error: %v", err)
 	} else if len(results) == 0 {

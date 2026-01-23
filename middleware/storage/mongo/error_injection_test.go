@@ -118,8 +118,8 @@ func TestCountWithLargeCollection(t *testing.T) {
 			Email:     "large_" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       25 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -150,8 +150,8 @@ func TestUpdateWithInvalidBSON(t *testing.T) {
 		Email:     "update@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -219,8 +219,8 @@ func TestAggregateExecuteWithLargeResult(t *testing.T) {
 			Email:     "agg_" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 40),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -338,8 +338,8 @@ func TestFindWithMultipleConditions(t *testing.T) {
 			Email:     "find_" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

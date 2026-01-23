@@ -14,6 +14,7 @@ type Client struct {
 	cfg      *Config
 	client   *mongo.Client
 	database string
+	db       *mongo.Database
 }
 
 // New creates a new MongoDB client with the given configuration
@@ -49,13 +50,17 @@ func New(cfg *Config) (*Client, error) {
 		return nil, err
 	}
 
+	db := mongoClient.Database(cfg.Database)
+	log.Infof("MongoDB database instance for '%s': %v", cfg.Database, db)
+
 	c := &Client{
 		cfg:      cfg,
 		client:   mongoClient,
 		database: cfg.Database,
+		db:       db,
 	}
 
-	log.Infof("successfully connected to MongoDB: %s:%d", cfg.Address, cfg.Port)
+	log.Infof("successfully connected to MongoDB: %s:%d, database: %s", cfg.Address, cfg.Port, cfg.Database)
 
 	return c, nil
 }
@@ -145,31 +150,22 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	collectionName := collectioner.Collection()
 	log.Infof("auto migrate collection %s", collectionName)
 
-	// Use the client's database instance directly instead of mgm.DefaultConfigs()
-	db := c.client.Database(c.database)
-	if db == nil {
-		return fmt.Errorf("failed to get database instance for %s", c.database)
-	}
-
 	// Check if collection exists
-	collections, err := db.ListCollectionNames(context.Background(), nil)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return err
-	}
+	collections, err := c.db.ListCollectionNames(context.Background(), nil)
 
-	// Check if the specific collection exists
 	collectionExists := false
-	for _, name := range collections {
-		if name == collectionName {
-			collectionExists = true
-			break
+	if err == nil {
+		for _, name := range collections {
+			if name == collectionName {
+				collectionExists = true
+				break
+			}
 		}
 	}
 
-	// If collection doesn't exist, create it
+	// If collection doesn't exist or couldn't verify, create it
 	if !collectionExists {
-		err = db.CreateCollection(context.Background(), collectionName)
+		err = c.db.CreateCollection(context.Background(), collectionName)
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return err
@@ -182,7 +178,7 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	if indexer, ok := model.(interface{ Indexes() []mongo.IndexModel }); ok {
 		indexes := indexer.Indexes()
 		if len(indexes) > 0 {
-			coll := db.Collection(collectionName)
+			coll := c.db.Collection(collectionName)
 			_, err = coll.Indexes().CreateMany(context.Background(), indexes)
 			if err != nil {
 				log.Errorf("err:%v", err)

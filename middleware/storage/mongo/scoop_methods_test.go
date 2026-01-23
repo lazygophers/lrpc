@@ -26,8 +26,8 @@ func TestCreateVariousTypes(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.Collection(User{}).Create(user)
@@ -74,9 +74,9 @@ func TestCreateMultipleDocumentsSequentially(t *testing.T) {
 	scoop := client.NewScoop().Collection(User{})
 
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 26, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 27, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 26, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 27, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
@@ -138,8 +138,8 @@ func TestCountAfterCreate(t *testing.T) {
 			Email:     "user" + string(rune(i)) + "@example.com",
 			Name:      "User " + string(rune(i)),
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		err := scoop.Create(user)
 		if err != nil {
@@ -178,8 +178,8 @@ func TestCountWithComplexFilters(t *testing.T) {
 			Email:     "user" + string(rune(i)) + "@example.com",
 			Name:      "User " + string(rune(i)),
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		err := scoop.Create(user)
 		if err != nil {
@@ -217,8 +217,8 @@ func TestDeleteWithoutFilters(t *testing.T) {
 			Email:     "user" + string(rune(i)) + "@example.com",
 			Name:      "User " + string(rune(i)),
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}
@@ -263,8 +263,8 @@ func TestDeleteSpecificDocuments(t *testing.T) {
 			Email:     "test" + string('0'+rune(i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}
@@ -273,14 +273,14 @@ func TestDeleteSpecificDocuments(t *testing.T) {
 	deleteScoop := client.NewScoop().Collection(User{})
 
 	// Delete documents with age >= 23 (that's ages 23, 24)
-	deleted, err := deleteScoop.Where("age", map[string]interface{}{"$gte": 23}).Delete()
-	if err != nil {
-		t.Fatalf("failed to delete with filter: %v", err)
+	deleteResult := deleteScoop.Where("age", map[string]interface{}{"$gte": 23}).Delete()
+	if deleteResult.Error != nil {
+		t.Fatalf("failed to delete with filter: %v", deleteResult.Error)
 	}
 
 	// Verify we deleted the expected number
-	if deleted != 2 {
-		t.Errorf("expected 2 deleted, got %d", deleted)
+	if deleteResult.DocsAffected != 2 {
+		t.Errorf("expected 2 deleted, got %d", deleteResult.DocsAffected)
 	}
 
 	// Count remaining documents
@@ -312,18 +312,18 @@ func TestDeleteSingleDocument(t *testing.T) {
 		Email:     "target@example.com",
 		Name:      "Target User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	scoop.Create(user)
 
 	// Delete the specific user
-	deleted, err := scoop.Where("email", "target@example.com").Delete()
-	if err != nil {
-		t.Fatalf("failed to delete: %v", err)
+	deleteResult := scoop.Where("email", "target@example.com").Delete()
+	if deleteResult.Error != nil {
+		t.Fatalf("failed to delete: %v", deleteResult.Error)
 	}
-	if deleted != 1 {
-		t.Errorf("expected 1 deleted, got %d", deleted)
+	if deleteResult.DocsAffected != 1 {
+		t.Errorf("expected 1 deleted, got %d", deleteResult.DocsAffected)
 	}
 
 	// Verify deletion
@@ -354,20 +354,20 @@ func TestUpdateSingleField(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Original Name",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	scoop.Create(user)
 
 	// Update the name
-	updated, err := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
+	updateResult := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
 		"name": "Updated Name",
 	})
-	if err != nil {
-		t.Fatalf("failed to update: %v", err)
+	if updateResult.Error != nil {
+		t.Fatalf("failed to update: %v", updateResult.Error)
 	}
-	if updated != 1 {
-		t.Errorf("expected 1 updated, got %d", updated)
+	if updateResult.DocsAffected != 1 {
+		t.Errorf("expected 1 updated, got %d", updateResult.DocsAffected)
 	}
 
 	// Verify the update
@@ -399,21 +399,21 @@ func TestUpdateMultipleFields(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Original",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	scoop.Create(user)
 
 	// Update multiple fields
-	updated, err := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
+	updateResult := scoop.Where("email", "test@example.com").Updates(map[string]interface{}{
 		"name": "Updated",
 		"age":  30,
 	})
-	if err != nil {
-		t.Fatalf("failed to update: %v", err)
+	if updateResult.Error != nil {
+		t.Fatalf("failed to update: %v", updateResult.Error)
 	}
-	if updated != 1 {
-		t.Errorf("expected 1 updated, got %d", updated)
+	if updateResult.DocsAffected != 1 {
+		t.Errorf("expected 1 updated, got %d", updateResult.DocsAffected)
 	}
 
 	// Verify both fields were updated
@@ -447,8 +447,8 @@ func TestCountIsZeroAfterDeleteAll(t *testing.T) {
 			Email:     "user" + string(rune(i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}

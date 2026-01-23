@@ -21,8 +21,8 @@ func TestScoopFind(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -56,7 +56,7 @@ func TestScoopFirst(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// FindOne with scoop
@@ -66,7 +66,7 @@ func TestScoopFirst(t *testing.T) {
 	var result User
 	firstResult := scoop.First(&result)
 	if firstResult.Error != nil {
-		t.Fatalf("find one failed: %v", err)
+		t.Fatalf("find one failed: %v", firstResult.Error)
 	}
 
 	if result.Email != "test@example.com" {
@@ -86,9 +86,9 @@ func TestScoopCount(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -117,7 +117,7 @@ func TestScoopExist(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Test exist
@@ -167,8 +167,8 @@ func TestScoopCreate(t *testing.T) {
 		Email:     "newuser@example.com",
 		Name:      "New User",
 		Age:       28,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.Create(user)
@@ -191,7 +191,7 @@ func TestScoopUpdate(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Update with scoop
@@ -228,8 +228,8 @@ func TestScoopDelete(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -243,8 +243,8 @@ func TestScoopDelete(t *testing.T) {
 		t.Fatalf("delete failed: %v", deleteResult.Error)
 	}
 
-	if count != 2 {
-		t.Errorf("expected 2 deleted documents, got %d", count)
+	if deleteResult.DocsAffected != 2 {
+		t.Errorf("expected 2 deleted documents, got %d", deleteResult.DocsAffected)
 	}
 
 	// Verify
@@ -263,9 +263,9 @@ func TestScoopLimitOffset(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -295,7 +295,7 @@ func TestScoopSelect(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Find with select
@@ -325,9 +325,9 @@ func TestScoopComparison(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -371,9 +371,9 @@ func TestScoopIn(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -394,9 +394,9 @@ func TestScoopIn(t *testing.T) {
 	scoop = client.NewScoop()
 	scoop = scoop.NotIn("age", 25, 30)
 	results = nil
-	err = scoop.Find(&results)
-	if err != nil {
-		t.Fatalf("find failed: %v", err)
+	findResult = scoop.Find(&results)
+	if findResult.Error != nil {
+		t.Fatalf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 1 {
@@ -417,9 +417,9 @@ func TestSortAscending(t *testing.T) {
 
 	// Insert test data with different ages
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -454,9 +454,9 @@ func TestSortDescending(t *testing.T) {
 
 	// Insert test data with different ages
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -490,9 +490,9 @@ func TestScoopGte(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -520,9 +520,9 @@ func TestScoopLte(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -550,9 +550,9 @@ func TestScoopLike(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "other@example.com", Name: "Other User", Age: 20, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "demo@example.com", Name: "Demo User", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "other@example.com", Name: "Other User", Age: 20, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -561,7 +561,7 @@ func TestScoopLike(t *testing.T) {
 	var results []User
 	findResult := scoop.Find(&results)
 	if findResult.Error != nil {
-		t.Errorf("find failed: %v", err)
+		t.Errorf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 1 {
@@ -581,9 +581,9 @@ func TestScoopSkip(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -592,7 +592,7 @@ func TestScoopSkip(t *testing.T) {
 	var results []User
 	findResult := scoop.Find(&results)
 	if findResult.Error != nil {
-		t.Errorf("find failed: %v", err)
+		t.Errorf("find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 2 {
@@ -612,8 +612,8 @@ func TestScoopClear(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -649,9 +649,9 @@ func TestScoopBatchCreate(t *testing.T) {
 	defer cleanupTest()
 
 	// Create batch of users as interface{} varargs
-	user1 := User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
-	user2 := User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()}
-	user3 := User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user1 := User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
+	user2 := User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
+	user3 := User{ID: primitive.NewObjectID(), Email: "user3@example.com", Name: "User 3", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 
 	// BatchCreate with varargs
 	scoop := client.NewScoop()
@@ -691,8 +691,8 @@ func TestScoopIsNotFound(t *testing.T) {
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	err := scoop.Create(user)
 	if err != nil {
@@ -702,10 +702,10 @@ func TestScoopIsNotFound(t *testing.T) {
 	// Try to find non-existent user
 	scoop = client.NewScoop().Equal("email", "nonexistent@example.com")
 	var result User
-	err = scoop.First(&result)
+	firstResult := scoop.First(&result)
 
 	// Verify IsNotFound
-	if !scoop.IsNotFound(err) {
+	if !scoop.IsNotFound(firstResult.Error) {
 		t.Errorf("expected IsNotFound to return true for no documents found")
 	}
 }
@@ -728,8 +728,8 @@ func TestScoopFindByPage(t *testing.T) {
 			Email:     "user" + string(rune(i)) + "@example.com",
 			Name:      "User " + string(rune(i)),
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 	}
 	InsertTestData(t, client, "users", users...)
@@ -861,8 +861,8 @@ func TestScoopFindByPageDepth(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -903,8 +903,8 @@ func TestScoopLogging(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -915,7 +915,7 @@ func TestScoopLogging(t *testing.T) {
 	var results []User
 	findResult := scoop.Find(&results)
 	if findResult.Error != nil {
-		t.Fatalf("Find failed: %v", err)
+		t.Fatalf("Find failed: %v", findResult.Error)
 	}
 
 	if len(results) != 2 {
@@ -936,25 +936,22 @@ func TestScoopLogging(t *testing.T) {
 	// Test Update logging
 	scoop = client.NewScoop().Equal("age", 25)
 	updateResult := scoop.Updates(bson.M{"name": "Updated User 1"})
-	modified, err := updateResult.DocsAffected, updateResult.Error
-	if err != nil {
-		t.Fatalf("Update failed: %v", err)
+	if updateResult.Error != nil {
+		t.Fatalf("Update failed: %v", updateResult.Error)
 	}
 
-	if modified != 1 {
-		t.Errorf("expected 1 modified, got %d", modified)
+	if updateResult.DocsAffected != 1 {
+		t.Errorf("expected 1 modified, got %d", updateResult.DocsAffected)
 	}
 
 	// Test Delete logging
 	scoop = client.NewScoop().Equal("age", 30)
-	deleteResult := scoop.Delete()
-	deleted, err := deleteResult.DocsAffected, deleteResult.Error
-	if err != nil {
-		t.Fatalf("Delete failed: %v", err)
+	deleteResult2 := scoop.Delete()
+	if deleteResult2.Error != nil {
+		t.Fatalf("Delete failed: %v", deleteResult2.Error)
 	}
 
-	deleted := deleteResult.DocsAffected
-	if deleted != 1 {
-		t.Errorf("expected 1 deleted, got %d", deleted)
+	if deleteResult2.DocsAffected != 1 {
+		t.Errorf("expected 1 deleted, got %d", deleteResult2.DocsAffected)
 	}
 }

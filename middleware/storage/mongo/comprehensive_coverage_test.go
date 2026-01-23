@@ -29,8 +29,8 @@ func TestScoopCountMultipleRanges(t *testing.T) {
 			Email:     fmt.Sprintf("range%d@example.com", i),
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -116,8 +116,8 @@ func TestScoopDeleteWithMultipleConditions(t *testing.T) {
 				Email:     fmt.Sprintf("%s%d@example.com", cat.email, i),
 				Name:      cat.name,
 				Age:       cat.age,
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
+				CreatedAt: time.Now().Unix(),
+				UpdatedAt: time.Now().Unix(),
 			}
 			InsertTestData(t, client, "users", user)
 		}
@@ -160,8 +160,8 @@ func TestScoopDeleteAllThenVerify(t *testing.T) {
 			Email:     fmt.Sprintf("delete_all%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -312,8 +312,8 @@ func TestCountWithInOperator(t *testing.T) {
 			Email:     fmt.Sprintf("in%d@example.com", i),
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -351,8 +351,8 @@ func TestCountWithNinOperator(t *testing.T) {
 			Email:     fmt.Sprintf("nin%d@example.com", i),
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -391,8 +391,8 @@ func TestDeleteWithInOperator(t *testing.T) {
 			Email:     email,
 			Name:      fmt.Sprintf("User%d", i),
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -469,8 +469,8 @@ func TestCountAfterMultipleInserts(t *testing.T) {
 				Email:     fmt.Sprintf("batch%d_%d@example.com", total+i, i),
 				Name:      "User",
 				Age:       25,
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
+				CreatedAt: time.Now().Unix(),
+				UpdatedAt: time.Now().Unix(),
 			}
 			InsertTestData(t, client, "users", user)
 		}
@@ -508,8 +508,8 @@ func TestDeletePartialThenCountRemaining(t *testing.T) {
 			Email:     fmt.Sprintf("partial%d@example.com", i),
 			Name:      "User",
 			Age:       20 + (i % 15), // Ages 20-34
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

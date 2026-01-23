@@ -51,10 +51,10 @@ func TestCondStringWithMultipleConditions(t *testing.T) {
 // TestAddSubWhere tests adding sub-conditions with various types
 func TestAddSubWhereWithMap(t *testing.T) {
 	cond := NewCond()
-	
+
 	// Create a condition with multiple where calls using maps
 	cond.Where(bson.M{"age": bson.M{"$gte": 18}, "status": "active"})
-	
+
 	result := cond.ToBson()
 	if result == nil {
 		t.Error("expected result, got nil")
@@ -65,7 +65,7 @@ func TestAddSubWhereWithMap(t *testing.T) {
 func TestCondEqualWithString(t *testing.T) {
 	cond := NewCond().Equal("email", "test@example.com")
 	result := cond.ToBson()
-	
+
 	if _, hasEmail := result["email"]; !hasEmail {
 		t.Error("expected email field in condition")
 	}
@@ -75,7 +75,7 @@ func TestCondEqualWithString(t *testing.T) {
 func TestCondEqualWithInt(t *testing.T) {
 	cond := NewCond().Equal("age", 25)
 	result := cond.ToBson()
-	
+
 	if _, hasAge := result["age"]; !hasAge {
 		t.Error("expected age field in condition")
 	}
@@ -85,7 +85,7 @@ func TestCondEqualWithInt(t *testing.T) {
 func TestCondEqualWithNil(t *testing.T) {
 	cond := NewCond().Equal("value", nil)
 	result := cond.ToBson()
-	
+
 	if _, hasValue := result["value"]; !hasValue {
 		t.Error("expected value field in condition")
 	}
@@ -95,7 +95,7 @@ func TestCondEqualWithNil(t *testing.T) {
 func TestCondNeWithValue(t *testing.T) {
 	cond := NewCond().Ne("status", "inactive")
 	result := cond.ToBson()
-	
+
 	if _, hasStatus := result["status"]; !hasStatus {
 		t.Error("expected status field in condition")
 	}
@@ -105,7 +105,7 @@ func TestCondNeWithValue(t *testing.T) {
 func TestCondGtWithInt(t *testing.T) {
 	cond := NewCond().Gt("age", 18)
 	result := cond.ToBson()
-	
+
 	if ageFilter, ok := result["age"]; ok {
 		if gtMap, ok := ageFilter.(bson.M); ok {
 			if _, hasGt := gtMap["$gt"]; !hasGt {
@@ -119,7 +119,7 @@ func TestCondGtWithInt(t *testing.T) {
 func TestCondLtWithInt(t *testing.T) {
 	cond := NewCond().Lt("age", 65)
 	result := cond.ToBson()
-	
+
 	if ageFilter, ok := result["age"]; ok {
 		if ltMap, ok := ageFilter.(bson.M); ok {
 			if _, hasLt := ltMap["$lt"]; !hasLt {
@@ -133,7 +133,7 @@ func TestCondLtWithInt(t *testing.T) {
 func TestCondGteWithValue(t *testing.T) {
 	cond := NewCond().Gte("score", 80)
 	result := cond.ToBson()
-	
+
 	if scoreFilter, ok := result["score"]; ok {
 		if gteMap, ok := scoreFilter.(bson.M); ok {
 			if _, hasGte := gteMap["$gte"]; !hasGte {
@@ -147,7 +147,7 @@ func TestCondGteWithValue(t *testing.T) {
 func TestCondLteWithValue(t *testing.T) {
 	cond := NewCond().Lte("score", 100)
 	result := cond.ToBson()
-	
+
 	if scoreFilter, ok := result["score"]; ok {
 		if lteMap, ok := scoreFilter.(bson.M); ok {
 			if _, hasLte := lteMap["$lte"]; !hasLte {
@@ -161,7 +161,7 @@ func TestCondLteWithValue(t *testing.T) {
 func TestCondInWithSlice(t *testing.T) {
 	cond := NewCond().In("status", []interface{}{"active", "pending"})
 	result := cond.ToBson()
-	
+
 	if statusFilter, ok := result["status"]; ok {
 		if inMap, ok := statusFilter.(bson.M); ok {
 			if _, hasIn := inMap["$in"]; !hasIn {
@@ -175,7 +175,7 @@ func TestCondInWithSlice(t *testing.T) {
 func TestCondNotInWithSlice(t *testing.T) {
 	cond := NewCond().NotIn("status", []interface{}{"deleted", "archived"})
 	result := cond.ToBson()
-	
+
 	if statusFilter, ok := result["status"]; ok {
 		if notInMap, ok := statusFilter.(bson.M); ok {
 			if _, hasNotIn := notInMap["$nin"]; !hasNotIn {
@@ -189,7 +189,7 @@ func TestCondNotInWithSlice(t *testing.T) {
 func TestCondBetweenValues(t *testing.T) {
 	cond := NewCond().Between("age", 18, 65)
 	result := cond.ToBson()
-	
+
 	if ageFilter, ok := result["age"]; ok {
 		if betweenMap, ok := ageFilter.(bson.M); ok {
 			if _, hasGte := betweenMap["$gte"]; !hasGte {
@@ -206,7 +206,7 @@ func TestCondBetweenValues(t *testing.T) {
 func TestCondNotBetweenValues(t *testing.T) {
 	cond := NewCond().NotBetween("age", 18, 65)
 	result := cond.ToBson()
-	
+
 	if ageFilter, ok := result["age"]; ok {
 		if notBetweenMap, ok := ageFilter.(bson.M); ok {
 			if _, hasNot := notBetweenMap["$not"]; !hasNot {
@@ -220,10 +220,10 @@ func TestCondNotBetweenValues(t *testing.T) {
 func TestCondOrWithTwoConds(t *testing.T) {
 	cond1 := NewCond().Equal("status", "active")
 	cond2 := NewCond().Equal("status", "pending")
-	
+
 	result := cond1.Or(cond2)
 	bsonResult := result.ToBson()
-	
+
 	if _, hasOr := bsonResult["$or"]; !hasOr {
 		// Or combines conditions in a specific way
 		t.Logf("Or result: %v", bsonResult)
@@ -233,9 +233,9 @@ func TestCondOrWithTwoConds(t *testing.T) {
 // TestCondMultipleConditions tests combining multiple conditions
 func TestCondMultipleConditions(t *testing.T) {
 	cond := NewCond().Equal("status", "active").Gte("age", 18)
-	
+
 	bsonResult := cond.ToBson()
-	
+
 	if bsonResult == nil {
 		t.Error("expected result from multiple conditions, got nil")
 	}
@@ -244,12 +244,12 @@ func TestCondMultipleConditions(t *testing.T) {
 // TestCondResetMethod tests Reset functionality
 func TestCondResetClears(t *testing.T) {
 	cond := NewCond().Equal("name", "John").Equal("age", 25)
-	
+
 	// Reset should clear all conditions
 	cond.Reset()
-	
+
 	result := cond.ToBson()
-	
+
 	// After reset, should be empty or have no conditions
 	if result != nil && len(result) > 0 {
 		// Might have some structure, but no actual filter conditions
@@ -272,9 +272,9 @@ func TestScoopWithComplexWhere(t *testing.T) {
 
 	// Insert test data
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "alice@example.com", Name: "Alice", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "bob@example.com", Name: "Bob", Age: 30, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "charlie@example.com", Name: "Charlie", Age: 35, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
@@ -296,7 +296,7 @@ func TestScoopWithComplexWhere(t *testing.T) {
 // TestCondCreation tests various ways to create conditions
 func TestNewCondInstance(t *testing.T) {
 	cond := NewCond()
-	
+
 	if cond == nil {
 		t.Error("expected cond instance, got nil")
 	}
@@ -311,7 +311,7 @@ func TestCondCompleteChaining(t *testing.T) {
 		In("role", []interface{}{"admin", "user"})
 
 	result := cond.ToBson()
-	
+
 	if result == nil {
 		t.Error("expected result from chaining, got nil")
 	}
@@ -325,9 +325,9 @@ func TestCondCompleteChaining(t *testing.T) {
 // TestCondAsCond tests casting sub conditions
 func TestCondAsCond(t *testing.T) {
 	subCond := NewCond().Equal("verified", true)
-	
+
 	mainCond := NewCond().Equal("status", "active").Where(subCond)
-	
+
 	result := mainCond.ToBson()
 	if result == nil {
 		t.Error("expected result from nested cond, got nil")

@@ -64,8 +64,8 @@ func TestScoopCreateCompleteDocument(t *testing.T) {
 		Email:     "complete@example.com",
 		Name:      "Complete User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err := scoop.Create(user)
@@ -98,8 +98,8 @@ func TestScoopFindWithNoFilter(t *testing.T) {
 			Email:     "nofilt" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -134,8 +134,8 @@ func TestScoopUpdateMultiple(t *testing.T) {
 			Email:     "updmulti" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -170,8 +170,8 @@ func TestScoopDeleteMultiple(t *testing.T) {
 			Email:     "delmulti" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -205,8 +205,8 @@ func TestScoopFirstWithSpecificFilter(t *testing.T) {
 		Email:     "firstfilt@example.com",
 		Name:      "Target",
 		Age:       99,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", targetUser)
 
@@ -217,8 +217,8 @@ func TestScoopFirstWithSpecificFilter(t *testing.T) {
 			Email:     "other" + string(rune(48+i)) + "@example.com",
 			Name:      "Other",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -256,8 +256,8 @@ func TestScoopCountLargeDataset(t *testing.T) {
 			Email:     "large" + string(rune(48+i%10)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		scoop.Create(user)
 	}
@@ -302,8 +302,8 @@ func TestAggregationExecuteWithPipeline(t *testing.T) {
 			Email:     "agg_pipe" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i * 5),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -344,8 +344,8 @@ func TestScoopUpdateWithBsonM(t *testing.T) {
 		Email:     "bsonm@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -387,8 +387,8 @@ func TestScoopNewScoopMultipleTimes(t *testing.T) {
 		Email:     "multi_scoop@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	scoop1.Create(user)
 
@@ -420,8 +420,8 @@ func TestScoopFindWithCollectionSet(t *testing.T) {
 		Email:     "coll_set@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -458,8 +458,8 @@ func TestCondMultipleWhereConditions(t *testing.T) {
 			Email:     "where_multi" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -471,8 +471,8 @@ func TestCondMultipleWhereConditions(t *testing.T) {
 			Email:     "other" + string(rune(48+i)) + "@example.com",
 			Name:      "Other",
 			Age:       30 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -509,8 +509,8 @@ func TestScoopCloneAndModify(t *testing.T) {
 			Email:     "clone" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

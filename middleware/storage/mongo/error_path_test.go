@@ -46,8 +46,8 @@ func TestScoopCountWithSingleDocument(t *testing.T) {
 		Email:     "single@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -80,8 +80,8 @@ func TestScoopCountWithHighNumber(t *testing.T) {
 			Email:     "test" + string(rune(48+(i%10))) + "@example.com",
 			Name:      "User",
 			Age:       20 + (i % 30),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -115,8 +115,8 @@ func TestScoopCountBySpecificField(t *testing.T) {
 			Email:     "age" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -128,8 +128,8 @@ func TestScoopCountBySpecificField(t *testing.T) {
 			Email:     "other" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       30,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -185,8 +185,8 @@ func TestScoopDeleteSingleDocument(t *testing.T) {
 		Email:     "delete_single@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -226,8 +226,8 @@ func TestScoopDeleteByCondition(t *testing.T) {
 			Email:     "young" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       20,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -238,8 +238,8 @@ func TestScoopDeleteByCondition(t *testing.T) {
 			Email:     "old" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       50,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -361,8 +361,8 @@ func TestScoopFirstWithNullFilter(t *testing.T) {
 			Email:     "first" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -410,8 +410,8 @@ func TestCountAndDeleteIntegration(t *testing.T) {
 			Email:     "integ" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

@@ -28,8 +28,8 @@ func TestCountDocumentsWithDifferentDataTypes(t *testing.T) {
 			Email:     fmt.Sprintf("count_%d@example.com", age),
 			Name:      "Test",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -76,8 +76,8 @@ func TestDeleteDocumentsWithConditions(t *testing.T) {
 			Email:     fmt.Sprintf("delete_%d@example.com", i),
 			Name:      "Test",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -164,8 +164,8 @@ func TestCountAndDeleteSequence(t *testing.T) {
 			Email:     fmt.Sprintf("seq_%d@example.com", i),
 			Name:      "Test",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -265,8 +265,8 @@ func TestAggregateBasic(t *testing.T) {
 			Email:     fmt.Sprintf("agg_%d@example.com", i),
 			Name:      "User",
 			Age:       25 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

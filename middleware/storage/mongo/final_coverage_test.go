@@ -98,8 +98,8 @@ func TestScoopCountDirectNormal(t *testing.T) {
 			Email:     "count_test" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -159,8 +159,8 @@ func TestScoopDeleteDirectNormal(t *testing.T) {
 			Email:     "delete_test" + string(rune(48+i)) + "@example.com",
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -320,8 +320,8 @@ func TestStreamListenHandlerReturnValue(t *testing.T) {
 		Email:     "handler_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -383,8 +383,8 @@ func TestDatabaseChangeStreamListenDirect(t *testing.T) {
 		Email:     "dbhandler@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 

@@ -42,9 +42,10 @@ func TestModelFind(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
+	now := time.Now().Unix()
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: now, UpdatedAt: now},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: now, UpdatedAt: now},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -76,7 +77,8 @@ func TestModelFirst(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	now := time.Now().Unix()
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: now, UpdatedAt: now}
 	InsertTestData(t, client, "users", user)
 
 	// FindOne with model
@@ -108,8 +110,8 @@ func TestModelCount(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -144,11 +146,11 @@ func TestModelCreate(t *testing.T) {
 		Email:     "newuser@example.com",
 		Name:      "New User",
 		Age:       28,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
-	err := model.NewScoop().Create(newUser)
+	err := model.NewScoop().Create(&newUser)
 
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
@@ -169,19 +171,20 @@ func TestModelUpdate(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	now := time.Now().Unix()
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: now, UpdatedAt: now}
 	InsertTestData(t, client, "users", user)
 
 	// Update with model
 	model := NewModel[User](client)
-	count, err := model.NewScoop().Where("email", "test@example.com").Updates(bson.M{"age": 30, "name": "Updated User"})
+	result := model.NewScoop().Where("email", "test@example.com").Updates(bson.M{"age": 30, "name": "Updated User"})
 
-	if err != nil {
-		t.Fatalf("update failed: %v", err)
+	if result.Error != nil {
+		t.Fatalf("update failed: %v", result.Error)
 	}
 
-	if count != 1 {
-		t.Errorf("expected 1 updated document, got %d", count)
+	if result.DocsAffected != 1 {
+		t.Errorf("expected 1 updated document, got %d", result.DocsAffected)
 	}
 
 	// Verify
@@ -203,21 +206,21 @@ func TestModelDelete(t *testing.T) {
 
 	// Insert test data
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 	InsertTestData(t, client, "users", users...)
 
 	// Delete with model
 	model := NewModel[User](client)
-	count, err := model.NewScoop().Where("age", 25).Delete()
+	result := model.NewScoop().Where("age", 25).Delete()
 
-	if err != nil {
-		t.Fatalf("delete failed: %v", err)
+	if result.Error != nil {
+		t.Fatalf("delete failed: %v", result.Error)
 	}
 
-	if count != 2 {
-		t.Errorf("expected 2 deleted documents, got %d", count)
+	if result.DocsAffected != 2 {
+		t.Errorf("expected 2 deleted documents, got %d", result.DocsAffected)
 	}
 
 	// Verify
@@ -235,7 +238,8 @@ func TestModelExist(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	now := time.Now().Unix()
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: now, UpdatedAt: now}
 	InsertTestData(t, client, "users", user)
 
 	// Test exist
@@ -305,9 +309,10 @@ func TestModelAggregate(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert test data
+	now := time.Now().Unix()
 	users := []interface{}{
-		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		User{ID: primitive.NewObjectID(), Email: "user1@example.com", Name: "User 1", Age: 25, CreatedAt: now, UpdatedAt: now},
+		User{ID: primitive.NewObjectID(), Email: "user2@example.com", Name: "User 2", Age: 30, CreatedAt: now, UpdatedAt: now},
 	}
 	InsertTestData(t, client, "users", users...)
 
@@ -368,15 +373,16 @@ func TestModelIsNotFound(t *testing.T) {
 	model := NewModel[User](client)
 
 	// Insert a user
+	now := time.Now().Unix()
 	user := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "test@example.com",
 		Name:      "Test User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
-	err := model.NewScoop().Create(user)
+	err := model.NewScoop().Create(&user)
 	if err != nil {
 		t.Errorf("create failed: %v", err)
 	}

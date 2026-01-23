@@ -31,8 +31,8 @@ func TestTransactionWithTx(t *testing.T) {
 		Email:     "txuser@example.com",
 		Name:      "TX User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -61,7 +61,7 @@ func TestTransactionWithTxAndResult(t *testing.T) {
 	defer cleanupTest()
 
 	// Insert initial data
-	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	user := User{ID: primitive.NewObjectID(), Email: "test@example.com", Name: "Test User", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()}
 	InsertTestData(t, client, "users", user)
 
 	// Start transaction
@@ -112,8 +112,8 @@ func TestTransactionRollback(t *testing.T) {
 		Email:     "txuser@example.com",
 		Name:      "TX User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -155,8 +155,8 @@ func TestTransactionMultipleOperations(t *testing.T) {
 		Email:     "txuser@example.com",
 		Name:      "TX User",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	err = txScoop.Create(user)
@@ -177,8 +177,8 @@ func TestTransactionMultipleOperations(t *testing.T) {
 		UserID:    user.ID,
 		Title:     "Test Post",
 		Content:   "Test Content",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	// For this, we need a separate scoop for the posts collection

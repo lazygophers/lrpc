@@ -23,9 +23,9 @@ func TestLikeWithPattern(t *testing.T) {
 
 	// Create test data
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "bob@test.com", Name: "Bob Wilson", Age: 27, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "bob@test.com", Name: "Bob Wilson", Age: 27, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
@@ -35,7 +35,7 @@ func TestLikeWithPattern(t *testing.T) {
 	// Test Like with pattern
 	cond := NewCond().Like("name", "John")
 	result := cond.ToBson()
-	
+
 	// Should contain $regex condition
 	if nameFilter, ok := result["name"]; ok {
 		if regexMap, ok := nameFilter.(bson.M); ok {
@@ -85,8 +85,8 @@ func TestLeftLikeWithPattern(t *testing.T) {
 
 	// Create test data
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
@@ -307,9 +307,9 @@ func TestLikeWithMultipleConditions(t *testing.T) {
 
 	// Create test data
 	users := []User{
-		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: primitive.NewObjectID(), Email: "john@test.com", Name: "John Wilson", Age: 27, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		{ID: primitive.NewObjectID(), Email: "john@example.com", Name: "John Doe", Age: 25, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "jane@example.com", Name: "Jane Smith", Age: 26, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
+		{ID: primitive.NewObjectID(), Email: "john@test.com", Name: "John Wilson", Age: 27, CreatedAt: time.Now().Unix(), UpdatedAt: time.Now().Unix()},
 	}
 
 	for _, user := range users {
@@ -323,7 +323,7 @@ func TestLikeWithMultipleConditions(t *testing.T) {
 
 	// Build the filter and verify
 	filter := result.ToBson()
-	
+
 	// The filter should have conditions for both name and age
 	if _, hasName := filter["name"]; !hasName {
 		// Note: This test may need adjustment based on how the implementation works

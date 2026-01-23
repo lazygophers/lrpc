@@ -53,8 +53,8 @@ func TestChangeStreamListenBasic(t *testing.T) {
 		Email:     "listen@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -104,8 +104,8 @@ func TestChangeStreamListenWithFiltersBasic(t *testing.T) {
 			Email:     fmt.Sprintf("filter%d@example.com", i),
 			Name:      "Test",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -152,8 +152,8 @@ func TestChangeStreamListenWithMultipleOperationTypes(t *testing.T) {
 		Email:     "multi@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -211,8 +211,8 @@ func TestChangeStreamListenWithErrorHandler(t *testing.T) {
 		Email:     "error@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -259,8 +259,8 @@ func TestDatabaseChangeStreamListenBasic(t *testing.T) {
 		Email:     "dbwatch@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -317,8 +317,8 @@ func TestStreamListenConcurrentCalls(t *testing.T) {
 		Email:     "concurrent@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -405,8 +405,8 @@ func TestChangeStreamListenWithEmptyOperationTypes(t *testing.T) {
 		Email:     "nofilter@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 

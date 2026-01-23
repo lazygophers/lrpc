@@ -54,8 +54,8 @@ func TestCountWithInjectedFailure(t *testing.T) {
 		Email:     "count_fail@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -97,8 +97,8 @@ func TestDeleteWithInjectedFailure(t *testing.T) {
 		Email:     "delete_fail@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -181,8 +181,8 @@ func TestMultipleFailureInjections(t *testing.T) {
 		Email:     "multi_fail@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -266,8 +266,8 @@ func TestNormalOperationWithoutInjection(t *testing.T) {
 		Email:     "normal@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -313,8 +313,8 @@ func TestSelectiveFailureInjection(t *testing.T) {
 		Email:     "selective@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -572,16 +572,16 @@ func TestAggregationExecute(t *testing.T) {
 		Email:     "exec1@example.com",
 		Name:      "Test1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	user2 := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "exec2@example.com",
 		Name:      "Test2",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user1)
 	InsertTestData(t, client, "users", user2)
@@ -626,8 +626,8 @@ func TestAggregationExecuteOneFromFail(t *testing.T) {
 		Email:     "execone@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -669,8 +669,8 @@ func TestUpdateOperation(t *testing.T) {
 		Email:     "update_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -708,16 +708,16 @@ func TestBatchCreateOperation(t *testing.T) {
 		Email:     "batch1@example.com",
 		Name:      "Test1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	user2 := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "batch2@example.com",
 		Name:      "Test2",
 		Age:       26,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	scoop := client.NewScoop().Collection(User{})
@@ -748,8 +748,8 @@ func TestCloneScoopFromFail(t *testing.T) {
 		Email:     "clone_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -821,8 +821,8 @@ func TestScoopChaining(t *testing.T) {
 			Email:     primitive.NewObjectID().Hex() + "@example.com",
 			Name:      "Test",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -859,24 +859,24 @@ func TestNotInCondition(t *testing.T) {
 		Email:     "notin1@example.com",
 		Name:      "Test1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	user2 := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "notin2@example.com",
 		Name:      "Test2",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	user3 := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "notin3@example.com",
 		Name:      "Test3",
 		Age:       35,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user1)
 	InsertTestData(t, client, "users", user2)
@@ -920,8 +920,8 @@ func TestFindWithInjectedFailure(t *testing.T) {
 		Email:     "find_fail@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -929,15 +929,15 @@ func TestFindWithInjectedFailure(t *testing.T) {
 
 	// Find 应该返回注入的错误
 	var results []User
-	err := scoop.Find(&results)
-	if err == nil {
+	findResult := scoop.Find(&results)
+	if findResult.Error == nil {
 		t.Error("Expected Find to fail, but it succeeded")
-	} else if err.Error() != "find not available" {
-		t.Errorf("Expected 'find not available', got '%v'", err)
+	} else if findResult.Error.Error() != "find not available" {
+		t.Errorf("Expected 'find not available', got '%v'", findResult.Error)
 	} else if results != nil && len(results) > 0 {
 		t.Error("Expected empty results on error")
 	} else {
-		t.Logf("Find correctly returned injected error: %v", err)
+		t.Logf("Find correctly returned injected error: %v", findResult.Error)
 	}
 }
 
@@ -1006,8 +1006,8 @@ func TestCommitWithInjectedFailure(t *testing.T) {
 		Email:     "commit_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -1051,8 +1051,8 @@ func TestRollbackWithFailure(t *testing.T) {
 		Email:     "rollback_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -1096,8 +1096,8 @@ func TestFirstWithFailure(t *testing.T) {
 		Email:     "first_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -1132,8 +1132,8 @@ func TestExistWithData(t *testing.T) {
 		Email:     "exist_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -1178,8 +1178,8 @@ func TestCreateWithFailure(t *testing.T) {
 		Email:     "create_test@example.com",
 		Name:      "Test",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	scoop := client.NewScoop().Collection(User{})
@@ -1208,16 +1208,16 @@ func TestAggregateWithData(t *testing.T) {
 		Email:     "agg1@example.com",
 		Name:      "Test1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	user2 := User{
 		ID:        primitive.NewObjectID(),
 		Email:     "agg2@example.com",
 		Name:      "Test2",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user1)
 	InsertTestData(t, client, "users", user2)
@@ -1352,8 +1352,8 @@ func TestScoopFindAndFirst(t *testing.T) {
 		Email:     "test1@example.com",
 		Name:      "Test1",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user1)
 
@@ -1370,11 +1370,11 @@ func TestScoopFindAndFirst(t *testing.T) {
 
 	// 测试 First
 	var firstUser User
-	err = scoop.First(&firstUser)
-	if err == nil {
+	firstResult := scoop.First(&firstUser)
+	if firstResult.Error == nil {
 		t.Logf("First found user: %s", firstUser.Email)
 	} else {
-		t.Logf("First error: %v", err)
+		t.Logf("First error: %v", firstResult.Error)
 	}
 }
 
@@ -1396,8 +1396,8 @@ func TestAggregationExecuteOperations(t *testing.T) {
 			Email:     "agg" + string(rune(48+i)) + "@example.com",
 			Name:      "AggTest" + string(rune(48+i)),
 			Age:       20 + i*5,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

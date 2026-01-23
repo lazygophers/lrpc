@@ -27,8 +27,8 @@ func TestAggregationExecuteWithEmptyPipeline(t *testing.T) {
 			Email:     fmt.Sprintf("agg%d@example.com", i),
 			Name:      "User",
 			Age:       25 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -96,8 +96,8 @@ func TestAggregationExecuteWithGrouping(t *testing.T) {
 			Email:     fmt.Sprintf("group%d@example.com", i),
 			Name:      "User",
 			Age:       25 + (i % 3), // Ages 25, 26, 27, 25, 26, 27
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -142,8 +142,8 @@ func TestAggregationExecuteWithSort(t *testing.T) {
 			Email:     fmt.Sprintf("sort%d@example.com", i),
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -191,8 +191,8 @@ func TestAggregationExecuteOneWithMultipleResults(t *testing.T) {
 			Email:     fmt.Sprintf("multi%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -267,8 +267,8 @@ func TestScoopCreateMultipleScoops(t *testing.T) {
 			Email:     fmt.Sprintf("multi_scoop%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		err := scoop.Create(user)
 		if err != nil {
@@ -302,8 +302,8 @@ func TestFindWithEmptyFilter(t *testing.T) {
 			Email:     fmt.Sprintf("find%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -338,8 +338,8 @@ func TestFindWithLimitAndOffset(t *testing.T) {
 			Email:     fmt.Sprintf("limit%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -375,8 +375,8 @@ func TestExistWithMultipleMatches(t *testing.T) {
 			Email:     fmt.Sprintf("exist%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -433,8 +433,8 @@ func TestCountWithDifferentDataTypes(t *testing.T) {
 			Email:     fmt.Sprintf("dtype%d@example.com", i),
 			Name:      "User",
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}

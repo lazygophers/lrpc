@@ -27,8 +27,8 @@ func TestFindWithVariousConditions(t *testing.T) {
 			Email:     fmt.Sprintf("find_%d@example.com", i),
 			Name:      fmt.Sprintf("User%d", i),
 			Age:       20 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -63,8 +63,8 @@ func TestFirstWithVariousConditions(t *testing.T) {
 			Email:     fmt.Sprintf("first_%d@example.com", i),
 			Name:      fmt.Sprintf("Test%d", i),
 			Age:       25 + i,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -97,8 +97,8 @@ func TestCreateAndVerifyExists(t *testing.T) {
 		Email:     "exist_test@example.com",
 		Name:      "ExistTest",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 
 	// Create
@@ -137,8 +137,8 @@ func TestCountWithoutFilters(t *testing.T) {
 			Email:     fmt.Sprintf("count_all_%d@example.com", i),
 			Name:      "User",
 			Age:       30,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -169,8 +169,8 @@ func TestDeleteSingleDocumentPaths(t *testing.T) {
 		Email:     "delete_single@example.com",
 		Name:      "User",
 		Age:       30,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
@@ -204,8 +204,8 @@ func TestBatchCreateVerify(t *testing.T) {
 			Email:     fmt.Sprintf("batch_%d@example.com", i),
 			Name:      "User",
 			Age:       25,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 	}
 
@@ -241,8 +241,8 @@ func TestFindWithSort(t *testing.T) {
 			Email:     fmt.Sprintf("sort_%d@example.com", i),
 			Name:      "User",
 			Age:       age,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 		InsertTestData(t, client, "users", user)
 	}
@@ -275,8 +275,8 @@ func TestUpdateFields(t *testing.T) {
 		Email:     "update_test@example.com",
 		Name:      "Original",
 		Age:       25,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	InsertTestData(t, client, "users", user)
 
