@@ -18,14 +18,16 @@ type MockClient struct {
 	mu sync.RWMutex
 
 	// Return values
-	PingErr     error
-	CloseErr    error
-	ConfigRet   *Config
-	ContextRet  context.Context
-	DatabaseRet string
-	HealthErr   error
-	ScoopRet    *Scoop
-	WatchErr    error
+	PingErr         error
+	CloseErr        error
+	ConfigRet       *Config
+	ContextRet      context.Context
+	DatabaseRet     string
+	HealthErr       error
+	ScoopRet        *Scoop
+	WatchErr        error
+	AutoMigratesErr error
+	AutoMigrateErr  error
 
 	// Call tracking
 	calls      []CallRecord
@@ -90,6 +92,18 @@ func (m *MockClient) NewScoop(tx ...*Scoop) *Scoop {
 func (m *MockClient) WatchAllCollections() (*DatabaseChangeStream, error) {
 	m.recordCall("WatchAllCollections")
 	return nil, m.WatchErr
+}
+
+// AutoMigrates simulates Client.AutoMigrates
+func (m *MockClient) AutoMigrates(models ...interface{}) error {
+	m.recordCall("AutoMigrates", models)
+	return m.AutoMigratesErr
+}
+
+// AutoMigrate simulates Client.AutoMigrate
+func (m *MockClient) AutoMigrate(model interface{}) error {
+	m.recordCall("AutoMigrate", model)
+	return m.AutoMigrateErr
 }
 
 // Call recording and querying
@@ -208,6 +222,30 @@ func (m *MockClient) SetupScoop(scoop *Scoop) *MockClient {
 // SetupWatchError configures WatchAllCollections to return an error
 func (m *MockClient) SetupWatchError(err error) *MockClient {
 	m.WatchErr = err
+	return m
+}
+
+// SetupAutoMigratesSuccess configures AutoMigrates to succeed
+func (m *MockClient) SetupAutoMigratesSuccess() *MockClient {
+	m.AutoMigratesErr = nil
+	return m
+}
+
+// SetupAutoMigratesError configures AutoMigrates to return an error
+func (m *MockClient) SetupAutoMigratesError(err error) *MockClient {
+	m.AutoMigratesErr = err
+	return m
+}
+
+// SetupAutoMigrateSuccess configures AutoMigrate to succeed
+func (m *MockClient) SetupAutoMigrateSuccess() *MockClient {
+	m.AutoMigrateErr = nil
+	return m
+}
+
+// SetupAutoMigrateError configures AutoMigrate to return an error
+func (m *MockClient) SetupAutoMigrateError(err error) *MockClient {
+	m.AutoMigrateErr = err
 	return m
 }
 

@@ -200,4 +200,4 @@ func TestUpdateZeroResults(t *testing.T) {
 	if count != 0 {
 		t.Errorf("expected 0 updated documents, got %d", count)
 	}
-})
+}

@@ -118,3 +118,79 @@ func (c *Client) Health() error {
 	}
 	return nil
 }
+
+// AutoMigrates ensures that all provided models have their corresponding collections in MongoDB
+// It iterates through each model and calls AutoMigrate for each one
+func (c *Client) AutoMigrates(models ...interface{}) (err error) {
+	for _, model := range models {
+		err = c.AutoMigrate(model)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AutoMigrate ensures that the collection for a given model exists in MongoDB
+// It validates that the model implements the Collectioner interface and creates
+// the collection if it doesn't already exist
+func (c *Client) AutoMigrate(model interface{}) (err error) {
+	collectioner, ok := model.(Collectioner)
+	if !ok {
+		return fmt.Errorf("model type %T does not implement Collectioner interface", model)
+	}
+
+	collectionName := collectioner.Collection()
+	log.Infof("auto migrate collection %s", collectionName)
+
+	_, _, db, err := mgm.DefaultConfigs()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	// Check if collection exists
+	collections, err := db.ListCollectionNames(context.Background(), nil)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return err
+	}
+
+	// Check if the specific collection exists
+	collectionExists := false
+	for _, name := range collections {
+		if name == collectionName {
+			collectionExists = true
+			break
+		}
+	}
+
+	// If collection doesn't exist, create it
+	if !collectionExists {
+		err = db.CreateCollection(context.Background(), collectionName)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		log.Infof("created collection %s", collectionName)
+	}
+
+	// Try to create indexes if the model implements an index interface
+	// This is optional and can be extended in the future if needed
+	if indexer, ok := model.(interface{ Indexes() []mongo.IndexModel }); ok {
+		indexes := indexer.Indexes()
+		if len(indexes) > 0 {
+			coll := db.Collection(collectionName)
+			_, err = coll.Indexes().CreateMany(context.Background(), indexes)
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+			log.Infof("created indexes for collection %s", collectionName)
+		}
+	}
+
+	return nil
+}

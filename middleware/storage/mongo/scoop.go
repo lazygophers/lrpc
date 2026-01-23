@@ -816,3 +816,15 @@ func (s *Scoop) FindByPage(opt *core.ListOption, values any) (*core.Paginate, er
 
 	return page, nil
 }
+
+// AutoMigrates ensures that all provided models have their corresponding collections in MongoDB
+// It delegates to the client's AutoMigrates method
+func (s *Scoop) AutoMigrates(models ...interface{}) error {
+	return s.client.AutoMigrates(models...)
+}
+
+// AutoMigrate ensures that a model has its corresponding collection in MongoDB
+// It delegates to the client's AutoMigrate method
+func (s *Scoop) AutoMigrate(model interface{}) error {
+	return s.client.AutoMigrate(model)
+}

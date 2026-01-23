@@ -532,4 +532,4 @@ func TestScoopCloneAndModify(t *testing.T) {
 	if baseCount != 1 {
 		t.Errorf("expected 1 match for age 22, got %d", baseCount)
 	}
-})
+}

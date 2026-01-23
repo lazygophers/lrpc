@@ -97,7 +97,7 @@ func TestUpdateWithoutFilter(t *testing.T) {
 
 	// Update without filter (should update all)
 	scoop := client.NewScoop().Collection(User{})
-	updateResult := scoop.Updates(bson.M{"$set": bson.M{"status": "updated"}}
+	updateResult := scoop.Updates(bson.M{"$set": bson.M{"status": "updated"}})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update without filter failed: %v", err)
@@ -125,7 +125,7 @@ func TestUpdateWithNullValue(t *testing.T) {
 
 	// Update with null/empty value
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "null@example.com")
-	updateResult := scoop.Updates(bson.M{"age": nil}
+	updateResult := scoop.Updates(bson.M{"age": nil})
 	count, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with nil failed: %v", err)
@@ -453,4 +453,4 @@ func TestFirstWithSort(t *testing.T) {
 	if result.Age != 30 && result.Age != 20 {
 		t.Errorf("expected age 20 or 30, got %d", result.Age)
 	}
-})
+}

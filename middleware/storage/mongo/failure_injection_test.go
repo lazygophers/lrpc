@@ -338,7 +338,6 @@ func TestSelectiveFailureInjection(t *testing.T) {
 	}
 }
 
-
 // TestFailureInjectorMethods 测试故障注入器的所有方法
 func TestFailureInjectorMethods(t *testing.T) {
 	// 测试 SimulatedFailure 的所有方法
@@ -523,7 +522,6 @@ func TestGlobalInjectorManagement(t *testing.T) {
 	t.Logf("Global injector management working correctly")
 }
 
-
 // TestSetNilGlobalInjector 测试设置 nil 注入器的情况
 func TestSetNilGlobalInjector(t *testing.T) {
 	// 保存原始注入器
@@ -556,7 +554,6 @@ func TestSetNilGlobalInjector(t *testing.T) {
 
 	t.Logf("Setting nil injector correctly creates NoopFailureInjector")
 }
-
 
 // TestAggregationExecute 测试 Aggregation 的 Execute 方法
 func TestAggregationExecute(t *testing.T) {
@@ -733,7 +730,6 @@ func TestBatchCreateOperation(t *testing.T) {
 		t.Logf("BatchCreate correctly inserted 2 document(s)")
 	}
 }
-
 
 // TestCloneScoop 测试 Clone 方法
 func TestCloneScoopFromFail(t *testing.T) {
@@ -992,7 +988,6 @@ func TestConcurrentFailureInjection(t *testing.T) {
 
 	t.Logf("Concurrent failure injection working correctly")
 }
-
 
 // TestCommitWithInjectedFailure 测试 Commit 操作的故障注入（如果实现了的话）
 func TestCommitWithInjectedFailure(t *testing.T) {
@@ -1429,4 +1424,4 @@ func TestAggregationExecuteOperations(t *testing.T) {
 	} else {
 		t.Logf("ExecuteOne returned user: %s", singleResult.Email)
 	}
-})
+}

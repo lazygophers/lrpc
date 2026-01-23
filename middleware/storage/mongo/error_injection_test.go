@@ -162,7 +162,7 @@ func TestUpdateWithInvalidBSON(t *testing.T) {
 		"$set": bson.M{
 			"name": "Updated",
 		},
-	}
+	})
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Logf("Update returned error: %v", err)
@@ -357,4 +357,4 @@ func TestFindWithMultipleConditions(t *testing.T) {
 	} else {
 		t.Logf("Find returned %d results", len(results))
 	}
-})
+}

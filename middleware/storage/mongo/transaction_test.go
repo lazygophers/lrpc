@@ -73,9 +73,9 @@ func TestTransactionWithTxAndResult(t *testing.T) {
 
 	// Find user within transaction
 	var foundUser User
-	err = txScoop.Equal("email", "test@example.com").First(&foundUser)
-	if err != nil {
-		t.Fatalf("failed to find user: %v", err)
+	firstResult := txScoop.Equal("email", "test@example.com").First(&foundUser)
+	if firstResult.Error != nil {
+		t.Fatalf("failed to find user: %v", firstResult.Error)
 	}
 
 	if foundUser.Age != 25 {

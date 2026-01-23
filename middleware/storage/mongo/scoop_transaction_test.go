@@ -173,9 +173,9 @@ func TestTransactionWithInsertAndCommit(t *testing.T) {
 
 	// Verify the document has correct data
 	var foundUser User
-	err = countScoop.Where("email", "commit@example.com").First(&foundUser)
-	if err != nil {
-		t.Fatalf("failed to find user: %v", err)
+	firstResult := countScoop.Where("email", "commit@example.com").First(&foundUser)
+	if firstResult.Error != nil {
+		t.Fatalf("failed to find user: %v", firstResult.Error)
 	}
 	if foundUser.Name != "Commit User" {
 		t.Errorf("expected name 'Commit User', got '%s'", foundUser.Name)
@@ -186,16 +186,14 @@ func TestTransactionWithInsertAndCommit(t *testing.T) {
 func TestWhereWithNoFilters(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
-	
+
 	scoop := client.NewScoop()
 	result := scoop.Where()
-	
+
 	if result != scoop {
 		t.Error("Where with no parameters should return the same Scoop instance")
 	}
 }
-
-
 
 // TestNewScoopFromClient tests creating Scoop from Client.NewScoop
 func TestNewScoopFromClient(t *testing.T) {
@@ -277,7 +275,7 @@ func TestWhereAndFirstChaining(t *testing.T) {
 func TestScoopNewScoopInitialization(t *testing.T) {
 	client := newTestClient(t)
 	defer client.Close()
-	
+
 	scoop := client.NewScoop()
 	if scoop == nil {
 		t.Error("expected scoop, got nil")

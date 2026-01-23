@@ -153,7 +153,7 @@ func TestUpdateWithStructMarshaling(t *testing.T) {
 	updateResult := scoop.Updates(UpdateData{
 		Name: "Updated",
 		Age:  30,
-	}
+	})
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with struct failed: %v", err)
@@ -193,7 +193,7 @@ func TestUpdateWithOperators(t *testing.T) {
 		"$inc": bson.M{
 			"age": 5,
 		},
-	}
+	})
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with operators failed: %v", err)
@@ -433,7 +433,7 @@ func TestScoopUpdateNoMatches(t *testing.T) {
 	defer cleanupTest()
 
 	scoop := client.NewScoop().Collection(User{}).Equal("email", "nonexistent@example.com")
-	updateResult := scoop.Updates(bson.M{"$set": bson.M{"age": 99}}
+	updateResult := scoop.Updates(bson.M{"$set": bson.M{"age": 99}})
 	updated, err := updateResult.DocsAffected, updateResult.Error
 	if err != nil {
 		t.Fatalf("update with no matches failed: %v", err)
@@ -659,4 +659,4 @@ func TestClientContextReturnsBackground(t *testing.T) {
 	default:
 		// Expected behavior
 	}
-})
+}

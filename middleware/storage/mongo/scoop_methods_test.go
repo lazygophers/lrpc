@@ -37,9 +37,9 @@ func TestCreateVariousTypes(t *testing.T) {
 
 	// Verify the user was created
 	var found User
-	err = scoop.Where("email", "test@example.com").First(&found)
-	if err != nil {
-		t.Fatalf("failed to find user: %v", err)
+	firstResult := scoop.Where("email", "test@example.com").First(&found)
+	if firstResult.Error != nil {
+		t.Fatalf("failed to find user: %v", firstResult.Error)
 	}
 	if found.ID == primitive.NilObjectID {
 		t.Error("expected user to be found after creation")
@@ -372,9 +372,9 @@ func TestUpdateSingleField(t *testing.T) {
 
 	// Verify the update
 	var foundUser User
-	err = scoop.Where("email", "test@example.com").First(&foundUser)
-	if err != nil {
-		t.Fatalf("failed to find user: %v", err)
+	firstResult := scoop.Where("email", "test@example.com").First(&foundUser)
+	if firstResult.Error != nil {
+		t.Fatalf("failed to find user: %v", firstResult.Error)
 	}
 	if foundUser.Name != "Updated Name" {
 		t.Error("expected name to be updated")
@@ -418,9 +418,9 @@ func TestUpdateMultipleFields(t *testing.T) {
 
 	// Verify both fields were updated
 	var foundUser User
-	err = scoop.Where("email", "test@example.com").First(&foundUser)
-	if err != nil {
-		t.Fatalf("failed to find user: %v", err)
+	firstResult := scoop.Where("email", "test@example.com").First(&foundUser)
+	if firstResult.Error != nil {
+		t.Fatalf("failed to find user: %v", firstResult.Error)
 	}
 	if foundUser.Name != "Updated" || foundUser.Age != 30 {
 		t.Errorf("expected name='Updated', age=30, got name='%s', age=%d", foundUser.Name, foundUser.Age)
