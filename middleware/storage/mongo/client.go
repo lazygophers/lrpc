@@ -145,10 +145,10 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	collectionName := collectioner.Collection()
 	log.Infof("auto migrate collection %s", collectionName)
 
-	_, _, db, err := mgm.DefaultConfigs()
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return err
+	// Use the client's database instance directly instead of mgm.DefaultConfigs()
+	db := c.client.Database(c.database)
+	if db == nil {
+		return fmt.Errorf("failed to get database instance for %s", c.database)
 	}
 
 	// Check if collection exists

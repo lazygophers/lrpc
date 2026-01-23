@@ -356,6 +356,26 @@ func main() {
 
 ## 常见错误处理
 
+### AutoMigrate 错误
+
+**问题**: `[error] err:document is nil` 在调用 `AutoMigrate` 时
+
+**原因**: `mgm.DefaultConfigs()` 返回的 Database 实例可能为 nil
+
+**解决方案**: AutoMigrate 方法已优化，现在直接使用 Client 结构体中的 `client` 和 `database` 字段，而不依赖 MGM 的全局状态。
+
+```go
+// ✅ 修复后的实现（自动处理）
+func (c *Client) AutoMigrate(model interface{}) error {
+    // 直接使用 Client 的 client 和 database 字段
+    db := c.client.Database(c.database)
+    if db == nil {
+        return fmt.Errorf("failed to get database instance")
+    }
+    // ... 后续操作使用 db 实例
+}
+```
+
 ### 错误识别
 
 ```go
