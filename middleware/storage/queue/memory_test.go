@@ -2,6 +2,7 @@ package queue
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -1278,4 +1279,61 @@ func TestMemoryChannelSubscribeNackError(t *testing.T) {
 
 func TestMemoryChannelConcurrentAccess(t *testing.T) {
 	t.Skip("跳过并发测试，避免死锁")
+}
+
+// TestMemoryChannelSubscribeMaxInFlight 测试 Subscribe 是否遵守 MaxInFlight 配置
+func TestMemoryChannelSubscribeMaxInFlight(t *testing.T) {
+	maxInFlight := 3
+	config := &ChannelConfig{
+		MaxInFlight: maxInFlight,
+	}
+
+	topic := NewMemoryTopic[TestMsg]("test", nil)
+	ch, _ := topic.GetOrAddChannel("ch1", config)
+
+	// 用于记录同时正在处理的消息数
+	var activeWorkers sync.WaitGroup
+	var mu sync.Mutex
+	maxConcurrent := 0
+	currentConcurrent := 0
+
+	// Handler 会阻塞一段时间，以便观察并发情况
+	handler := func(msg *Message[TestMsg]) (ProcessRsp, error) {
+		mu.Lock()
+		currentConcurrent++
+		if currentConcurrent > maxConcurrent {
+			maxConcurrent = currentConcurrent
+		}
+		mu.Unlock()
+
+		// 模拟处理耗时
+		time.Sleep(50 * time.Millisecond)
+
+		mu.Lock()
+		currentConcurrent--
+		mu.Unlock()
+
+		activeWorkers.Done()
+		return ProcessRsp{Retry: false}, nil
+	}
+
+	ch.Subscribe(handler)
+
+	// 发布 10 条消息，应该最多只有 maxInFlight 条同时处理
+	msgCount := 10
+	activeWorkers.Add(msgCount)
+
+	for i := 0; i < msgCount; i++ {
+		topic.Pub(TestMsg{Content: fmt.Sprintf("msg%d", i)})
+	}
+
+	// 等待所有消息处理完成
+	activeWorkers.Wait()
+
+	// 验证最大并发数不超过 MaxInFlight
+	if maxConcurrent > maxInFlight {
+		t.Errorf("最大并发数 = %d, 期望 <= %d", maxConcurrent, maxInFlight)
+	}
+
+	t.Logf("MaxInFlight=%d, 实际最大并发数=%d, 消息总数=%d", maxInFlight, maxConcurrent, msgCount)
 }

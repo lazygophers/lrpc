@@ -234,31 +234,50 @@ func (p *memoryChannel[T]) Name() string {
 	return p.name
 }
 
-// Subscribe 订阅消息
+// Subscribe 订阅消息，使用 worker pool 并发处理
+// 并发数受 MaxInFlight 配置限制
 func (p *memoryChannel[T]) Subscribe(handler Handler[T]) {
 	routine.GoWithMustSuccess(func() error {
+		// 使用 semaphore 限制并发数
+		sem := make(chan struct{}, p.config.MaxInFlight)
+
 		for {
 			msg, err := p.Next()
 			if err != nil {
 				break
 			}
 
-			rsp, err := Handle(handler, msg)
-			if err != nil {
-				log.Errorf("err:%v", err)
-			}
+			// 获取 semaphore，如果已满则阻塞
+			sem <- struct{}{}
 
-			if rsp.Retry {
-				err = p.Nack(msg.Id)
+			// 启动 worker 处理消息
+			routine.GoWithMustSuccess(func() error {
+				defer func() { <-sem }() // 处理完成后释放 semaphore
+
+				rsp, err := Handle(handler, msg)
 				if err != nil {
 					log.Errorf("err:%v", err)
 				}
-			} else {
-				err = p.Ack(msg.Id)
-				if err != nil {
-					log.Errorf("err:%v", err)
+
+				if rsp.Retry {
+					err = p.Nack(msg.Id)
+					if err != nil {
+						log.Errorf("err:%v", err)
+					}
+				} else {
+					err = p.Ack(msg.Id)
+					if err != nil {
+						log.Errorf("err:%v", err)
+					}
 				}
-			}
+
+				return nil
+			})
+		}
+
+		// 等待所有 worker 完成
+		for i := 0; i < cap(sem); i++ {
+			sem <- struct{}{}
 		}
 
 		return nil
