@@ -463,7 +463,13 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
 - 文档：`middleware/storage/cache/llms.txt`
 - 源码：`middleware/storage/cache/`
 - Mock：`middleware/storage/cache/mock.go`
+- go-redis/v9 文档：https://redis.uptrace.dev/
 - Redis 文档：https://redis.io/
+
+### 队列模块
+- 文档：`middleware/storage/queue/llms.txt`
+- 源码：`middleware/storage/queue/`
+- Redis Streams 文档：https://redis.io/docs/data-types/streams/
 
 ### LRPC 框架
 - 主项目：https://github.com/lazygophers/lrpc
@@ -478,6 +484,20 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
 4. 联系项目维护者
 
 ## 版本历史
+
+- v2.0.0: Redis 统一和队列模块
+  - **Cache 模块**：从 redigo 迁移到 go-redis/v9
+    - 完全重写 Redis 实现
+    - 使用 context.Context
+    - 更新 API 调用方式
+    - 保持接口兼容性
+  - **Queue 模块**：新增消息队列模块
+    - Memory 后端实现
+    - Redis Streams 后端实现（go-redis/v9）
+    - Topic-Channel 消息模型
+    - 消费者组支持
+    - 消息过期和重试机制
+    - 完整的 llms.txt 文档
 
 - v1.0.0: 初始发布
   - 添加 MockClient 支持 (mongo/db)

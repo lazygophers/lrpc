@@ -1,0 +1,365 @@
+---
+title: Queue Storage Module
+description: Distributed queue middleware for LRPC framework with Redis Streams and Memory support
+---
+
+# Queue Storage Module (lrpc/middleware/storage/queue)
+
+## 概述
+
+`queue` 模块提供了分布式消息队列存储中间件，用于 LRPC 框架。支持 Redis Streams 和内存两种后端，提供统一的消息队列接口。
+
+### 核心特性
+- **多后端支持**：Redis Streams、Memory
+- **泛型支持**：支持任意类型的消息体
+- **Topic-Channel 模型**：发布订阅模式的消息分发
+- **消费者组**：Redis Streams 原生消费者组支持
+- **并发控制**：MaxInFlight 并发消费控制
+- **消息确认**：Ack/Nack 机制
+- **消息过期**：支持消息 TTL
+- **重试机制**：可配置的重试次数和延迟
+
+### 应用场景
+- **异步任务处理**：后台任务队列
+- **事件驱动架构**：事件发布和订阅
+- **消息解耦**：服务间异步通信
+- **流量削峰**：平滑处理突发流量
+
+## 快速开始
+
+### 内存队列
+
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/queue"
+
+q := queue.NewQueue(&queue.Config{
+    StorageType: queue.StorageMemory,
+})
+defer q.Close()
+
+topic := queue.NewTopic[MyMessage](q, "events", &queue.TopicConfig{})
+ch, _ := topic.GetOrAddChannel("handlers", &queue.ChannelConfig{})
+
+// 发布消息
+topic.Pub(MyMessage{Content: "hello"})
+
+// 订阅消息
+ch.Subscribe(func(msg *queue.Message[MyMessage]) (queue.ProcessRsp, error) {
+    fmt.Println(msg.Body.Content)
+    return queue.ProcessRsp{Retry: false}, nil
+})
+```
+
+### Redis Streams 队列
+
+```go
+import (
+    "github.com/lazygophers/lrpc/middleware/storage/queue"
+    "github.com/redis/go-redis/v9"
+)
+
+// 方式1：使用配置
+q := queue.NewQueue(&queue.Config{
+    StorageType: queue.StorageRedis,
+    RedisConfig: &queue.RedisConfig{
+        Addr: "localhost:6379",
+        KeyPrefix: "myapp:queue:",
+    },
+})
+defer q.Close()
+
+// 方式2：使用外部客户端
+client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+q := queue.NewQueue(&queue.Config{
+    StorageType: queue.StorageRedis,
+    RedisClient: client,
+})
+```
+
+## 核心接口
+
+### Topic 接口
+
+Topic 负责消息的生产和分发。
+
+```go
+type Topic[T any] interface {
+    // 发布消息
+    Pub(msg T) error
+    PubBatch(msgs []T) error
+    PubMsg(msg *Message[T]) error
+    PubMsgBatch(msgs []*Message[T]) error
+
+    // Channel 管理
+    GetOrAddChannel(name string, config *ChannelConfig) (Channel[T], error)
+    GetChannel(name string) (Channel[T], error)
+    ChannelList() []string
+
+    // 生命周期
+    Close() error
+}
+```
+
+### Channel 接口
+
+Channel 负责消息的消费。
+
+```go
+type Channel[T any] interface {
+    Name() string
+
+    // 订阅消息
+    Subscribe(handler Handler[T])
+
+    // 获取消息
+    Next() (*Message[T], error)           // 阻塞
+    TryNext(timeout time.Duration) (*Message[T], error)
+
+    // 消息确认
+    Ack(msgId string) error
+    Nack(msgId string) error
+
+    // 状态查询
+    Depth() (int64, error)
+
+    // 生命周期
+    Close() error
+}
+```
+
+### Message 结构
+
+```go
+type Message[T any] struct {
+    Id        string    // 消息唯一标识
+    Body      T         // 消息体
+    Timestamp int64     // 时间戳
+    ExpiresAt int64     // 过期时间（0 = 永不过期）
+    Attempts  int       // 尝试次数
+    Channel   string    // 所属 Channel
+}
+```
+
+### Handler 类型
+
+```go
+type Handler[T any] func(msg *Message[T]) (ProcessRsp, error)
+
+type ProcessRsp struct {
+    Retry         bool   // 是否重试
+    SkipAttempts  bool   // 跳过记录重试次数
+}
+```
+
+## 配置
+
+### Queue 配置
+
+```go
+type Config struct {
+    StorageType  StorageType   // "memory" 或 "redis"
+    MaxRetries   int           // 最大重试次数（默认 5）
+    RetryDelay   time.Duration // 重试延迟（默认 1s）
+    MessageTTL   time.Duration // 消息过期时间（默认 24h）
+    MaxBodySize  int64         // 最大消息体大小（默认 1MB）
+    MaxMsgSize   int64         // 最大消息数量（默认 1000000）
+
+    // Redis 专用
+    RedisConfig  *RedisConfig     // Redis 配置
+    RedisClient  *redis.Client    // 外部 Redis 客户端
+}
+```
+
+### Redis 配置
+
+```go
+type RedisConfig struct {
+    Addr         string        // 服务器地址（默认 localhost:6379）
+    Password     string        // 密码
+    DB           int           // 数据库编号（默认 0）
+    KeyPrefix    string        // 键名前缀（默认 lrpc:queue:）
+    PoolSize     int           // 连接池大小（默认 10）
+    MinIdleConns int           // 最小空闲连接（默认 5）
+    MaxRetries   int           // 最大重试次数（默认 3）
+    DialTimeout  time.Duration // 连接超时（默认 5s）
+    ReadTimeout  time.Duration // 读取超时（默认 3s）
+    WriteTimeout time.Duration // 写入超时（默认 3s）
+    PoolTimeout  time.Duration // 连接池超时（默认 4s）
+}
+```
+
+### Topic 配置
+
+```go
+type TopicConfig struct {
+    MaxRetries  int           // 最大重试次数（默认 5）
+    RetryDelay  time.Duration // 重试延迟（默认 1s）
+    MessageTTL  time.Duration // 消息过期时间（默认 24h）
+    MaxBodySize int64         // 最大消息体大小（默认 1MB）
+    MaxMsgSize  int64         // 最大消息数量（默认 1000000）
+}
+```
+
+### Channel 配置
+
+```go
+type ChannelConfig struct {
+    MaxRetries  int           // 最大重试次数（默认 5）
+    RetryDelay  time.Duration // 重试延迟（默认 1s）
+    MessageTTL  time.Duration // 消息过期时间（默认 24h）
+    MaxInFlight int           // 最大并发数（默认 10）
+    AckTimeout  time.Duration // 确认超时（默认 30s）
+}
+```
+
+## 使用示例
+
+### 基础发布订阅
+
+```go
+type Event struct {
+    Type string
+    Data string
+}
+
+q := queue.NewQueue(&queue.Config{StorageType: queue.StorageMemory})
+topic := queue.NewTopic[Event](q, "events", &queue.TopicConfig{})
+ch, _ := topic.GetOrAddChannel("handler", &queue.ChannelConfig{})
+
+// 发布
+topic.Pub(Event{Type: "user.login", Data: "john"})
+
+// 订阅
+ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
+    fmt.Printf("Event: %s, Data: %s\n", msg.Body.Type, msg.Body.Data)
+    return queue.ProcessRsp{Retry: false}, nil
+})
+```
+
+### 批量发布
+
+```go
+events := []Event{
+    {Type: "e1", Data: "data1"},
+    {Type: "e2", Data: "data2"},
+    {Type: "e3", Data: "data3"},
+}
+
+err := topic.PubBatch(events)
+```
+
+### 手动获取消息
+
+```go
+for {
+    msg, err := ch.Next()
+    if err != nil {
+        break
+    }
+
+    // 处理消息
+    fmt.Println(msg.Body)
+
+    // 确认消息
+    if err = ch.Ack(msg.Id); err != nil {
+        log.Errorf("Ack failed: %v", err)
+    }
+}
+```
+
+### 消息重试
+
+```go
+ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
+    err := processEvent(msg.Body)
+    if err != nil {
+        // 返回 Retry=true 会重新入队
+        return queue.ProcessRsp{Retry: true}, nil
+    }
+    return queue.ProcessRsp{Retry: false}, nil
+})
+```
+
+### 消息过期
+
+```go
+msg := queue.NewMessage(Event{Type: "timeout"})
+msg.SetExpires(30 * time.Minute) // 30分钟后过期
+
+topic.PubMsg(msg)
+```
+
+### 查询队列深度
+
+```go
+depth, err := ch.Depth()
+fmt.Printf("Queue depth: %d\n", depth)
+```
+
+## Redis Streams 实现
+
+### 键名规则
+
+Redis Streams 的键名格式：`{prefix}{topic}:{channel}`
+
+例如：
+- Topic: `events`
+- Channel: `handler`
+- Prefix: `myapp:queue:`
+- 键名: `myapp:queue:events:handler`
+
+### 消费者组
+
+每个 Channel 创建时会自动创建消费者组：
+- 组名：`{topic}:{channel}`
+- 消费者：动态生成（如 `consumer-1234567890`）
+
+### 消息序列化
+
+消息体使用 JSON 序列化存储在 Stream 中：
+
+```
+{
+    "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "body": "{\"Type\":\"user.login\",\"Data\":\"john\"}",
+    "timestamp": "1706745600",
+    "channel": "handler",
+    "expires_at": "1706747400",
+    "attempts": "0"
+}
+```
+
+## 后端对比
+
+| 特性 | Memory | Redis Streams |
+|------|--------|---------------|
+| 持久化 | 否 | 是 |
+| 分布式 | 否 | 是 |
+| 消费者组 | 模拟 | 原生支持 |
+| 消息确认 | 内存 | Pending List |
+| 消息重试 | 简单 | 完整支持 |
+| 性能 | 极高 | 高 |
+| 使用场景 | 测试、单机 | 生产环境 |
+
+## 最佳实践
+
+1. **合理配置 MaxInFlight**：根据处理能力设置并发数
+2. **设置消息过期时间**：避免无限重试
+3. **处理 Panic**：Handler 中应该处理 panic 并返回 Retry
+4. **关闭资源**：总是使用 defer 关闭 Topic 和 Channel
+5. **错误处理**：根据错误类型决定是否重试
+6. **监控队列深度**：及时发现积压问题
+
+## 参考资源
+
+- [Redis Streams 文档](https://redis.io/docs/data-types/streams/)
+- [go-redis/v9 文档](https://redis.uptrace.dev/)
+- [LRPC 框架](https://github.com/lazygophers/lrpc)
+
+## 版本历史
+
+- v1.0.0: 初始发布
+  - Memory 和 Redis Streams 实现
+  - 完整的 Topic-Channel 模型
+  - 消费者组支持
+  - 消息过期和重试机制
