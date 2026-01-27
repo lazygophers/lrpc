@@ -307,29 +307,48 @@ func (p *memoryChannel[T]) TryNext(timeout time.Duration) (*Message[T], error) {
 			return nil, xerror.New(ErrNoMessage, "no message available")
 		}
 
-		// 有超时时间，使用条件变量等待
-		done := make(chan struct{})
-		go func() {
-			p.cond.Wait()
-			close(done)
-		}()
+		// 有超时时间，使用定时器轮询
+		p.mu.Unlock()
 
-		select {
-		case <-done:
-			// 被唤醒，重新检查
-			if p.closed {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-timer.C:
+				p.mu.Lock()
+				if p.closed {
+					p.mu.Unlock()
+					return nil, xerror.New(ErrChannelClosed, "channel closed")
+				}
+				if len(p.queue) == 0 {
+					p.mu.Unlock()
+					return nil, xerror.New(ErrNoMessage, "no message available")
+				}
+				// 有消息了，继续处理
+				msg := p.queue[0]
+				p.queue = p.queue[1:]
+				p.waiting[msg.Id] = struct{}{}
 				p.mu.Unlock()
-				return nil, xerror.New(ErrChannelClosed, "channel closed")
-			}
-			if len(p.queue) == 0 {
+				return msg, nil
+			case <-ticker.C:
+				p.mu.Lock()
+				if p.closed {
+					p.mu.Unlock()
+					return nil, xerror.New(ErrChannelClosed, "channel closed")
+				}
+				if len(p.queue) > 0 {
+					msg := p.queue[0]
+					p.queue = p.queue[1:]
+					p.waiting[msg.Id] = struct{}{}
+					p.mu.Unlock()
+					return msg, nil
+				}
 				p.mu.Unlock()
-				return nil, xerror.New(ErrNoMessage, "no message available")
 			}
-		case <-time.After(timeout):
-			// 超时，广播以唤醒 goroutine
-			p.cond.Broadcast()
-			p.mu.Unlock()
-			return nil, xerror.New(ErrNoMessage, "no message available")
 		}
 	}
 
@@ -347,6 +366,10 @@ func (p *memoryChannel[T]) Ack(msgId string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	if p.closed {
+		return xerror.New(ErrChannelClosed, "channel closed")
+	}
+
 	delete(p.waiting, msgId)
 	return nil
 }
@@ -355,6 +378,10 @@ func (p *memoryChannel[T]) Ack(msgId string) error {
 func (p *memoryChannel[T]) Nack(msgId string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if p.closed {
+		return xerror.New(ErrChannelClosed, "channel closed")
+	}
 
 	// 查找在 waiting 中的消息
 	// 由于内存队列已经取出，需要重新入队时创建新消息
@@ -384,7 +411,7 @@ func (p *memoryChannel[T]) close() error {
 	defer p.mu.Unlock()
 
 	if p.closed {
-		return nil
+		return xerror.New(ErrChannelClosed, "channel already closed")
 	}
 
 	p.closed = true
