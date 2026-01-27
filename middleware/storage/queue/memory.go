@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/cryptox"
 	"github.com/lazygophers/utils/routine"
 )
 
@@ -57,7 +58,7 @@ func (t *memoryTopic[T]) Pub(msg T) error {
 	}
 
 	message := &Message[T]{
-		Id:        uuid.New().String(),
+		Id:        cryptox.ULID(),
 		Body:      msg,
 		Timestamp: time.Now().Unix(),
 		Attempts:  0,

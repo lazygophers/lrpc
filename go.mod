@@ -14,8 +14,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
 	github.com/kamva/mgm/v3 v3.5.0
-	github.com/lazygophers/log v0.0.0-20251229002445-3573dbfe9e95
-	github.com/lazygophers/utils v0.0.0-20260120101016-19fab5441540
+	github.com/lazygophers/log v0.0.0-20260123105923-d3b73e15c81e
+	github.com/lazygophers/utils v0.0.0-20260122153624-91f9e92e0dc0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/petermattis/goid v0.0.0-20260113132338-7c7de50cc741
@@ -50,8 +50,8 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.14.2 // indirect
-	github.com/bytedance/sonic/loader v0.4.0 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
