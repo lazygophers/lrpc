@@ -1337,3 +1337,115 @@ func TestMemoryChannelSubscribeMaxInFlight(t *testing.T) {
 
 	t.Logf("MaxInFlight=%d, 实际最大并发数=%d, 消息总数=%d", maxInFlight, maxConcurrent, msgCount)
 }
+
+// TestNewMessage 测试 NewMessage 构造函数
+func TestNewMessage(t *testing.T) {
+	body := TestMsg{ID: 1, Content: "test"}
+	msg := NewMessage(body)
+
+	if msg.Id == "" {
+		t.Error("期望生成消息ID")
+	}
+	if msg.Body.ID != 1 {
+		t.Errorf("Body = %v, want %v", msg.Body, body)
+	}
+	if msg.Timestamp == 0 {
+		t.Error("期望设置时间戳")
+	}
+	if msg.Attempts != 0 {
+		t.Errorf("Attempts = %d, want 0", msg.Attempts)
+	}
+}
+
+// TestNewMessageWithID 测试 NewMessageWithID 构造函数
+func TestNewMessageWithID(t *testing.T) {
+	body := TestMsg{ID: 1, Content: "test"}
+	id := "test-id-123"
+	msg := NewMessageWithID(id, body)
+
+	if msg.Id != id {
+		t.Errorf("Id = %s, want %s", msg.Id, id)
+	}
+	if msg.Body.ID != 1 {
+		t.Errorf("Body = %v, want %v", msg.Body, body)
+	}
+	if msg.Timestamp == 0 {
+		t.Error("期望设置时间戳")
+	}
+	if msg.Attempts != 0 {
+		t.Errorf("Attempts = %d, want 0", msg.Attempts)
+	}
+}
+
+// TestGenerateMessageID 测试 GenerateMessageID
+func TestGenerateMessageID(t *testing.T) {
+	id := GenerateMessageID()
+	if id == "" {
+		t.Error("期望生成非空ID")
+	}
+
+	// 测试ID唯一性
+	ids := make(map[string]bool)
+	for i := 0; i < 1000; i++ {
+		id := GenerateMessageID()
+		if ids[id] {
+			t.Errorf("发现重复ID: %s", id)
+		}
+		ids[id] = true
+	}
+}
+
+// TestMessageClone 测试 Clone 方法
+func TestMessageClone(t *testing.T) {
+	body := TestMsg{ID: 1, Content: "test"}
+	msg := NewMessage(body)
+	msg.Channel = "ch1"
+	msg.Attempts = 3
+
+	cloned := msg.Clone()
+
+	// 验证克隆值相同
+	if cloned.Id != msg.Id {
+		t.Errorf("克隆后的Id不同: %s vs %s", cloned.Id, msg.Id)
+	}
+	if cloned.Channel != msg.Channel {
+		t.Errorf("克隆后的Channel不同: %s vs %s", cloned.Channel, msg.Channel)
+	}
+	if cloned.Attempts != msg.Attempts {
+		t.Errorf("克隆后的Attempts不同: %d vs %d", cloned.Attempts, msg.Attempts)
+	}
+
+	// 验证是不同的对象
+	cloned.Attempts = 5
+	if msg.Attempts != 3 {
+		t.Errorf("修改克隆体影响了原消息: %d", msg.Attempts)
+	}
+}
+
+// TestMessageResetAttempts 测试 ResetAttempts 方法
+func TestMessageResetAttempts(t *testing.T) {
+	msg := NewMessage(TestMsg{ID: 1})
+	msg.Attempts = 5
+
+	msg.ResetAttempts()
+
+	if msg.Attempts != 0 {
+		t.Errorf("Attempts = %d, want 0", msg.Attempts)
+	}
+}
+
+// TestMessageIncrementAttempts 测试 IncrementAttempts 方法
+func TestMessageIncrementAttempts(t *testing.T) {
+	msg := NewMessage(TestMsg{ID: 1})
+
+	msg.IncrementAttempts()
+	if msg.Attempts != 1 {
+		t.Errorf("Attempts = %d, want 1", msg.Attempts)
+	}
+
+	msg.IncrementAttempts()
+	msg.IncrementAttempts()
+	if msg.Attempts != 3 {
+		t.Errorf("Attempts = %d, want 3", msg.Attempts)
+	}
+}

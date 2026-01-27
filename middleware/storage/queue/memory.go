@@ -4,10 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/xerror"
-	"github.com/lazygophers/utils/cryptox"
 	"github.com/lazygophers/utils/routine"
 )
 
@@ -57,12 +55,7 @@ func (t *memoryTopic[T]) Pub(msg T) error {
 		return xerror.New(ErrTopicClosed, "topic closed")
 	}
 
-	message := &Message[T]{
-		Id:        cryptox.ULID(),
-		Body:      msg,
-		Timestamp: time.Now().Unix(),
-		Attempts:  0,
-	}
+	message := NewMessage(msg)
 
 	for _, ch := range t.channels {
 		err := ch.pubMsg(message)
@@ -96,7 +89,7 @@ func (t *memoryTopic[T]) PubMsg(msg *Message[T]) error {
 	}
 
 	if msg.Id == "" {
-		msg.Id = uuid.New().String()
+		msg.Id = GenerateMessageID()
 	}
 	if msg.Timestamp == 0 {
 		msg.Timestamp = time.Now().Unix()
@@ -214,13 +207,8 @@ func (p *memoryChannel[T]) pubMsg(msg *Message[T]) error {
 	}
 
 	// 复制消息，避免不同 Channel 共享同一消息
-	msgCopy := &Message[T]{
-		Id:        msg.Id,
-		Body:      msg.Body,
-		Timestamp: msg.Timestamp,
-		Attempts:  msg.Attempts,
-		Channel:   p.name,
-	}
+	msgCopy := msg.Clone()
+	msgCopy.Channel = p.name
 
 	p.queue = append(p.queue, msgCopy)
 
