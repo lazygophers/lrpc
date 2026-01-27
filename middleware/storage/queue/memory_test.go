@@ -1077,15 +1077,16 @@ func TestMemoryChannelSubscribeWithHandlerError(t *testing.T) {
 }
 
 func TestMemoryChannelNextEmptyQueueEdge(t *testing.T) {
-	// 这个测试直接操作内部状态来触发 line 281-284 的分支
+	// 这个测试尝试触发 Next 的边缘情况
+	// 由于 Next 使用 for 循环，Broadcast 后如果队列仍为空且未关闭，会继续等待
+	// 为了触发 281-284 行的分支，需要在 Broadcast 后关闭 channel
 	topic := NewMemoryTopic[TestMsg]("test", nil)
 	ch, _ := topic.GetOrAddChannel("ch1", nil)
 
-	// 直接设置状态：未关闭，队列为空
+	// 确保队列为空
 	mch := ch.(*memoryChannel[TestMsg])
 	mch.mu.Lock()
-	mch.closed = false
-	mch.queue = mch.queue[:0] // 确保队列为空
+	mch.queue = mch.queue[:0]
 	mch.mu.Unlock()
 
 	// 调用 Next，应该会进入 Wait 状态
@@ -1099,16 +1100,17 @@ func TestMemoryChannelNextEmptyQueueEdge(t *testing.T) {
 	// 等待 Next 进入 Wait 状态
 	time.Sleep(20 * time.Millisecond)
 
-	// 广播以唤醒
-	mch.mu.Lock()
-	mch.cond.Broadcast()
-	mch.mu.Unlock()
+	// 关闭 channel 来触发退出
+	ch.Close()
 
 	// 等待 Next 完成
 	select {
 	case err := <-done:
 		if err == nil {
 			t.Error("期望错误")
+		}
+		if !xerror.CheckCode(err, ErrChannelClosed) {
+			t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
 		}
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("测试超时")
