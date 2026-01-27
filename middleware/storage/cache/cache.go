@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
@@ -136,14 +135,7 @@ func New(c *Config) (Cache, error) {
 		})
 
 	case Redis:
-		return NewRedis(c.Address,
-			redis.DialDatabase(c.Db),
-			redis.DialConnectTimeout(time.Second*3),
-			redis.DialReadTimeout(time.Minute),
-			redis.DialWriteTimeout(time.Minute),
-			redis.DialKeepAlive(time.Minute),
-			redis.DialPassword(c.Password),
-		)
+		return NewRedisWithConfig(c)
 
 	case Mem:
 		return NewMem(), nil

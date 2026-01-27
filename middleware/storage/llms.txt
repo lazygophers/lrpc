@@ -1,21 +1,22 @@
 ---
 title: Storage Middleware
-description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, and Cache support
+description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, Cache, and Queue support
 ---
 
 # Storage Middleware (lrpc/middleware/storage)
 
 ## 概述
 
-`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库和分布式缓存三大模块。每个模块都提供了完整的 Mock 支持，方便在不同场景下进行测试和开发。
+`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库、分布式缓存和消息队列四大模块。每个模块都提供了完整的 Mock 支持，方便在不同场景下进行测试和开发。
 
 ### 核心特性
-- **模块化设计**：MongoDB、SQL、Cache 三个独立模块
+- **模块化设计**：MongoDB、SQL、Cache、Queue 四个独立模块
 - **统一接口**：清晰一致的接口设计
 - **完整的 Mock 支持**：所有模块都提供了 Mock 实现
 - **调用跟踪**：用于三路测试和行为验证
 - **错误处理**：遵循一致的错误处理模式
 - **多环境支持**：轻松切换真实和模拟环境
+- **Redis 统一**：所有模块使用 go-redis/v9
 
 ## 模块架构
 
@@ -24,17 +25,26 @@ middleware/storage/
 ├── mongo/          # MongoDB 存储模块
 │   ├── client.go        # MongoDB 客户端
 │   ├── model.go         # 数据模型定义
-│   ├── mock.go          # Mock 实现（新增）
-│   └── llms.txt         # API 文档（新增）
+│   ├── mock.go          # Mock 实现
+│   └── llms.txt         # API 文档
 ├── db/             # SQL 数据库模块
 │   ├── client.go        # 数据库客户端
 │   ├── model.go         # GORM 模型
-│   ├── mock.go          # Mock 实现（新增）
-│   └── llms.txt         # API 文档（新增）
+│   ├── mock.go          # Mock 实现
+│   └── llms.txt         # API 文档
 ├── cache/          # 分布式缓存模块
 │   ├── cache.go         # 缓存接口
-│   ├── mock.go          # Mock 实现（新增）
-│   └── llms.txt         # API 文档（新增）
+│   ├── redis.go         # Redis 实现 (go-redis/v9)
+│   ├── mock.go          # Mock 实现
+│   └── llms.txt         # API 文档
+├── queue/          # 消息队列模块
+│   ├── queue.go         # 队列接口和工厂
+│   ├── config.go        # 配置定义
+│   ├── memory.go        # 内存实现
+│   ├── redis.go         # Redis Streams 实现
+│   ├── message.go       # 消息结构
+│   ├── utils.go         # 工具函数
+│   └── llms.txt         # API 文档
 └── llms.txt        # 综合文档（此文件）
 ```
 
@@ -79,11 +89,13 @@ mockClient.SetupAutoMigrateSuccess()
 ```go
 import "github.com/lazygophers/lrpc/middleware/storage/cache"
 
-// 创建真实缓存（Redis 后端）
-c, err := cache.New(
-    cache.WithBackend("redis"),
-    cache.WithUrl("localhost:6379"),
-)
+// 创建 Redis 缓存（go-redis/v9）
+c, err := cache.New(&cache.Config{
+    Type:     cache.Redis,
+    Address:  "localhost:6379",
+    Password: "",
+    Db:       0,
+})
 defer c.Close()
 
 // 或使用 Mock 缓存（用于测试）
@@ -91,27 +103,61 @@ mockCache := cache.NewMockCache()
 mockCache.SetupSuccess()
 ```
 
-## 三个模块对比
+### 4. 消息队列
 
-| 特性 | MongoDB | SQL 数据库 | 缓存 |
-|------|---------|-----------|------|
-| 用途 | 文档存储 | 关系型数据 | 高速访问 |
-| 数据结构 | 灵活 | 固定模式 | KV/哈希/集合 |
-| 持久化 | 是 | 是 | 可选 |
-| 事务支持 | 是 | 是 | 部分 |
-| Mock 支持 | 是 | 是 | 是 |
-| 驱动类型 | mongo-go-model | GORM | Redis/Memory/BBolt/LevelDB |
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/queue"
+
+// 创建 Redis Streams 队列
+q := queue.NewQueue(&queue.Config{
+    StorageType: queue.StorageRedis,
+    RedisConfig: &queue.RedisConfig{
+        Addr: "localhost:6379",
+        KeyPrefix: "myapp:queue:",
+    },
+})
+defer q.Close()
+
+// 创建 Topic
+type Event struct {
+    Type string
+    Data string
+}
+
+topic := queue.NewTopic[Event](q, "events", &queue.TopicConfig{})
+ch, _ := topic.GetOrAddChannel("handlers", &queue.ChannelConfig{})
+
+// 发布消息
+topic.Pub(Event{Type: "user.login", Data: "john"})
+
+// 订阅消息
+ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
+    fmt.Printf("Event: %s\n", msg.Body.Type)
+    return queue.ProcessRsp{Retry: false}, nil
+})
+```
+
+## 四个模块对比
+
+| 特性 | MongoDB | SQL 数据库 | 缓存 | 队列 |
+|------|---------|-----------|------|------|
+| 用途 | 文档存储 | 关系型数据 | 高速访问 | 异步消息 |
+| 数据结构 | 灵活 | 固定模式 | KV/哈希/集合/流 | Topic/Channel |
+| 持久化 | 是 | 是 | 可选 | 是 |
+| 事务支持 | 是 | 是 | 部分 | 否 |
+| Mock 支持 | 是 | 是 | 是 | 是 |
+| 驱动类型 | mongo-go-model | GORM | go-redis/v9 | go-redis/v9 |
 
 ## Mock 功能对比
 
-| 功能 | Mongo Mock | DB Mock | Cache Mock |
-|------|-----------|---------|-----------|
-| 设置返回值 | ✓ | ✓ | ✓ |
-| 调用记录 | ✓ | ✓ | ✓ |
-| 调用计数 | ✓ | ✓ | ✓ |
-| 数据存储 | ✓ | ✓ | ✓ |
-| 序列化支持 | ✓ | ✓ | ✓ |
-| 缓存命中测试 | ✓ | ✓ | ✓ |
+| 功能 | Mongo Mock | DB Mock | Cache Mock | Queue Mock |
+|------|-----------|---------|-----------|------------|
+| 设置返回值 | ✓ | ✓ | ✓ | ✓ |
+| 调用记录 | ✓ | ✓ | ✓ | ✓ |
+| 调用计数 | ✓ | ✓ | ✓ | ✓ |
+| 数据存储 | ✓ | ✓ | ✓ | ✓ |
+| 序列化支持 | ✓ | ✓ | ✓ | ✓ |
+| 消息模拟 | ✓ | ✓ | ✓ | ✓ |
 
 ## 使用场景
 

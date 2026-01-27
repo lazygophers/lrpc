@@ -1,16 +1,16 @@
 ---
 title: Cache Storage Module
-description: Distributed caching middleware for LRPC framework with Redis, Memory, BBolt, LevelDB support and Mock functionality
+description: Distributed caching middleware for LRPC framework with Redis (go-redis/v9), Memory, BBolt, LevelDB support and Mock functionality
 ---
 
 # Cache Storage Module (lrpc/middleware/storage/cache)
 
 ## 概述
 
-`cache` 模块提供了分布式缓存存储中间件，用于 LRPC 框架。支持多种缓存后端（Redis、内存、BBolt、LevelDB），提供统一的接口和完整的 Mock 支持。
+`cache` 模块提供了分布式缓存存储中间件，用于 LRPC 框架。支持多种缓存后端（Redis、Memory、BBolt、LevelDB），提供统一的接口和完整的 Mock 支持。
 
 ### 核心特性
-- **多后端支持**：Redis、Memory、BBolt、LevelDB
+- **多后端支持**：Redis (go-redis/v9)、Memory、BBolt、LevelDB
 - **丰富的数据类型**：字符串、哈希、集合、流等
 - **发布订阅**：支持 Pub/Sub 消息传递
 - **流处理**：支持 Redis Streams 消费者组
@@ -24,6 +24,35 @@ description: Distributed caching middleware for LRPC framework with Redis, Memor
 - **本地调试**：无需启动 Redis 即可开发
 - **演示和原型开发**：快速验证功能
 - **多环境支持**：轻松切换各种缓存后端
+
+## 快速开始
+
+### Redis 缓存（推荐）
+
+```go
+import "github.com/lazygophers/lrpc/middleware/storage/cache"
+
+// 使用配置创建 Redis 缓存
+c, err := cache.New(&cache.Config{
+    Type:     cache.Redis,
+    Address:  "localhost:6379",
+    Password: "",
+    Db:       0,
+})
+defer c.Close()
+
+// 使用外部客户端创建缓存
+client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+c, err := cache.NewRedisWithClient(client, "prefix:")
+```
+
+### 内存缓存（开发/测试）
+
+```go
+c, err := cache.New(&cache.Config{
+    Type: cache.Mem,
+})
+```
 
 ## 核心接口
 
@@ -120,6 +149,62 @@ type Cache interface {
 }
 ```
 
+## Redis 实现
+
+### 使用 go-redis/v9
+
+```go
+import (
+    "github.com/lazygophers/lrpc/middleware/storage/cache"
+    "github.com/redis/go-redis/v9"
+)
+
+// 方式1：使用配置创建
+c, err := cache.New(&cache.Config{
+    Type:     cache.Redis,
+    Address:  "localhost:6379",
+    Password: "",
+    Db:       0,
+})
+defer c.Close()
+
+// 方式2：使用已有客户端
+client := redis.NewClient(&redis.Options{
+    Addr:     "localhost:6379",
+    Password: "",
+    DB:       0,
+})
+c, err := cache.NewRedisWithClient(client, "app:")
+```
+
+### 配置选项
+
+```go
+type Config struct {
+    Type     string // "mem", "redis", "bbolt", "leveldb", "sugardb"
+    Address  string // 服务器地址
+    Password string // 密码
+    Db       int    // 数据库编号
+    DataDir  string // 数据目录
+}
+```
+
+### Redis 连接池配置
+
+```go
+client := redis.NewClient(&redis.Options{
+    Addr:         "localhost:6379",
+    Password:     "",
+    DB:           0,
+    PoolSize:     1000,      // 连接池大小
+    MinIdleConns: 100,       // 最小空闲连接
+    DialTimeout:  5 * time.Second,
+    ReadTimeout:  3 * time.Second,
+    WriteTimeout: 3 * time.Second,
+    PoolTimeout:  4 * time.Second,
+})
+```
+
 ## Mock 支持
 
 ### MockCache - 完整模拟
@@ -131,9 +216,7 @@ type Cache interface {
 mockCache := NewMockCache()
 
 // 设置返回值
-mockCache.
-    SetupSuccess().
-    GetRet = "cached_value"
+mockCache.SetupSuccess().GetRet = "cached_value"
 
 // 执行操作
 val, err := mockCache.Get("mykey")
@@ -220,32 +303,39 @@ ResetCalls()
 
 ## 使用示例
 
-### 基础使用（Redis 后端）
+### Redis 流操作
 
 ```go
-import "github.com/lazygophers/lrpc/middleware/storage/cache"
+c, _ := cache.New(&cache.Config{Type: cache.Redis, Address: "localhost:6379"})
+defer c.Close()
 
-// 创建 Redis 缓存
-cache, err := cache.New(cache.WithBackend("redis"), cache.WithUrl("localhost:6379"))
-if err != nil {
-    log.Fatalf("Failed to create cache: %v", err)
-}
-defer cache.Close()
+// 添加消息到流
+id, _ := c.XAdd("events", map[string]interface{}{
+    "type": "user_login",
+    "user": "john",
+})
 
-// 健康检查
-if err := cache.Ping(); err != nil {
-    log.Fatalf("Cache unreachable: %v", err)
-}
+// 创建消费者组
+_ = c.XGroupCreate("events", "handlers", "0")
 
-// 基础操作
-cache.Set("user:1", "John")
-val, _ := cache.Get("user:1")
+// 消费消息
+go c.XReadGroup(func(stream, id, body []byte) error {
+    fmt.Printf("Received: %s\n", body)
+    return nil
+}, "handlers", "consumer1", "events")
+```
 
-// 带过期时间的操作
-cache.SetEx("session:123", "data", 1*time.Hour)
+### 发布订阅
 
-// 计数器
-cache.Incr("page_views")
+```go
+// 发布者
+c.Publish("updates", "new data available")
+
+// 订阅者
+go c.Subscribe(func(channel string, message []byte) error {
+    fmt.Printf("Channel: %s, Message: %s\n", channel, message)
+    return nil
+}, "updates")
 ```
 
 ### 单元测试示例
@@ -254,9 +344,7 @@ cache.Incr("page_views")
 func TestUserService(t *testing.T) {
     // 创建 Mock 缓存
     mockCache := cache.NewMockCache()
-    mockCache.
-        SetupSuccess().
-        GetRet = "cached_user"
+    mockCache.SetupSuccess().GetRet = "cached_user"
 
     // 初始化服务
     service := NewUserService(mockCache)
@@ -271,222 +359,11 @@ func TestUserService(t *testing.T) {
 }
 ```
 
-### 缓存数据命中测试示例
-
-```go
-// 测试缓存命中场景（会话、权限等）
-func TestSessionCacheHit(t *testing.T) {
-    mockCache := cache.NewMockCache()
-
-    // 设置缓存的会话数据（使用 SetData）
-    type Session struct {
-        Uid  int64
-        Type int
-    }
-
-    session := &Session{Uid: 456, Type: 1}
-    mockCache.SetData("session:123", session)
-
-    // 执行测试 - 从缓存获取会话
-    var cachedSession Session
-    err := mockCache.GetJson("session:123", &cachedSession)
-
-    // 验证缓存命中
-    require.NoError(t, err)
-    require.Equal(t, int64(456), cachedSession.Uid)
-    require.Equal(t, 1, cachedSession.Type)
-}
-
-// 测试权限缓存
-func TestPermissionsCacheHit(t *testing.T) {
-    mockCache := cache.NewMockCache()
-
-    // 设置权限列表数据
-    permissions := []string{"user.read", "user.write", "user.delete"}
-    mockCache.SetData("perms:admin", permissions)
-
-    // 从缓存获取权限
-    var cachedPerms []string
-    err := mockCache.GetJson("perms:admin", &cachedPerms)
-
-    // 验证
-    require.NoError(t, err)
-    require.Equal(t, 3, len(cachedPerms))
-    require.Equal(t, 1, mockCache.GetCallCount("GetJson"))
-}
-
-// 测试 RBAC 权限检查
-func TestRBACPermissionCheck(t *testing.T) {
-    mockCache := cache.NewMockCache()
-
-    type RolePerms struct {
-        Role        string
-        Permissions []string
-    }
-
-    // 缓存角色权限
-    rolePerms := &RolePerms{
-        Role:        "admin",
-        Permissions: []string{"*"}, // 管理员所有权限
-    }
-    mockCache.SetData("role:admin:perms", rolePerms)
-
-    // 验证权限检查
-    var perms RolePerms
-    mockCache.GetJson("role:admin:perms", &perms)
-
-    require.Equal(t, "admin", perms.Role)
-    require.True(t, contains(perms.Permissions, "*"))
-}
-```
-
-### 哈希操作示例
-
-```go
-func TestHashCache(t *testing.T) {
-    // 真实缓存
-    c, _ := cache.New(cache.WithBackend("memory"))
-    defer c.Close()
-
-    // 存储哈希
-    c.HSet("user:profile", "name", "John")
-    c.HSet("user:profile", "age", "30")
-
-    // 获取哈希值
-    name, _ := c.HGet("user:profile", "name")
-    
-    // 获取所有字段
-    all, _ := c.HGetAll("user:profile")
-    // all = {"name": "John", "age": "30"}
-
-    // 测试版本
-    mockCache := cache.NewMockCache()
-    mockCache.HGetAllRet = map[string]string{"name": "Jane", "age": "25"}
-    all2, _ := mockCache.HGetAll("user:profile")
-}
-```
-
-### 集合操作示例
-
-```go
-func TestSetCache(t *testing.T) {
-    mockCache := cache.NewMockCache()
-    mockCache.
-        SAddRet = 2.
-        SMembersRet = []string{"user1", "user2"}
-
-    // 添加成员
-    count, _ := mockCache.SAdd("online_users", "user1", "user2")
-    require.Equal(t, int64(2), count)
-
-    // 获取所有成员
-    members, _ := mockCache.SMembers("online_users")
-    require.Equal(t, 2, len(members))
-
-    // 验证调用
-    require.True(t, mockCache.AssertCalled("SAdd"))
-}
-```
-
-### 流操作示例
-
-```go
-func TestStreamCache(t *testing.T) {
-    mockCache := cache.NewMockCache()
-    mockCache.XAddRet = "1234567890-0"
-
-    // 添加消息到流
-    id, _ := mockCache.XAdd("events", map[string]interface{}{
-        "type": "user_login",
-        "user": "john",
-    })
-    require.Equal(t, "1234567890-0", id)
-
-    // 创建消费者组
-    _ = mockCache.XGroupCreate("events", "handlers", "0")
-
-    // 验证调用
-    require.Equal(t, 1, mockCache.GetCallCount("XAdd"))
-    require.Equal(t, 1, mockCache.GetCallCount("XGroupCreate"))
-}
-```
-
-### 本地开发示例
-
-```go
-func main() {
-    var c cache.Cache
-    
-    if os.Getenv("USE_MOCK_CACHE") == "true" {
-        // 本地开发使用 Mock
-        c = cache.NewMockCache().SetupSuccess()
-    } else if os.Getenv("USE_MEMORY_CACHE") == "true" {
-        // 测试环境使用内存缓存
-        c, _ = cache.New(cache.WithBackend("memory"))
-    } else {
-        // 生产环境使用 Redis
-        c, _ = cache.New(
-            cache.WithBackend("redis"),
-            cache.WithUrl(os.Getenv("REDIS_URL")),
-        )
-    }
-    defer c.Close()
-
-    if err := c.Ping(); err != nil {
-        log.Fatalf("Cache unavailable: %v", err)
-    }
-}
-```
-
-### 类型转换示例
-
-```go
-func TestTypeConversion(t *testing.T) {
-    mockCache := cache.NewMockCache()
-    mockCache.
-        GetInt64Ret = 12345.
-        GetBoolRet = true.
-        GetFloat64Ret = 3.14
-
-    // 获取不同类型的值
-    i64, _ := mockCache.GetInt64("counter")
-    b, _ := mockCache.GetBool("enabled")
-    f64, _ := mockCache.GetFloat64("score")
-
-    require.Equal(t, int64(12345), i64)
-    require.True(t, b)
-    require.Equal(t, 3.14, f64)
-}
-```
-
-### 序列化支持示例
-
-```go
-func TestProtobufSerialization(t *testing.T) {
-    mockCache := cache.NewMockCache()
-    mockCache.SetPbErr = nil
-
-    // 定义数据结构
-    type User struct {
-        ID   int32
-        Name string
-    }
-
-    user := &User{ID: 1, Name: "John"}
-
-    // 存储 Protobuf 消息
-    _ = mockCache.SetPb("user:1", user.(proto.Message))
-
-    // 验证调用
-    require.True(t, mockCache.AssertCalled("SetPb"))
-}
-```
-
 ## 缓存后端对比
 
 | 后端 | 特性 | 用途 | 持久化 |
 |------|------|------|--------|
-| Redis | 分布式、高性能、丰富数据类型 | 生产环境 | 可选 |
+| Redis (go-redis/v9) | 分布式、高性能、丰富数据类型 | 生产环境 | 可选 |
 | Memory | 简单、快速、无网络 | 单机开发、测试 | 否 |
 | BBolt | 嵌入式、事务支持 | 本地存储 | 是 |
 | LevelDB | 高性能、LSM 树 | 时间序列、日志 | 是 |
@@ -501,37 +378,18 @@ func TestProtobufSerialization(t *testing.T) {
 6. **错误处理**：始终检查错误返回值
 7. **性能优化**：使用批量操作而非逐条操作
 
-## 常见操作模式
-
-### 缓存穿透保护
-
-```go
-mockCache := cache.NewMockCache()
-mockCache.SetNxRet = true
-mockCache.SetNxErr = nil
-
-// 使用 SetNx 防止缓存穿透
-if ok, err := mockCache.SetNx("lock:"+key, "1"); ok && err == nil {
-    // 执行操作
-}
-```
-
-### 分布式锁
-
-```go
-mockCache := cache.NewMockCache()
-
-// 获取锁
-locked, _ := mockCache.SetNxWithTimeout("lock:resource", "owner", 10*time.Second)
-if locked {
-    defer mockCache.Del("lock:resource")
-    // 执行临界区操作
-}
-```
-
 ## 参考资源
 
+- [go-redis/v9 文档](https://redis.uptrace.dev/)
 - [Redis 文档](https://redis.io/documentation)
 - [LRPC 框架](https://github.com/lazygophers/lrpc)
-- [分布式缓存最佳实践](https://en.wikipedia.org/wiki/Web_cache)
-- [缓存策略](https://en.wikipedia.org/wiki/Cache_replacement_policies)
+
+## 版本历史
+
+- v2.0.0: 从 redigo 迁移到 go-redis/v9
+  - 完全重写 Redis 实现
+  - 使用 context.Context
+  - 更新 API 调用方式
+  - 保持接口兼容性
+
+- v1.0.0: 初始发布（基于 redigo）

@@ -2,6 +2,8 @@ package queue
 
 import (
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type StorageType string
@@ -76,6 +78,65 @@ type Channel[T any] interface {
 	Close() error
 }
 
+// RedisConfig Redis 配置
+type RedisConfig struct {
+	// Addr Redis 服务器地址（格式：host:port）
+	Addr string `json:"addr,omitempty" yaml:"addr,omitempty" toml:"addr,omitempty" default:"localhost:6379"`
+	// Password Redis 密码
+	Password string `json:"password,omitempty" yaml:"password,omitempty" toml:"password,omitempty"`
+	// DB Redis 数据库编号
+	DB int `json:"db,omitempty" yaml:"db,omitempty" toml:"db,omitempty" default:"0"`
+	// KeyPrefix Redis 键名前缀
+	KeyPrefix string `json:"key_prefix,omitempty" yaml:"key_prefix,omitempty" toml:"key_prefix,omitempty" default:"lrpc:queue:"`
+	// PoolSize 连接池大小
+	PoolSize int `json:"pool_size,omitempty" yaml:"pool_size,omitempty" toml:"pool_size,omitempty" default:"10"`
+	// MinIdleConns 最小空闲连接数
+	MinIdleConns int `json:"min_idle_conns,omitempty" yaml:"min_idle_conns,omitempty" toml:"min_idle_conns,omitempty" default:"5"`
+	// MaxRetries 最大重试次数
+	MaxRetries int `json:"max_retries,omitempty" yaml:"max_retries,omitempty" toml:"max_retries,omitempty" default:"3"`
+	// DialTimeout 连接超时
+	DialTimeout time.Duration `json:"dial_timeout,omitempty" yaml:"dial_timeout,omitempty" toml:"dial_timeout,omitempty" default:"5s"`
+	// ReadTimeout 读取超时
+	ReadTimeout time.Duration `json:"read_timeout,omitempty" yaml:"read_timeout,omitempty" toml:"read_timeout,omitempty" default:"3s"`
+	// WriteTimeout 写入超时
+	WriteTimeout time.Duration `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty" toml:"write_timeout,omitempty" default:"3s"`
+	// PoolTimeout 连接池超时
+	PoolTimeout time.Duration `json:"pool_timeout,omitempty" yaml:"pool_timeout,omitempty" toml:"pool_timeout,omitempty" default:"4s"`
+}
+
+func (p *RedisConfig) apply() {
+	if p.Addr == "" {
+		p.Addr = "localhost:6379"
+	}
+	if p.DB < 0 {
+		p.DB = 0
+	}
+	if p.KeyPrefix == "" {
+		p.KeyPrefix = "lrpc:queue:"
+	}
+	if p.PoolSize <= 0 {
+		p.PoolSize = 10
+	}
+	if p.MinIdleConns <= 0 {
+		p.MinIdleConns = 5
+	}
+	if p.MaxRetries <= 0 {
+		p.MaxRetries = 3
+	}
+	if p.DialTimeout <= 0 {
+		p.DialTimeout = 5 * time.Second
+	}
+	if p.ReadTimeout <= 0 {
+		p.ReadTimeout = 3 * time.Second
+	}
+	if p.WriteTimeout <= 0 {
+		p.WriteTimeout = 3 * time.Second
+	}
+	if p.PoolTimeout <= 0 {
+		p.PoolTimeout = 4 * time.Second
+	}
+}
+
 // Config 队列配置
 type Config struct {
 	// StorageType 存储类型
@@ -90,6 +151,12 @@ type Config struct {
 	MaxBodySize int64 `json:"max_body_size,omitempty" yaml:"max_body_size,omitempty" toml:"max_body_size,omitempty" default:"1048576"`
 	// MaxMsgSize 最大消息数量
 	MaxMsgSize int64 `json:"max_msg_size,omitempty" yaml:"max_msg_size,omitempty" toml:"max_msg_size,omitempty" default:"1000000"`
+
+	// RedisConfig Redis 配置（当 StorageType 为 redis 时使用）
+	RedisConfig *RedisConfig `json:"redis_config,omitempty" yaml:"redis_config,omitempty" toml:"redis_config,omitempty"`
+
+	// RedisClient 外部传入的 Redis 客户端（优先级高于 RedisConfig）
+	RedisClient *redis.Client `json:"-" yaml:"-" toml:"-"`
 }
 
 func (p *Config) apply() {

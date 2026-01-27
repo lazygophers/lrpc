@@ -1449,3 +1449,111 @@ func TestMessageIncrementAttempts(t *testing.T) {
 		t.Errorf("Attempts = %d, want 3", msg.Attempts)
 	}
 }
+
+// TestMessageIsExpired 测试 IsExpired 方法
+func TestMessageIsExpired(t *testing.T) {
+	// 测试永不过期的消息
+	msg := NewMessage(TestMsg{ID: 1})
+	if msg.IsExpired() {
+		t.Error("新消息不应该过期")
+	}
+
+	// 测试设置为未来时间的消息
+	msg.SetExpires(1 * time.Hour)
+	if msg.IsExpired() {
+		t.Error("设置为未来时间的消息不应该过期")
+	}
+
+	// 测试设置为永不过期
+	msg.SetExpires(0)
+	if msg.IsExpired() {
+		t.Error("设置为永不过期的消息不应该过期")
+	}
+
+	// 测试直接设置为过去的时间（使用 SetExpiresAt）
+	msg2 := NewMessage(TestMsg{ID: 2})
+	pastTime := time.Now().Add(-1 * time.Hour).Unix()
+	msg2.SetExpiresAt(pastTime)
+	if !msg2.IsExpired() {
+		t.Errorf("设置为过去时间(%d)的消息应该过期", pastTime)
+	}
+}
+
+// TestMessageSetExpires 测试 SetExpires 方法
+func TestMessageSetExpires(t *testing.T) {
+	msg := NewMessage(TestMsg{ID: 1})
+
+	// 设置 1 秒过期
+	msg.SetExpires(1 * time.Second)
+	if msg.ExpiresAt == 0 {
+		t.Error("设置了过期时间，ExpiresAt 不应该为 0")
+	}
+
+	// 验证过期时间在未来（允许 1 秒误差）
+	expectedMin := time.Now().Add(900 * time.Millisecond).Unix()
+	expectedMax := time.Now().Add(1100 * time.Millisecond).Unix()
+	if msg.ExpiresAt < expectedMin || msg.ExpiresAt > expectedMax {
+		t.Errorf("ExpiresAt = %d, 期望范围 [%d, %d]", msg.ExpiresAt, expectedMin, expectedMax)
+	}
+
+	// 设置为永不过期
+	msg.SetExpires(0)
+	if msg.ExpiresAt != 0 {
+		t.Errorf("ExpiresAt = %d, want 0", msg.ExpiresAt)
+	}
+}
+
+// TestMessageSetExpiresAt 测试 SetExpiresAt 方法
+func TestMessageSetExpiresAt(t *testing.T) {
+	msg := NewMessage(TestMsg{ID: 1})
+
+	timestamp := time.Now().Add(1 * time.Hour).Unix()
+	msg.SetExpiresAt(timestamp)
+
+	if msg.ExpiresAt != timestamp {
+		t.Errorf("ExpiresAt = %d, want %d", msg.ExpiresAt, timestamp)
+	}
+
+	// 设置为 0 表示永不过期
+	msg.SetExpiresAt(0)
+	if msg.ExpiresAt != 0 {
+		t.Errorf("ExpiresAt = %d, want 0", msg.ExpiresAt)
+	}
+}
+
+// TestMessageGetTTL 测试 GetTTL 方法
+func TestMessageGetTTL(t *testing.T) {
+	// 测试永不过期的消息
+	msg := NewMessage(TestMsg{ID: 1})
+	ttl := msg.GetTTL()
+	if ttl != -1 {
+		t.Errorf("TTL = %d, want -1 (永不过期)", ttl)
+	}
+
+	// 测试设置过期时间后的 TTL
+	msg.SetExpires(10 * time.Second)
+	ttl = msg.GetTTL()
+	if ttl <= 0 || ttl > 10 {
+		t.Errorf("TTL = %d, 期望范围 (0, 10]", ttl)
+	}
+
+	// 测试过期消息的 TTL（使用 SetExpiresAt 设置为过去的时间）
+	msg.SetExpiresAt(time.Now().Add(-1 * time.Hour).Unix())
+	ttl = msg.GetTTL()
+	if ttl != 0 {
+		t.Errorf("过期消息的 TTL = %d, want 0", ttl)
+	}
+}
+
+// TestMessageCloneWithExpiresAt 测试 Clone 方法是否复制 ExpiresAt
+func TestMessageCloneWithExpiresAt(t *testing.T) {
+	msg := NewMessage(TestMsg{ID: 1})
+	msg.SetExpires(1 * time.Hour)
+
+	cloned := msg.Clone()
+
+	if cloned.ExpiresAt != msg.ExpiresAt {
+		t.Errorf("克隆后的 ExpiresAt = %d, 原消息 = %d", cloned.ExpiresAt, msg.ExpiresAt)
+	}
+}
+

@@ -5,17 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"gotest.tools/v3/assert"
 )
 
 func TestRedisPubSub(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
@@ -61,12 +55,7 @@ func TestRedisPubSub(t *testing.T) {
 }
 
 func TestRedisStream(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
@@ -114,12 +103,7 @@ func TestRedisStream(t *testing.T) {
 }
 
 func TestRedisStreamTrim(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
@@ -157,12 +141,7 @@ func TestRedisStreamTrim(t *testing.T) {
 }
 
 func TestRedisPubSubPanicRecovery(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
@@ -225,12 +204,7 @@ func TestRedisPubSubPanicRecovery(t *testing.T) {
 }
 
 func TestRedisStreamConsumerGroup(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
@@ -312,12 +286,7 @@ func TestRedisStreamConsumerGroup(t *testing.T) {
 }
 
 func TestRedisStreamConsumerGroupPanic(t *testing.T) {
-	cache, err := NewRedis("localhost:6379",
-		redis.DialDatabase(0),
-		redis.DialConnectTimeout(time.Second*3),
-		redis.DialReadTimeout(time.Minute),
-		redis.DialWriteTimeout(time.Minute),
-	)
+	cache, err := NewRedis("localhost:6379")
 	if err != nil {
 		t.Skipf("skip test: redis not available: %v", err)
 		return
