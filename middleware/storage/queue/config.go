@@ -11,6 +11,7 @@ type StorageType string
 const (
 	StorageMemory StorageType = "memory"
 	StorageRedis  StorageType = "redis"
+	StorageKafka  StorageType = "kafka"
 )
 
 // Topic Topic 接口，负责消息的生产和分发
@@ -137,6 +138,90 @@ func (p *RedisConfig) apply() {
 	}
 }
 
+// KafkaConfig Kafka 配置
+type KafkaConfig struct {
+	// Brokers Kafka 服务器地址列表（格式：host:port）
+	Brokers []string `json:"brokers,omitempty" yaml:"brokers,omitempty" toml:"brokers,omitempty"`
+	// TopicPrefix Topic 名称前缀
+	TopicPrefix string `json:"topic_prefix,omitempty" yaml:"topic_prefix,omitempty" toml:"topic_prefix,omitempty" default:"lrpc-queue-"`
+	// Partition 使用的分区数（创建 Topic 时使用）
+	Partition int `json:"partition,omitempty" yaml:"partition,omitempty" toml:"partition,omitempty" default:"1"`
+	// ReplicationFactor 副本因子（创建 Topic 时使用）
+	ReplicationFactor int `json:"replication_factor,omitempty" yaml:"replication_factor,omitempty" toml:"replication_factor,omitempty" default:"1"`
+	// ConsumerGroupID 消费者组 ID
+	ConsumerGroupID string `json:"consumer_group_id,omitempty" yaml:"consumer_group_id,omitempty" toml:"consumer_group_id,omitempty"`
+	// AutoCreateTopics 是否自动创建 Topic
+	AutoCreateTopics bool `json:"auto_create_topics,omitempty" yaml:"auto_create_topics,omitempty" toml:"auto_create_topics,omitempty" default:"true"`
+	// ReadBatchTimeout 批量读取超时
+	ReadBatchTimeout time.Duration `json:"read_batch_timeout,omitempty" yaml:"read_batch_timeout,omitempty" toml:"read_batch_timeout,omitempty" default:"10s"`
+	// WriteTimeout 写入超时
+	WriteTimeout time.Duration `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty" toml:"write_timeout,omitempty" default:"10s"`
+	// RequiredAcks 确认级别（0=无需确认，1=leader确认，-1=all确认）
+	RequiredAcks int `json:"required_acks,omitempty" yaml:"required_acks,omitempty" toml:"required_acks,omitempty" default:"1"`
+	// CompressionType 压缩类型（none, gzip, snappy, lz4, zstd）
+	CompressionType string `json:"compression_type,omitempty" yaml:"compression_type,omitempty" toml:"compression_type,omitempty" default:"none"`
+	// SessionTimeout 会话超时
+	SessionTimeout time.Duration `json:"session_timeout,omitempty" yaml:"session_timeout,omitempty" toml:"session_timeout,omitempty" default:"30s"`
+	// RebalanceTimeout 重平衡超时
+	RebalanceTimeout time.Duration `json:"rebalance_timeout,omitempty" yaml:"rebalance_timeout,omitempty" toml:"rebalance_timeout,omitempty" default:"60s"`
+	// CommitInterval 提交间隔
+	CommitInterval time.Duration `json:"commit_interval,omitempty" yaml:"commit_interval,omitempty" toml:"commit_interval,omitempty" default:"1s"`
+	// HeartbeatInterval 心跳间隔
+	HeartbeatInterval time.Duration `json:"heartbeat_interval,omitempty" yaml:"heartbeat_interval,omitempty" toml:"heartbeat_interval,omitempty" default:"3s"`
+	// MaxAttempts 最大消费尝试次数
+	MaxAttempts int `json:"max_attempts,omitempty" yaml:"max_attempts,omitempty" toml:"max_attempts,omitempty" default:"5"`
+	// DialTimeout 连接超时
+	DialTimeout time.Duration `json:"dial_timeout,omitempty" yaml:"dial_timeout,omitempty" toml:"dial_timeout,omitempty" default:"10s"`
+}
+
+func (p *KafkaConfig) apply() {
+	if len(p.Brokers) == 0 {
+		p.Brokers = []string{"localhost:9092"}
+	}
+	if p.TopicPrefix == "" {
+		p.TopicPrefix = "lrpc-queue-"
+	}
+	if p.Partition <= 0 {
+		p.Partition = 1
+	}
+	if p.ReplicationFactor <= 0 {
+		p.ReplicationFactor = 1
+	}
+	if p.ConsumerGroupID == "" {
+		p.ConsumerGroupID = "lrpc-queue"
+	}
+	if p.ReadBatchTimeout <= 0 {
+		p.ReadBatchTimeout = 10 * time.Second
+	}
+	if p.WriteTimeout <= 0 {
+		p.WriteTimeout = 10 * time.Second
+	}
+	if p.RequiredAcks == 0 {
+		p.RequiredAcks = 1
+	}
+	if p.CompressionType == "" {
+		p.CompressionType = "none"
+	}
+	if p.SessionTimeout <= 0 {
+		p.SessionTimeout = 30 * time.Second
+	}
+	if p.RebalanceTimeout <= 0 {
+		p.RebalanceTimeout = 60 * time.Second
+	}
+	if p.CommitInterval <= 0 {
+		p.CommitInterval = 1 * time.Second
+	}
+	if p.HeartbeatInterval <= 0 {
+		p.HeartbeatInterval = 3 * time.Second
+	}
+	if p.MaxAttempts <= 0 {
+		p.MaxAttempts = 5
+	}
+	if p.DialTimeout <= 0 {
+		p.DialTimeout = 10 * time.Second
+	}
+}
+
 // Config 队列配置
 type Config struct {
 	// StorageType 存储类型
@@ -157,6 +242,9 @@ type Config struct {
 
 	// RedisClient 外部传入的 Redis 客户端（优先级高于 RedisConfig）
 	RedisClient *redis.Client `json:"-" yaml:"-" toml:"-"`
+
+	// KafkaConfig Kafka 配置（当 StorageType 为 kafka 时使用）
+	KafkaConfig *KafkaConfig `json:"kafka_config,omitempty" yaml:"kafka_config,omitempty" toml:"kafka_config,omitempty"`
 }
 
 func (p *Config) apply() {

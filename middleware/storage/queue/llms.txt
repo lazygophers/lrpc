@@ -1,19 +1,19 @@
 ---
 title: Queue Storage Module
-description: Distributed queue middleware for LRPC framework with Redis Streams and Memory support
+description: Distributed queue middleware for LRPC framework with Kafka, Redis Streams and Memory support
 ---
 
 # Queue Storage Module (lrpc/middleware/storage/queue)
 
 ## 概述
 
-`queue` 模块提供了分布式消息队列存储中间件，用于 LRPC 框架。支持 Redis Streams 和内存两种后端，提供统一的消息队列接口。
+`queue` 模块提供了分布式消息队列存储中间件，用于 LRPC 框架。支持 Kafka、Redis Streams 和内存三种后端，提供统一的消息队列接口。
 
 ### 核心特性
-- **多后端支持**：Redis Streams、Memory
+- **多后端支持**：Kafka、Redis Streams、Memory
 - **泛型支持**：支持任意类型的消息体
 - **Topic-Channel 模型**：发布订阅模式的消息分发
-- **消费者组**：Redis Streams 原生消费者组支持
+- **消费者组**：Kafka 和 Redis Streams 原生消费者组支持
 - **并发控制**：MaxInFlight 并发消费控制
 - **消息确认**：Ack/Nack 机制
 - **消息过期**：支持消息 TTL
@@ -73,6 +73,39 @@ client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 q := queue.NewQueue(&queue.Config{
     StorageType: queue.StorageRedis,
     RedisClient: client,
+})
+```
+
+### Kafka 队列
+
+```go
+import (
+    "github.com/lazygophers/lrpc/middleware/storage/queue"
+)
+
+q := queue.NewQueue(&queue.Config{
+    StorageType: queue.StorageKafka,
+    KafkaConfig: &queue.KafkaConfig{
+        Brokers:           []string{"localhost:9092"},
+        TopicPrefix:       "myapp-queue-",
+        Partition:         3,
+        ReplicationFactor: 1,
+        AutoCreateTopics:  true,
+        CompressionType:   "gzip",
+    },
+})
+defer q.Close()
+
+topic := queue.NewTopic[MyMessage](q, "events", &queue.TopicConfig{})
+ch, _ := topic.GetOrAddChannel("handlers", &queue.ChannelConfig{})
+
+// 发布消息
+topic.Pub(MyMessage{Content: "hello"})
+
+// 订阅消息
+ch.Subscribe(func(msg *queue.Message[MyMessage]) (queue.ProcessRsp, error) {
+    fmt.Println(msg.Body.Content)
+    return queue.ProcessRsp{Retry: false}, nil
 })
 ```
 
@@ -157,7 +190,7 @@ type ProcessRsp struct {
 
 ```go
 type Config struct {
-    StorageType  StorageType   // "memory" 或 "redis"
+    StorageType  StorageType   // "memory", "redis" 或 "kafka"
     MaxRetries   int           // 最大重试次数（默认 5）
     RetryDelay   time.Duration // 重试延迟（默认 1s）
     MessageTTL   time.Duration // 消息过期时间（默认 24h）
@@ -167,6 +200,9 @@ type Config struct {
     // Redis 专用
     RedisConfig  *RedisConfig     // Redis 配置
     RedisClient  *redis.Client    // 外部 Redis 客户端
+
+    // Kafka 专用
+    KafkaConfig  *KafkaConfig     // Kafka 配置
 }
 ```
 
@@ -185,6 +221,29 @@ type RedisConfig struct {
     ReadTimeout  time.Duration // 读取超时（默认 3s）
     WriteTimeout time.Duration // 写入超时（默认 3s）
     PoolTimeout  time.Duration // 连接池超时（默认 4s）
+}
+```
+
+### Kafka 配置
+
+```go
+type KafkaConfig struct {
+    Brokers            []string      // Kafka 服务器地址列表
+    TopicPrefix        string        // Topic 名称前缀（默认 lrpc-queue-）
+    Partition           int           // 分区数（默认 1）
+    ReplicationFactor  int           // 副本因子（默认 1）
+    ConsumerGroupID    string        // 消费者组 ID
+    AutoCreateTopics   bool          // 是否自动创建 Topic（默认 true）
+    ReadBatchTimeout   time.Duration // 批量读取超时（默认 10s）
+    WriteTimeout       time.Duration // 写入超时（默认 10s）
+    RequiredAcks       int           // 确认级别（0=无需确认，1=leader，-1=all）
+    CompressionType    string        // 压缩类型（none, gzip, snappy, lz4, zstd）
+    SessionTimeout     time.Duration // 会话超时（默认 30s）
+    RebalanceTimeout   time.Duration // 重平衡超时（默认 60s）
+    CommitInterval     time.Duration // 提交间隔（默认 1s）
+    HeartbeatInterval  time.Duration // 心跳间隔（默认 3s）
+    MaxAttempts        int           // 最大消费尝试次数（默认 5）
+    DialTimeout        time.Duration // 连接超时（默认 10s）
 }
 ```
 
@@ -329,17 +388,69 @@ Redis Streams 的键名格式：`{prefix}{topic}:{channel}`
 }
 ```
 
+## Kafka 实现
+
+### Topic 命名规则
+
+Kafka 的 Topic 名称格式：`{prefix}{name}`
+
+例如：
+- Topic Name: `events`
+- Prefix: `myapp-queue-`
+- Kafka Topic: `myapp-queue-events`
+
+### 消费者组
+
+每个 Channel 使用独立的 Kafka 消费者组：
+- 组 ID：`{prefix}{topic}-{channel}`
+- Offset 提交：自动提交（基于配置的 CommitInterval）
+- 重平衡：自动处理
+
+### 消息序列化
+
+消息体使用 JSON 序列化，元数据存储在 Kafka Headers 中：
+
+**Headers:**
+- `id`: 消息唯一标识
+- `timestamp`: 时间戳
+- `expires_at`: 过期时间
+- `attempts`: 尝试次数
+- `channel`: 所属 Channel
+
+**Body:**
+```json
+{"Type":"user.login","Data":"john"}
+```
+
+### 分区策略
+
+- **默认**: `kafka.LeastBytes` - 选择消息最少的分区
+- **自定义**: 可通过配置 Writer 的 Balancer 实现
+- **Key**: 使用消息 ID 作为 Key 确保相同消息路由到同一分区
+
+### 消息压缩
+
+支持的压缩类型：
+- `none`: 无压缩（默认）
+- `gzip`: GZIP 压缩
+- `snappy`: Snappy 压缩
+- `lz4`: LZ4 压缩
+- `zstd`: Zstandard 压缩
+
 ## 后端对比
 
-| 特性 | Memory | Redis Streams |
-|------|--------|---------------|
-| 持久化 | 否 | 是 |
-| 分布式 | 否 | 是 |
-| 消费者组 | 模拟 | 原生支持 |
-| 消息确认 | 内存 | Pending List |
-| 消息重试 | 简单 | 完整支持 |
-| 性能 | 极高 | 高 |
-| 使用场景 | 测试、单机 | 生产环境 |
+| 特性 | Memory | Redis Streams | Kafka |
+|------|--------|---------------|-------|
+| 持久化 | 否 | 是 | 是 |
+| 分布式 | 否 | 是 | 是 |
+| 消费者组 | 模拟 | 原生支持 | 原生支持 |
+| 消息确认 | 内存 | Pending List | Offset Commit |
+| 消息重试 | 简单 | 完整支持 | 完整支持 |
+| 分区支持 | 否 | 否 | 是 |
+| 消息头 | 否 | 否 | 是 |
+| 性能 | 极高 | 高 | 高 |
+| 吞吐量 | 低 | 中 | 高 |
+| 使用场景 | 测试、单机 | 中小规模 | 大规模生产环境 |
 
 ## 最佳实践
 
@@ -354,9 +465,17 @@ Redis Streams 的键名格式：`{prefix}{topic}:{channel}`
 
 - [Redis Streams 文档](https://redis.io/docs/data-types/streams/)
 - [go-redis/v9 文档](https://redis.uptrace.dev/)
+- [Kafka 文档](https://kafka.apache.org/documentation/)
+- [segmentio/kafka-go 文档](https://github.com/segmentio/kafka-go)
 - [LRPC 框架](https://github.com/lazygophers/lrpc)
 
 ## 版本历史
+
+- v2.0.0: 添加 Kafka 支持
+  - 新增 Kafka 后端实现
+  - 支持分区和消费者组
+  - 支持消息压缩和多种配置选项
+  - 完整的 Topic-Channel 模型兼容
 
 - v1.0.0: 初始发布
   - Memory 和 Redis Streams 实现

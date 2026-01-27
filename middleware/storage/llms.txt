@@ -42,8 +42,8 @@ middleware/storage/
 │   ├── config.go        # 配置定义
 │   ├── memory.go        # 内存实现
 │   ├── redis.go         # Redis Streams 实现
+│   ├── kafka.go         # Kafka 实现
 │   ├── message.go       # 消息结构
-│   ├── utils.go         # 工具函数
 │   └── llms.txt         # API 文档
 └── llms.txt        # 综合文档（此文件）
 ```
@@ -108,12 +108,15 @@ mockCache.SetupSuccess()
 ```go
 import "github.com/lazygophers/lrpc/middleware/storage/queue"
 
-// 创建 Redis Streams 队列
+// 创建 Kafka 队列（推荐用于生产环境）
 q := queue.NewQueue(&queue.Config{
-    StorageType: queue.StorageRedis,
-    RedisConfig: &queue.RedisConfig{
-        Addr: "localhost:6379",
-        KeyPrefix: "myapp:queue:",
+    StorageType: queue.StorageKafka,
+    KafkaConfig: &queue.KafkaConfig{
+        Brokers:           []string{"localhost:9092"},
+        TopicPrefix:       "myapp:queue:",
+        Partition:         3,
+        ReplicationFactor: 1,
+        AutoCreateTopics:  true,
     },
 })
 defer q.Close()
@@ -146,7 +149,7 @@ ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
 | 持久化 | 是 | 是 | 可选 | 是 |
 | 事务支持 | 是 | 是 | 部分 | 否 |
 | Mock 支持 | 是 | 是 | 是 | 是 |
-| 驱动类型 | mongo-go-model | GORM | go-redis/v9 | go-redis/v9 |
+| 驱动类型 | mongo-go-model | GORM | go-redis/v9 | Kafka/go-redis/v9 |
 
 ## Mock 功能对比
 
@@ -484,6 +487,14 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
 4. 联系项目维护者
 
 ## 版本历史
+
+- v3.0.0: Kafka 支持
+  - **Queue 模块**：新增 Kafka 后端支持
+    - 使用 segmentio/kafka-go 客户端库
+    - 支持分区和消费者组
+    - 支持消息压缩（gzip, snappy, lz4, zstd）
+    - Topic-Channel 模型完全兼容
+    - 完整的配置选项和文档
 
 - v2.0.0: Redis 统一和队列模块
   - **Cache 模块**：从 redigo 迁移到 go-redis/v9
