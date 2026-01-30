@@ -22,19 +22,20 @@ type Cond struct {
 	clientType string
 }
 
-// quoteFieldName returns field name without quotes by default.
-// Field names are only quoted if already quoted in the input.
-// This simplifies SQL generation and works for most common field names.
-// For reserved keywords or special characters, pre-quote the field name in the model definition.
-func quoteFieldName(name string, clientType string) string {
-	// Check if already quoted - if so, keep the quotes
-	if strings.HasPrefix(name, "`") || strings.HasPrefix(name, "\"") {
-		return name
-	}
+// QuoteFieldName 智能引用字段名，自动处理保留关键字和特殊字符
+// - 已引用的字段名保持不变（向后兼容）
+// - 保留关键字自动添加引号（防止 SQL 语法错误）
+// - 包含特殊字符的字段名自动添加引号
+// - 使用缓存优化性能
+// 导出函数供测试使用
+func QuoteFieldName(name string, clientType string) string {
+	quoted, _ := shouldQuoteFieldName(name, clientType)
+	return quoted
+}
 
-	// Default: return field name without quotes
-	// This works for most common field names and simplifies SQL
-	return name
+// quoteFieldName 内部函数，调用 QuoteFieldName
+func quoteFieldName(name string, clientType string) string {
+	return QuoteFieldName(name, clientType)
 }
 
 func quoteStr(s string) string {

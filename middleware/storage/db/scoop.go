@@ -1071,7 +1071,12 @@ func (p *Scoop) queryLastInsertID(session *gorm.DB) (int64, error) {
 // columns: list of column names
 // placeholders: list of value placeholders like "(?)", or "(?), (?)" for batch inserts
 func (p *Scoop) buildInsertSQL(columns []string, placeholders string) string {
-	columnsStr := strings.Join(columns, ", ")
+	// 对列名进行引用处理，防止保留关键字导致的 SQL 语法错误
+	quotedColumns := make([]string, len(columns))
+	for i, col := range columns {
+		quotedColumns[i] = quoteFieldName(col, p.clientType)
+	}
+	columnsStr := strings.Join(quotedColumns, ", ")
 
 	if p.ignore {
 		switch p.clientType {
