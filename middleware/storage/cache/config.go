@@ -44,6 +44,8 @@ type Config struct {
 	// bbolt: empty
 	// echo: DataDir, default .
 	DataDir string `yaml:"data_dir,omitempty" json:"data_dir,omitempty"`
+
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
 }
 
 func (c *Config) apply() {
