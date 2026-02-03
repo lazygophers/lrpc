@@ -32,6 +32,7 @@
 		]
 	},
 	"enabledPlugins": {
+		"env@ccplugin-market": true,
 		"git@ccplugin-market": true,
 		"golang@ccplugin-market": true,
 		"serena@claude-plugins-official": true,
