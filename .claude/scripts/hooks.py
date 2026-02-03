@@ -15,6 +15,7 @@ prompt = {
 		"@CLAUDE.md 的文件不得超过 300行",
 		"@.claude/skills 下的 `SKILL.md` 文件不得超过 300行，其余的 `.md` 文件不得超过 500行",
 		"@.claude/commands 下的文件不得超过 300行，只允许包含使用的 skills 以及流程说明",
+		"*.go 文件不允许超过 800行，推荐 300-500行",
 		"及时更新`llms.txt`，且满足Skills(llms-txt-standard)的要求",
 		"所有的 golang 代码都必须满足 Skills(golang-skills)的要求",
 	],
