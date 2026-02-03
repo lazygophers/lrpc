@@ -265,7 +265,8 @@ func TestExprEdgeCases(t *testing.T) {
 
 	t.Run("field with special characters", func(t *testing.T) {
 		expr := db.ExprIncBy(db.Sqlite, "field-name", 1)
-		assert.Equal(t, "field-name + 1", expr.SQL)
+		// field-name 包含特殊字符（连字符），会被引用
+		assert.Equal(t, "\"field-name\" + 1", expr.SQL)
 	})
 
 	t.Run("large increment value", func(t *testing.T) {

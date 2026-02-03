@@ -18,7 +18,7 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("test Count operation", func(t *testing.T) {
-		mockDB.Mock.ExpectQuery("SELECT count\\(\\*\\) FROM `test_users`").
+		mockDB.Mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM test_users").
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
 		count, err := client.NewScoop().Model(TestUser{}).Count()
@@ -27,8 +27,8 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 	})
 
 	t.Run("test Exist operation", func(t *testing.T) {
-		mockDB.Mock.ExpectQuery("SELECT 1 FROM `test_users` LIMIT 1").
-			WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
+		mockDB.Mock.ExpectQuery("SELECT count\\(\\*\\) FROM test_users LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
 		exist, err := client.NewScoop().Model(TestUser{}).Exist()
 		assert.NoError(t, err)

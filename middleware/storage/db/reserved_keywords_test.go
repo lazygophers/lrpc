@@ -21,8 +21,9 @@ func TestIsReservedKeyword(t *testing.T) {
 	quoted = db.QuoteFieldName("select", db.MySQL)
 	assert.Equal(t, "`select`", quoted)
 
+	// user 不是 MySQL 的保留关键字，但是 PostgreSQL 的
 	quoted = db.QuoteFieldName("user", db.MySQL)
-	assert.Equal(t, "`user`", quoted)
+	assert.Equal(t, "user", quoted) // MySQL 中不需要引用
 
 	// PostgreSQL 特有保留关键字
 	quoted = db.QuoteFieldName("user", db.Postgres)

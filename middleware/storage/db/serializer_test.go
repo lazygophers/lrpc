@@ -3,7 +3,6 @@ package db_test
 import (
 	"os"
 	"testing"
-	"time"
 
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/lazygophers/lrpc/middleware/storage/db/testdata"
@@ -15,8 +14,8 @@ type TestModelWithYAML struct {
 	Id        int            `gorm:"primaryKey;autoIncrement"`
 	Name      string         `gorm:"size:100;not null"`
 	Config    map[string]any `gorm:"column:config;type:text;serializer:yaml;not null" yaml:"config,omitempty"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	CreatedAt int64          `gorm:"autoCreateTime:milli"`
+	UpdatedAt int64          `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithYAML) TableName() string {
@@ -28,8 +27,8 @@ type TestModelWithTOML struct {
 	Id        int            `gorm:"primaryKey;autoIncrement"`
 	Name      string         `gorm:"size:100;not null"`
 	Settings  map[string]any `gorm:"column:settings;type:text;serializer:toml;not null"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	CreatedAt int64          `gorm:"autoCreateTime:milli"`
+	UpdatedAt int64          `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithTOML) TableName() string {
@@ -41,8 +40,8 @@ type TestModelWithBSON struct {
 	Id        int            `gorm:"primaryKey;autoIncrement"`
 	Name      string         `gorm:"size:100;not null"`
 	Data      map[string]any `gorm:"column:data;type:blob;serializer:bson;not null"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	CreatedAt int64          `gorm:"autoCreateTime:milli"`
+	UpdatedAt int64          `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithBSON) TableName() string {
@@ -71,8 +70,8 @@ type TestModelWithINI struct {
 	Id        int              `gorm:"primaryKey;autoIncrement"`
 	Name      string           `gorm:"size:100;not null"`
 	Config    TestConfigStruct `gorm:"column:config;type:text;serializer:ini;not null"`
-	CreatedAt time.Time        `gorm:"autoCreateTime"`
-	UpdatedAt time.Time        `gorm:"autoUpdateTime"`
+	CreatedAt int64            `gorm:"autoCreateTime:milli"`
+	UpdatedAt int64            `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithINI) TableName() string {
