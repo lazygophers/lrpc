@@ -1,22 +1,23 @@
-package db
+package db_test
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestScoop_TransactionCommit 测试事务提交
 func TestScoop_TransactionCommit(t *testing.T) {
 	tmpDir := t.TempDir()
-	config := &Config{
-		Type:    Sqlite,
+	config := &db.Config{
+		Type:    db.Sqlite,
 		Address: "file:" + tmpDir,
 		Name:    "test_tx_commit",
 	}
 
-	client, err := New(config, TestUser{})
+	client, err := db.New(config, TestUser{})
 	assert.NoError(t, err)
 	defer client.Close()
 
@@ -43,13 +44,13 @@ func TestScoop_TransactionCommit(t *testing.T) {
 // TestScoop_TransactionRollback 测试事务回滚
 func TestScoop_TransactionRollback(t *testing.T) {
 	tmpDir := t.TempDir()
-	config := &Config{
-		Type:    Sqlite,
+	config := &db.Config{
+		Type:    db.Sqlite,
 		Address: "file:" + tmpDir,
 		Name:    "test_tx_rollback",
 	}
 
-	client, err := New(config, TestUser{})
+	client, err := db.New(config, TestUser{})
 	assert.NoError(t, err)
 	defer client.Close()
 
@@ -75,20 +76,20 @@ func TestScoop_TransactionRollback(t *testing.T) {
 // TestScoop_TransactionCommitOrRollback 测试 CommitOrRollback
 func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 	tmpDir := t.TempDir()
-	config := &Config{
-		Type:    Sqlite,
+	config := &db.Config{
+		Type:    db.Sqlite,
 		Address: "file:" + tmpDir,
 		Name:    "test_tx_cor",
 	}
 
-	client, err := New(config, TestUser{})
+	client, err := db.New(config, TestUser{})
 	assert.NoError(t, err)
 	defer client.Close()
 
 	t.Run("commit on success", func(t *testing.T) {
 		tx := client.NewScoop().Begin()
 
-		err := tx.CommitOrRollback(tx, func(tx *Scoop) error {
+		err := tx.CommitOrRollback(tx, func(tx *db.Scoop) error {
 			result := tx.Model(TestUser{}).Create(&TestUser{
 				Name: "Success User",
 			})
@@ -107,7 +108,7 @@ func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 		tx := client.NewScoop().Begin()
 
 		testErr := errors.New("test error")
-		err := tx.CommitOrRollback(tx, func(tx *Scoop) error {
+		err := tx.CommitOrRollback(tx, func(tx *db.Scoop) error {
 			result := tx.Model(TestUser{}).Create(&TestUser{
 				Name: "Error User",
 			})
@@ -129,13 +130,13 @@ func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 // TestScoop_NestedTransaction 测试嵌套事务
 func TestScoop_NestedTransaction(t *testing.T) {
 	tmpDir := t.TempDir()
-	config := &Config{
-		Type:    Sqlite,
+	config := &db.Config{
+		Type:    db.Sqlite,
 		Address: "file:" + tmpDir,
 		Name:    "test_nested_tx",
 	}
 
-	client, err := New(config, TestUser{})
+	client, err := db.New(config, TestUser{})
 	assert.NoError(t, err)
 	defer client.Close()
 

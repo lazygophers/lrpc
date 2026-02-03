@@ -1,20 +1,21 @@
-package db
+package db_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestScoop_MockBasicOperations 测试 Scoop 的基本操作（使用 Mock）
 func TestScoop_MockBasicOperations(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	t.Run("test Count operation", func(t *testing.T) {
@@ -45,12 +46,12 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 
 // TestClient_PingAndClose 测试 Client 的 Ping 和 Close 方法
 func TestClient_PingAndClose(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	t.Run("test Ping", func(t *testing.T) {
@@ -71,12 +72,12 @@ func TestClient_PingAndClose(t *testing.T) {
 
 // TestScoop_Conditions 测试各种查询条件
 func TestScoop_Conditions(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	t.Run("test NotEqual condition", func(t *testing.T) {
@@ -140,12 +141,12 @@ func TestScoop_Conditions(t *testing.T) {
 
 // TestScoop_Joins 测试 JOIN 操作
 func TestScoop_Joins(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	t.Run("test InnerJoin", func(t *testing.T) {
@@ -184,12 +185,12 @@ func TestScoop_Joins(t *testing.T) {
 
 // TestScoop_Having 测试 HAVING 子句
 func TestScoop_Having(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	scoop := client.NewScoop().Model(TestUser{}).
@@ -203,12 +204,12 @@ func TestScoop_Having(t *testing.T) {
 
 // TestScoop_Ignore 测试 Ignore 方法
 func TestScoop_Ignore(t *testing.T) {
-	config := &Config{
-		Type: MySQL,
+	config := &db.Config{
+		Type: db.MySQL,
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, mockDB, err := db.NewMock(config)
 	assert.NoError(t, err)
 
 	t.Run("test Ignore with default", func(t *testing.T) {
