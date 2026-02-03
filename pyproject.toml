@@ -1,0 +1,22 @@
+[project]
+name = "lrpc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+	"gopy>=0.7.3",
+	"rich>=14.2.0",
+	"lib"
+]
+
+[dependency-groups]
+dev = [
+	"openapi-markdown>=0.0.5",
+	"prance>=25.4.8.0",
+]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

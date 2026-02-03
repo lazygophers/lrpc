@@ -1,0 +1,43 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=prism uv run --directory=${CLAUDE_PROJECT_DIR} ./.claude/scripts/hooks.py"
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=prism uv run --directory=${CLAUDE_PROJECT_DIR} ./.claude/scripts/hooks.py"
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=prism uv run --directory=${CLAUDE_PROJECT_DIR} ./.claude/scripts/hooks.py"
+					}
+				]
+			}
+		]
+	},
+	"enabledPlugins": {
+		"git@ccplugin-market": true,
+		"golang@ccplugin-market": true,
+		"serena@claude-plugins-official": true,
+		"gopls-lsp@claude-plugins-official": true,
+		"context7@claude-plugins-official": true,
+		"code-simplifier@claude-plugins-official": true,
+		"notify@ccplugin-market": true
+	}
+}
