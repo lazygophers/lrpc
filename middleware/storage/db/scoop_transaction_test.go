@@ -27,7 +27,8 @@ func TestScoop_TransactionCommit(t *testing.T) {
 
 	// 在事务中创建记录
 	result := tx.Model(TestUser{}).Create(&TestUser{
-		Name: "Transaction User",
+		Name:  "Transaction User",
+		Email: "tx@example.com",
 	})
 	assert.NoError(t, result.Error)
 
@@ -92,6 +93,7 @@ func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 		err := tx.CommitOrRollback(tx, func(tx *db.Scoop) error {
 			result := tx.Model(TestUser{}).Create(&TestUser{
 				Name: "Success User",
+		Email: "success@example.com",
 			})
 			return result.Error
 		})
@@ -110,7 +112,8 @@ func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 		testErr := errors.New("test error")
 		err := tx.CommitOrRollback(tx, func(tx *db.Scoop) error {
 			result := tx.Model(TestUser{}).Create(&TestUser{
-				Name: "Error User",
+				Name:  "Error User",
+				Email: "error@example.com",
 			})
 			if result.Error != nil {
 				return result.Error
@@ -146,6 +149,7 @@ func TestScoop_NestedTransaction(t *testing.T) {
 
 	result := tx1.Model(TestUser{}).Create(&TestUser{
 		Name: "Outer Transaction",
+		Email: "outer@example.com",
 	})
 	assert.NoError(t, result.Error)
 
@@ -155,6 +159,7 @@ func TestScoop_NestedTransaction(t *testing.T) {
 
 	result = tx2.Model(TestUser{}).Create(&TestUser{
 		Name: "Inner Transaction",
+		Email: "inner@example.com",
 	})
 	assert.NoError(t, result.Error)
 

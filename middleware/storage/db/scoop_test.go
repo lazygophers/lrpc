@@ -28,8 +28,8 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 	})
 
 	t.Run("test Exist operation", func(t *testing.T) {
-		mockDB.Mock.ExpectQuery("SELECT count\\(\\*\\) FROM test_users LIMIT 1").
-			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+		mockDB.Mock.ExpectQuery("SELECT id FROM test_users WHERE deleted_at = 0 LIMIT 1 OFFSET 0").
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 		exist, err := client.NewScoop().Model(TestUser{}).Exist()
 		assert.NoError(t, err)

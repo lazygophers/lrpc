@@ -30,7 +30,7 @@ func TestNewMock_MySQL(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), user.Id)
+	assert.Equal(t, 1, user.Id)
 	assert.Equal(t, "Alice", user.Name)
 	assert.Equal(t, 25, user.Age)
 
@@ -56,13 +56,14 @@ func TestNewMock_Postgres(t *testing.T) {
 	assert.NotNil(t, mockDB)
 	assert.Equal(t, db.Postgres, client.DriverType())
 
-	// 设置插入期望（GORM 配置了 SkipDefaultTransaction，所以不会自动开启事务）
+	// 设置插入期望 - GORM 使用 RETURNING 子句返回插入的 ID
+	// 使用 AnyArg() 匹配动态生成的时间戳值
 	mockDB.Mock.ExpectQuery("INSERT INTO \"test_users\"").
-		WithArgs("Bob", 30).
+		WithArgs("Bob", "bob@example.com", 30, sqlmock.AnyArg(), sqlmock.AnyArg(), 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
 
 	// 执行插入
-	user := TestUser{Name: "Bob", Age: 30}
+	user := TestUser{Name: "Bob", Age: 30, Email: "bob@example.com"}
 	err = client.Database().Table("test_users").Create(&user).Error
 	assert.NoError(t, err)
 
@@ -97,7 +98,7 @@ func TestNewMock_SQLite(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, int64(3), user.Id)
+	assert.Equal(t, 3, user.Id)
 	assert.Equal(t, "Charlie", user.Name)
 	assert.Equal(t, 35, user.Age)
 
@@ -132,7 +133,7 @@ func TestNewMock_TiDB(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4), user.Id)
+	assert.Equal(t, 4, user.Id)
 	assert.Equal(t, "David", user.Name)
 
 	// 验证所有期望都被满足

@@ -2,20 +2,19 @@ package db
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // TestUser model for testing database operations
 type TestUser struct {
-	Id        int        `gorm:"primaryKey;autoIncrement"`
-	Name      string     `gorm:"size:100;not null"`
-	Email     string     `gorm:"size:100;unique"`
-	Age       int        `gorm:"default:0"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"`
-	UpdatedAt time.Time  `gorm:"autoUpdateTime"`
-	DeletedAt *time.Time `gorm:"index"`
+	Id        int    `gorm:"primaryKey;autoIncrement"`
+	Name      string `gorm:"size:100;not null"`
+	Email     string `gorm:"size:100;unique"`
+	Age       int    `gorm:"default:0"`
+	CreatedAt int64  `gorm:"autoCreateTime"`
+	UpdatedAt int64  `gorm:"autoUpdateTime"`
+	DeletedAt int64  `gorm:"index;default:0"`
 }
 
 func (TestUser) TableName() string {
