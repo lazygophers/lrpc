@@ -230,3 +230,76 @@ func TestTablePrefixAndQuoting(t *testing.T) {
 		assert.Assert(t, len(result2) > 0)
 	})
 }
+
+// TestCond_String 测试 String 方法
+func TestCond_String(t *testing.T) {
+	cond := db.Where("name", "John")
+	str := cond.String()
+	assert.Assert(t, len(str) > 0)
+	assert.Equal(t, cond.ToString(), str)
+}
+
+// TestCond_GoString 测试 GoString 方法
+func TestCond_GoString(t *testing.T) {
+	cond := db.Where("name", "John")
+	goStr := cond.GoString()
+	assert.Assert(t, len(goStr) > 0)
+	assert.Equal(t, cond.ToString(), goStr)
+}
+
+// TestCond_Or 测试 Or 方法
+func TestCond_Or(t *testing.T) {
+	// 使用 db.Or 创建 OR 条件
+	cond := db.Or(map[string]interface{}{
+		"name": "John",
+		"age":  25,
+	})
+	result := cond.ToString()
+	assert.Assert(t, len(result) > 0)
+	assert.Assert(t, strings.Contains(result, "OR"))
+
+	// 测试链式 Or 方法（会添加为 AND，因为是添加子条件）
+	cond2 := db.Where("name", "John").Or("age", 25)
+	result2 := cond2.ToString()
+	assert.Assert(t, len(result2) > 0)
+	// 链式 Or 实际上添加的是子条件，会用 AND 连接
+	assert.Assert(t, strings.Contains(result2, "AND"))
+}
+
+// TestCond_Reset 测试 Reset 方法
+func TestCond_Reset(t *testing.T) {
+	cond := db.Where("name", "John").Where("age", 25)
+	assert.Assert(t, len(cond.ToString()) > 0)
+
+	cond.Reset()
+	assert.Equal(t, "", cond.ToString())
+
+	// 重置后应该可以重新使用
+	cond.Where("email", "test@example.com")
+	result := cond.ToString()
+	assert.Assert(t, len(result) > 0)
+	assert.Assert(t, strings.Contains(result, "email"))
+}
+
+// TestCond_ToInterfaces 测试 toInterfaces 函数的覆盖
+func TestCond_ToInterfaces(t *testing.T) {
+	t.Run("nested slice conditions", func(t *testing.T) {
+		// 这会触发 toInterfaces 函数
+		cond := db.Where([]interface{}{
+			[]string{"name", "John"},
+			[]string{"age", "=", "25"},
+		})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("mixed slice conditions", func(t *testing.T) {
+		cond := db.Where([]interface{}{
+			[]interface{}{"field1", "value1"},
+			[]interface{}{"field2", "=", "value2"},
+			[]interface{}{"field3", ">", 100},
+		})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+}

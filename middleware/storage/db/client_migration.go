@@ -58,7 +58,8 @@ func getFieldsForMigration(model interface{}) []reflect.StructField {
 		return nil
 	}
 
-	var fields []reflect.StructField
+	// 初始化为空切片而不是 nil，确保返回一致的结果
+	fields := make([]reflect.StructField, 0)
 
 	for i := 0; i < modelType.NumField(); i++ {
 		field := modelType.Field(i)
