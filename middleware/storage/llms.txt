@@ -1,19 +1,18 @@
 ---
 title: Storage Middleware
-description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, Cache, and Queue support
+description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, Cache, and Queue support (DB Mock removed)
 ---
 
 # Storage Middleware (lrpc/middleware/storage)
 
 ## 概述
 
-`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库、分布式缓存和消息队列四大模块。每个模块都提供了完整的 Mock 支持，方便在不同场景下进行测试和开发。
+`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库、分布式缓存和消息队列四大模块。MongoDB、Cache 和 Queue 模块提供了 Mock 支持，方便在不同场景下进行测试和开发。
 
 ### 核心特性
 - **模块化设计**：MongoDB、SQL、Cache、Queue 四个独立模块
 - **统一接口**：清晰一致的接口设计
-- **完整的 Mock 支持**：所有模块都提供了 Mock 实现
-- **调用跟踪**：用于三路测试和行为验证
+- **Mock 支持**：MongoDB、Cache、Queue 模块提供 Mock 实现
 - **错误处理**：遵循一致的错误处理模式
 - **多环境支持**：轻松切换真实和模拟环境
 - **Redis 统一**：所有模块使用 go-redis/v9
@@ -30,7 +29,6 @@ middleware/storage/
 ├── db/             # SQL 数据库模块
 │   ├── client.go        # 数据库客户端
 │   ├── model.go         # GORM 模型
-│   ├── mock.go          # Mock 实现
 │   └── llms.txt         # API 文档
 ├── cache/          # 分布式缓存模块
 │   ├── cache.go         # 缓存接口
@@ -78,10 +76,6 @@ dbClient, err := db.New(&db.Config{
     DSN:    "root:password@tcp(localhost:3306)/mydb",
 })
 defer dbClient.Close()
-
-// 或使用 Mock 客户端（用于测试）
-mockClient := db.NewMockClient()
-mockClient.SetupAutoMigrateSuccess()
 ```
 
 ### 3. 分布式缓存
@@ -148,19 +142,19 @@ ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
 | 数据结构 | 灵活 | 固定模式 | KV/哈希/集合/流 | Topic/Channel |
 | 持久化 | 是 | 是 | 可选 | 是 |
 | 事务支持 | 是 | 是 | 部分 | 否 |
-| Mock 支持 | 是 | 是 | 是 | 是 |
+| Mock 支持 | 是 | 否 | 是 | 是 |
 | 驱动类型 | mongo-go-model | GORM | go-redis/v9 | Kafka/go-redis/v9 |
 
 ## Mock 功能对比
 
-| 功能 | Mongo Mock | DB Mock | Cache Mock | Queue Mock |
-|------|-----------|---------|-----------|------------|
-| 设置返回值 | ✓ | ✓ | ✓ | ✓ |
-| 调用记录 | ✓ | ✓ | ✓ | ✓ |
-| 调用计数 | ✓ | ✓ | ✓ | ✓ |
-| 数据存储 | ✓ | ✓ | ✓ | ✓ |
-| 序列化支持 | ✓ | ✓ | ✓ | ✓ |
-| 消息模拟 | ✓ | ✓ | ✓ | ✓ |
+| 功能 | Mongo Mock | Cache Mock | Queue Mock |
+|------|-----------|-----------|------------|
+| 设置返回值 | ✓ | ✓ | ✓ |
+| 调用记录 | ✓ | ✓ | ✓ |
+| 调用计数 | ✓ | ✓ | ✓ |
+| 数据存储 | ✓ | ✓ | ✓ |
+| 序列化支持 | ✓ | ✓ | ✓ |
+| 消息模拟 | ✓ | ✓ | ✓ |
 
 ## 使用场景
 
@@ -172,12 +166,11 @@ ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
 func TestUserService(t *testing.T) {
     // 使用 Mock
     mockMongo := mongo.NewMockClient()
-    mockDB := db.NewMockClient()
     mockCache := cache.NewMockCache()
 
-    service := NewUserService(mockMongo, mockDB, mockCache)
+    service := NewUserService(mockMongo, mockCache)
     result, err := service.GetUser("123")
-    
+
     require.NoError(t, err)
     require.Equal(t, "expected", result)
 }
@@ -212,18 +205,18 @@ func TestUserServiceIntegration(t *testing.T) {
 ```go
 func initStorage() (mongo.Client, db.Client, cache.Cache) {
     if os.Getenv("USE_MOCK") == "true" {
-        // 本地开发使用 Mock
-        return 
+        // 本地开发使用 Mock（仅 Mongo 和 Cache）
+        return
             mongo.NewMockClient(),
-            db.NewMockClient(),
+            nil, // DB 不使用 Mock
             cache.NewMockCache(),
     }
-    
+
     // 生产环境使用真实存储
     mongoClient, _ := mongo.New(mongoConfig)
     dbClient, _ := db.New(dbConfig)
     cacheClient, _ := cache.New(cacheConfig)
-    
+
     return mongoClient, dbClient, cacheClient
 }
 ```
@@ -276,11 +269,11 @@ func NewUserService(mongo mongo.Client, db db.Client, c cache.Cache) *UserServic
     }
 }
 
-// 测试中可以传入 Mock
+// 测试中可以传入 Mock（仅 Mongo 和 Cache）
 func TestWith_MockServices(t *testing.T) {
     service := NewUserService(
         mongo.NewMockClient(),
-        db.NewMockClient(),
+        nil, // DB 使用真实客户端或测试数据库
         cache.NewMockCache(),
     )
 }
@@ -291,17 +284,17 @@ func TestWith_MockServices(t *testing.T) {
 ```go
 func CreateStorageClients(useMock bool) (mongo.Client, db.Client, cache.Cache) {
     if useMock {
-        return 
+        return
             mongo.NewMockClient().SetupPingSuccess(),
-            db.NewMockClient().SetupPingSuccess(),
+            nil, // DB 不使用 Mock
             cache.NewMockCache().SetupSuccess(),
     }
-    
+
     // 创建真实客户端
     mongoClient, _ := mongo.New(mongoConfig)
     dbClient, _ := db.New(dbConfig)
     cacheClient, _ := cache.New(cacheConfig)
-    
+
     return mongoClient, dbClient, cacheClient
 }
 ```
@@ -317,7 +310,7 @@ func init() {
     switch os.Getenv("STORAGE_MODE") {
     case "mock":
         mongoClient = mongo.NewMockClient()
-        dbClient = db.NewMockClient()
+        dbClient, _ = db.New(testDBConfig) // DB 使用测试数据库
         cacheClient = cache.NewMockCache()
     case "memory":
         cacheClient, _ = cache.New(cache.WithBackend("memory"))
@@ -361,7 +354,7 @@ if err := client.Operation(); err != nil {
 // 之前：使用真实客户端
 mongoClient, _ := mongo.New(mongoConfig)
 
-// 之后：使用 Mock 客户端
+// 之后：使用 Mock 客户端（仅 Mongo 和 Cache 支持）
 mockClient := mongo.NewMockClient()
 // 或使用工厂方法
 mongoClient := createStorageClient(useTest)
@@ -381,7 +374,7 @@ mongoClient := createStorageClient(useTest)
 ## 最佳实践清单
 
 ### 通用最佳实践
-- [ ] 使用 Mock 编写单元测试
+- [ ] 使用 Mock 编写单元测试（Mongo、Cache、Queue 支持）
 - [ ] 使用依赖注入便于切换实现
 - [ ] 始终关闭连接（defer）
 - [ ] 在启动时执行健康检查
@@ -459,7 +452,6 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
 ### SQL 数据库模块
 - 文档：`middleware/storage/db/llms.txt`
 - 源码：`middleware/storage/db/`
-- Mock：`middleware/storage/db/mock.go`
 - GORM 文档：https://gorm.io/
 
 ### 缓存模块
