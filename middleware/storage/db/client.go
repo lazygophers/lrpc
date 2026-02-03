@@ -152,6 +152,16 @@ type protobufMigrationModel struct {
 func New(c *Config, tables ...interface{}) (*Client, error) {
 	c.apply()
 
+	// Check if mock mode is enabled
+	if c.Mock {
+		client, _, err := NewMock(c, tables...)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return nil, err
+		}
+		return client, nil
+	}
+
 	// 确保 JSON 序列化器已注册
 	ensureSerializerRegistered()
 

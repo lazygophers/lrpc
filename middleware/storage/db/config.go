@@ -33,6 +33,9 @@ type Config struct {
 	// Database debug, default false
 	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty"`
 
+	// Mock mode, if true, use mock database for testing, default false
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
+
 	// Database address
 	// sqlite: full filepath, default exec path
 	// mysql: database address, default 127.0.0.1
