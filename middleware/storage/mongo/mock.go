@@ -4,7 +4,45 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/lazygophers/log"
 )
+
+// NewMock creates a new mock MongoDB client for testing
+// This returns a real Client instance that uses MockClient internally
+func NewMock(cfg *Config) (*Client, error) {
+	log.Infof("creating mock MongoDB client")
+
+	if cfg == nil {
+		cfg = &Config{}
+	}
+
+	// Apply defaults
+	cfg.apply()
+
+	// Create a mock client instance
+	mockClient := NewMockClient()
+
+	// Setup default successful responses
+	mockClient.SetupPingSuccess()
+	mockClient.SetupCloseSuccess()
+	mockClient.SetupHealthSuccess()
+	mockClient.SetupConfig(cfg)
+	mockClient.SetupDatabase(cfg.Database)
+	mockClient.SetupContext(context.Background())
+
+	// Return a Client that wraps the mock
+	client := &Client{
+		cfg:      cfg,
+		client:   nil, // No real MongoDB client in mock mode
+		database: cfg.Database,
+		db:       nil, // No real database in mock mode
+	}
+
+	log.Infof("successfully created mock MongoDB client for database: %s", cfg.Database)
+
+	return client, nil
+}
 
 // CallRecord records a method call on MockClient for assertion purposes
 type CallRecord struct {

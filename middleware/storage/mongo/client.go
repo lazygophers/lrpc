@@ -26,6 +26,11 @@ func New(cfg *Config) (*Client, error) {
 	// Apply defaults
 	cfg.apply()
 
+	// Check if mock mode is enabled
+	if cfg.Mock {
+		return NewMock(cfg)
+	}
+
 	// Build MongoDB client options
 	opts := cfg.BuildClientOpts()
 

@@ -33,6 +33,9 @@ type Config struct {
 	// Debug mode - enables verbose logging
 	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty"`
 
+	// Mock mode, if true, use mock client for testing, default false
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
+
 	// Connection timeout, default 10 seconds
 	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`
 
