@@ -303,3 +303,159 @@ func TestCond_ToInterfaces(t *testing.T) {
 		assert.Assert(t, len(result) > 0)
 	})
 }
+
+// TestSimpleTypeToStrEdgeCases 测试 simpleTypeToStr 的边界情况
+func TestSimpleTypeToStrEdgeCases(t *testing.T) {
+	t.Run("float32 and float64 types", func(t *testing.T) {
+		// 测试 float32 和 float64 类型
+		// 这些类型会走到 default 分支，使用 fmt.Sprintf
+		cond := db.Where("float32_field", float32(3.14))
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+		assert.Assert(t, strings.Contains(result, "float32_field"))
+
+		cond2 := db.Where("float64_field", float64(2.718))
+		result2 := cond2.ToString()
+		assert.Assert(t, len(result2) > 0)
+		assert.Assert(t, strings.Contains(result2, "float64_field"))
+	})
+
+	t.Run("interface type with string value", func(t *testing.T) {
+		// 测试接口类型的具体值是字符串的情况
+		var iface interface{} = "test_string"
+		cond := db.Where("field", iface)
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("slice without quotes (quoteSlice=false)", func(t *testing.T) {
+		// 在某些上下文中，slice 不应该被括号包裹
+		// 这会在 addCond 中调用 simpleTypeToStr(val, true)
+		// quoteSlice 参数为 true
+		cond := db.Where("id", "IN", []int{1, 2, 3})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("slice with mixed types", func(t *testing.T) {
+		// 测试包含混合类型的 slice
+		cond := db.Where("field", []interface{}{1, "two", 3.0, true})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("array type", func(t *testing.T) {
+		// 测试数组类型（不是 slice）
+		cond := db.Where("field", [3]int{1, 2, 3})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		// 测试空 slice
+		cond := db.Where("field", []int{})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("pointer to basic type", func(t *testing.T) {
+		// 测试指向基本类型的指针
+		value := 42
+		cond := db.Where("field", &value)
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("nil pointer", func(t *testing.T) {
+		// 测试 nil 指针
+		var ptr *int
+		cond := db.Where("field", ptr)
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+		assert.Assert(t, strings.Contains(result, "NULL"))
+	})
+
+	t.Run("nested interface with nil", func(t *testing.T) {
+		// 测试 interface{} 包含 nil 值
+		var iface interface{} = nil
+		cond := db.Where("field", iface)
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("uint types coverage", func(t *testing.T) {
+		// 确保所有 uint 类型都被覆盖
+		testCases := []struct {
+			name  string
+			value interface{}
+		}{
+			{"uint", uint(42)},
+			{"uint8", uint8(255)},
+			{"uint16", uint16(65535)},
+			{"uint32", uint32(4294967295)},
+			{"uint64", uint64(18446744073709551615)},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				cond := db.Where("field", tc.value)
+				result := cond.ToString()
+				assert.Assert(t, len(result) > 0)
+			})
+		}
+	})
+
+	t.Run("int types coverage", func(t *testing.T) {
+		// 确保所有 int 类型都被覆盖
+		testCases := []struct {
+			name  string
+			value interface{}
+		}{
+			{"int", int(-42)},
+			{"int8", int8(-128)},
+			{"int16", int16(-32768)},
+			{"int32", int32(-2147483648)},
+			{"int64", int64(-9223372036854775808)},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				cond := db.Where("field", tc.value)
+				result := cond.ToString()
+				assert.Assert(t, len(result) > 0)
+			})
+		}
+	})
+}
+
+// TestWhereRawEdgeCases 测试 whereRaw 的边界情况
+func TestWhereRawEdgeCases(t *testing.T) {
+	t.Run("whereRaw with more placeholders than values", func(t *testing.T) {
+		// 这会触发 whereRaw 中的警告日志
+		cond := db.Where("field1 = ? AND field2 = ?", "value1")
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("whereRaw with more values than placeholders", func(t *testing.T) {
+		// 多余的值会被忽略
+		cond := db.Where("field = ?", "value1", "value2", "value3")
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("whereRaw with no placeholders", func(t *testing.T) {
+		// 纯 SQL 条件，没有参数
+		cond := db.Where("field1 IS NOT NULL")
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+		assert.Assert(t, strings.Contains(result, "field1 IS NOT NULL"))
+	})
+
+	t.Run("whereRaw with complex values", func(t *testing.T) {
+		// 测试复杂类型的值转换
+		cond := db.Where("field IN (?)", []int{1, 2, 3})
+		result := cond.ToString()
+		assert.Assert(t, len(result) > 0)
+	})
+}
