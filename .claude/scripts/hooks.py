@@ -78,9 +78,9 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 		if action == "bash":
 			if "command" in tool_input:
 				command = tool_input.get("command", "")
-				if command.find("rm") == 0:
+				if command.find("rm") >= 0:
 					for locked_file in remove_files:
-						if command.find(locked_file) == 0:
+						if command.find(locked_file) >= 0:
 							logging.warning(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
 							print(json.dumps({
 								"hookSpecificOutput": {
@@ -92,7 +92,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 							}))
 							return True
 
-				if command.find("python") == 0:
+				if command.find("python") >= 0:
 					logging.warning(f"检测到受保护文件操作: command={command}, locked_file=python")
 					print(json.dumps({
 						"hookSpecificOutput": {
@@ -108,7 +108,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 			if "file_path" in tool_input:
 				file_path = tool_input.get("file_path", "")
 				for locked_file in edit_files:
-					if file_path.find(locked_file) == 0:
+					if file_path.find(locked_file) >= 0:
 						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {
@@ -123,7 +123,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 			if "file_path" in tool_input:
 				file_path = tool_input.get("file_path", "")
 				for locked_file in read_files:
-					if file_path.find(locked_file) == 0:
+					if file_path.find(locked_file) >= 0:
 						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {
