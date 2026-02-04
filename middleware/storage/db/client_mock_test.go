@@ -95,4 +95,70 @@ func TestClientMockMethods(t *testing.T) {
 		err = client.ExpectationsWereMet()
 		assert.NoError(t, err)
 	})
+
+	t.Run("use client.ExpectRollback method", func(t *testing.T) {
+		// 测试回滚方法
+		client.ExpectBegin()
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		client.ExpectRollback()
+
+		// 执行事务
+		tx := client.NewScoop().Begin()
+		user := &TestUser{Name: "Test", Email: "test@example.com", Age: 25}
+		result := tx.Model(TestUser{}).Create(user)
+		assert.NoError(t, result.Error)
+		tx.Rollback()
+
+		// 验证期望
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("use client.ExpectClose method", func(t *testing.T) {
+		// 创建独立的 client 用于测试 Close
+		config := &db.Config{
+			Type: db.MySQL,
+			Mock: true,
+		}
+		closeClient, err := db.New(config)
+		assert.NoError(t, err)
+
+		// 测试 Close 方法
+		closeClient.ExpectClose()
+
+		// 关闭连接
+		err = closeClient.MockDB().Close()
+		assert.NoError(t, err)
+
+		// 验证期望
+		err = closeClient.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("ExpectQuery with WillReturnError", func(t *testing.T) {
+		// 测试 ExpectQuery 返回错误的情况
+		client.ExpectQuery("SELECT \\* FROM test_users").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
+				AddRow(int64(1), "User1"))
+
+		var user TestUser
+		result := client.NewScoop().Model(TestUser{}).First(&user)
+		assert.NoError(t, result.Error)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("ExpectExec with WillReturnError", func(t *testing.T) {
+		// 测试 ExpectExec 返回错误的情况
+		client.ExpectExec("UPDATE test_users SET .*").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		result := client.NewScoop().Model(TestUser{}).Where("id", 1).Updates("name", "Updated")
+		assert.NoError(t, result.Error)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
 }
