@@ -34,7 +34,6 @@ func ensureSerializerRegistered() {
 		schema.RegisterSerializer("ini", &IniSerializer{})
 		schema.RegisterSerializer("bson", &BsonSerializer{})
 		schema.RegisterSerializer("toml", &TomlSerializer{})
-		schema.RegisterSerializer("protobuf", &ProtobufSerializer{})
 		schema.RegisterSerializer("protojson", &ProtojsonSerializer{})
 	})
 }
@@ -310,71 +309,6 @@ func (p *TomlSerializer) Value(ctx context.Context, field *schema.Field, dst ref
 	}
 
 	return buf.String(), nil
-}
-
-// ProtobufSerializer Protobuf 序列化器
-type ProtobufSerializer struct {
-}
-
-func (p *ProtobufSerializer) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) (err error) {
-	fieldValue := reflect.New(field.FieldType)
-
-	if dbValue != nil {
-		var bytes []byte
-		switch v := dbValue.(type) {
-		case []byte:
-			bytes = v
-		case string:
-			bytes = []byte(v)
-		default:
-			// Check if it's a proto.Message
-			if msg, ok := v.(proto.Message); ok {
-				bytes, err = proto.Marshal(msg)
-				if err != nil {
-					log.Errorf("err:%v", err)
-					return err
-				}
-			} else {
-				return errors.New("value is not a proto.Message")
-			}
-		}
-
-		if len(bytes) > 0 {
-			// Check if fieldValue is a proto.Message
-			if msg, ok := fieldValue.Interface().(proto.Message); ok {
-				err = proto.Unmarshal(bytes, msg)
-				if err != nil {
-					log.Errorf("err:%v", err)
-					return err
-				}
-			} else {
-				return errors.New("field is not a proto.Message")
-			}
-		}
-	}
-
-	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
-	return nil
-}
-
-func (p *ProtobufSerializer) Value(ctx context.Context, field *schema.Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
-	if fieldValue == nil {
-		return "", nil
-	}
-
-	// Check if it's a proto.Message
-	msg, ok := fieldValue.(proto.Message)
-	if !ok {
-		return nil, errors.New("value is not a proto.Message")
-	}
-
-	buffer, err := proto.Marshal(msg)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
-
-	return string(buffer), nil
 }
 
 // ProtojsonSerializer Protobuf JSON 序列化器，使用 protojson 处理 protobuf 消息（包括 oneof 字段）
