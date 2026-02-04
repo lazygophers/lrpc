@@ -459,3 +459,27 @@ func TestWhereRawEdgeCases(t *testing.T) {
 		assert.Assert(t, len(result) > 0)
 	})
 }
+
+// TestExpr 测试 Expr 函数
+func TestExpr(t *testing.T) {
+	t.Run("create expression with args", func(t *testing.T) {
+		// 测试带参数的表达式
+		expr := db.Expr("age > ?", 18)
+		sql := expr.SQL
+		assert.Assert(t, len(sql) > 0)
+	})
+
+	t.Run("create expression without args", func(t *testing.T) {
+		// 测试不带参数的表达式
+		expr := db.Expr("NOW()")
+		sql := expr.SQL
+		assert.Assert(t, len(sql) > 0)
+	})
+
+	t.Run("create expression with multiple args", func(t *testing.T) {
+		// 测试多个参数的表达式
+		expr := db.Expr("field BETWEEN ? AND ?", 1, 100)
+		sql := expr.SQL
+		assert.Assert(t, len(sql) > 0)
+	})
+}
