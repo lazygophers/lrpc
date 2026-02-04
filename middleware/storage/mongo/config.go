@@ -50,6 +50,8 @@ type Config struct {
 
 	// Logger interface for custom logging (for SQL output)
 	Logger Logger `json:"-" yaml:"-"`
+
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
 }
 
 // apply applies default values to the configuration
