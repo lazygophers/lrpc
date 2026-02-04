@@ -14,7 +14,8 @@ func TestModel_SetNotFound(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -33,7 +34,8 @@ func TestModel_SetDuplicatedKeyError(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -52,7 +54,8 @@ func TestModel_IsNotFound(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -100,7 +103,8 @@ func TestModel_IsDuplicatedKeyError(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -148,7 +152,8 @@ func TestModel_TableName(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -164,7 +169,8 @@ func TestModel_NewScoop(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -200,7 +206,8 @@ func TestNewModel(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -231,7 +238,8 @@ func TestModel_ErrorHandling(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -258,7 +266,8 @@ func TestModel_WithDifferentTypes(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 

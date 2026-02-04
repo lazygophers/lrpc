@@ -16,7 +16,8 @@ func TestScoop_TransactionCommit(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()
@@ -67,7 +68,8 @@ func TestScoop_TransactionRollback(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()
@@ -99,7 +101,8 @@ func TestScoop_TransactionCommitOrRollback(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()
@@ -155,7 +158,8 @@ func TestScoop_NestedTransaction(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()

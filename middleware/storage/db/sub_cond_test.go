@@ -15,7 +15,8 @@ func TestSubCond_Like(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()
@@ -96,7 +97,8 @@ func TestSubCond_Between(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()
@@ -133,7 +135,8 @@ func TestSubCond_Or(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer func() {
 		mockDB.Mock.ExpectClose()

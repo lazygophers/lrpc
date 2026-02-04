@@ -28,7 +28,8 @@ func TestClient_AutoMigrate(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -240,7 +241,8 @@ func TestAutoMigrate_EdgeCases(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
@@ -264,7 +266,8 @@ func TestAutoMigrates_Multiple(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := NewMock(config)
+	client, err := New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 	defer mockDB.Close()
 

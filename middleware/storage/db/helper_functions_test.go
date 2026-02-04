@@ -43,7 +43,7 @@ func TestSQLGeneration(t *testing.T) {
 		Mock: true,
 	}
 
-	client, _, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.NoError(t, err)
 
 	t.Run("ToSQL for select", func(t *testing.T) {

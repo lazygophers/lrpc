@@ -21,7 +21,7 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 
 	// Check if mock mode is enabled
 	if c.Mock {
-		client, _, err := NewMock(c, tables...)
+		client, err := newMock(c, tables...)
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return nil, err

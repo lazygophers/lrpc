@@ -15,11 +15,14 @@ func TestNewMock_MySQL(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
-	assert.NotNil(t, mockDB)
 	assert.Equal(t, db.MySQL, client.DriverType())
+
+	// 方式1: 使用 client.MockDB() 访问 MockDB
+	mockDB := client.MockDB()
+	assert.NotNil(t, mockDB)
 
 	// 设置查询期望
 	mockDB.Mock.ExpectQuery("SELECT (.+) FROM `test_users`").
@@ -35,7 +38,7 @@ func TestNewMock_MySQL(t *testing.T) {
 	assert.Equal(t, 25, user.Age)
 
 	// 验证所有期望都被满足
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 
 	// 设置 Close 期望
@@ -50,11 +53,12 @@ func TestNewMock_Postgres(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
-	assert.NotNil(t, mockDB)
 	assert.Equal(t, db.Postgres, client.DriverType())
+
+	mockDB := client.MockDB()
 
 	// 设置插入期望 - GORM 使用 RETURNING 子句返回插入的 ID
 	// 使用 AnyArg() 匹配动态生成的时间戳值
@@ -68,7 +72,7 @@ func TestNewMock_Postgres(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 验证所有期望都被满足
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 
 	// 设置 Close 期望
@@ -83,11 +87,12 @@ func TestNewMock_SQLite(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
-	assert.NotNil(t, mockDB)
 	assert.Equal(t, db.Sqlite, client.DriverType())
+
+	mockDB := client.MockDB()
 
 	// SQLite mock 使用 postgres dialector，所以 SQL 语法类似 postgres
 	mockDB.Mock.ExpectQuery("SELECT (.+) FROM \"test_users\"").
@@ -103,7 +108,7 @@ func TestNewMock_SQLite(t *testing.T) {
 	assert.Equal(t, 35, user.Age)
 
 	// 验证所有期望都被满足
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 
 	// 设置 Close 期望
@@ -118,11 +123,12 @@ func TestNewMock_TiDB(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
-	assert.NotNil(t, mockDB)
 	assert.Equal(t, db.TiDB, client.DriverType())
+
+	mockDB := client.MockDB()
 
 	// TiDB 使用 MySQL dialector
 	mockDB.Mock.ExpectQuery("SELECT (.+) FROM `test_users`").
@@ -137,7 +143,7 @@ func TestNewMock_TiDB(t *testing.T) {
 	assert.Equal(t, "David", user.Name)
 
 	// 验证所有期望都被满足
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 
 	// 设置 Close 期望
@@ -152,10 +158,9 @@ func TestNewMock_UnsupportedType(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
 	assert.Error(t, err)
 	assert.Nil(t, client)
-	assert.Nil(t, mockDB)
 	assert.Contains(t, err.Error(), "unsupported database type")
 }
 

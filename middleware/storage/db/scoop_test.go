@@ -15,7 +15,8 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	t.Run("test Count operation", func(t *testing.T) {
@@ -40,7 +41,7 @@ func TestScoop_MockBasicOperations(t *testing.T) {
 	err = mockDB.Close()
 	assert.NoError(t, err)
 
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
 
@@ -51,7 +52,8 @@ func TestClient_PingAndClose(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	t.Run("test Ping", func(t *testing.T) {
@@ -66,7 +68,7 @@ func TestClient_PingAndClose(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	err = mockDB.ExpectationsWereMet()
+	err = client.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
 
@@ -77,7 +79,8 @@ func TestScoop_Conditions(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	t.Run("test NotEqual condition", func(t *testing.T) {
@@ -146,7 +149,8 @@ func TestScoop_Joins(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	t.Run("test InnerJoin", func(t *testing.T) {
@@ -190,7 +194,8 @@ func TestScoop_Having(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	scoop := client.NewScoop().Model(TestUser{}).
@@ -209,7 +214,8 @@ func TestScoop_Ignore(t *testing.T) {
 		Mock: true,
 	}
 
-	client, mockDB, err := db.NewMock(config)
+	client, err := db.New(config)
+	mockDB := client.MockDB()
 	assert.NoError(t, err)
 
 	t.Run("test Ignore with default", func(t *testing.T) {
