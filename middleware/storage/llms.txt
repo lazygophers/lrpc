@@ -1,18 +1,18 @@
 ---
 title: Storage Middleware
-description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, Cache, and Queue support (DB Mock removed)
+description: Comprehensive storage middleware for LRPC framework with MongoDB, SQL, Cache, and Queue support
 ---
 
 # Storage Middleware (lrpc/middleware/storage)
 
 ## 概述
 
-`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库、分布式缓存和消息队列四大模块。MongoDB、Cache 和 Queue 模块提供了 Mock 支持，方便在不同场景下进行测试和开发。
+`storage` 中间件为 LRPC 框架提供了完整的存储解决方案，包括 MongoDB、SQL 数据库、分布式缓存和消息队列四大模块。MongoDB 和 Queue 模块提供了 Mock 支持，方便在不同场景下进行测试和开发。
 
 ### 核心特性
 - **模块化设计**：MongoDB、SQL、Cache、Queue 四个独立模块
 - **统一接口**：清晰一致的接口设计
-- **Mock 支持**：MongoDB、Cache、Queue 模块提供 Mock 实现
+- **Mock 支持**：MongoDB、Queue 模块提供 Mock 实现
 - **错误处理**：遵循一致的错误处理模式
 - **多环境支持**：轻松切换真实和模拟环境
 - **Redis 统一**：所有模块使用 go-redis/v9
@@ -33,7 +33,6 @@ middleware/storage/
 ├── cache/          # 分布式缓存模块
 │   ├── cache.go         # 缓存接口
 │   ├── redis.go         # Redis 实现 (go-redis/v9)
-│   ├── mock.go          # Mock 实现
 │   └── llms.txt         # API 文档
 ├── queue/          # 消息队列模块
 │   ├── queue.go         # 队列接口和工厂
@@ -91,10 +90,6 @@ c, err := cache.New(&cache.Config{
     Db:       0,
 })
 defer c.Close()
-
-// 或使用 Mock 缓存（用于测试）
-mockCache := cache.NewMockCache()
-mockCache.SetupSuccess()
 ```
 
 ### 4. 消息队列
@@ -142,19 +137,8 @@ ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
 | 数据结构 | 灵活 | 固定模式 | KV/哈希/集合/流 | Topic/Channel |
 | 持久化 | 是 | 是 | 可选 | 是 |
 | 事务支持 | 是 | 是 | 部分 | 否 |
-| Mock 支持 | 是 | 否 | 是 | 是 |
+| Mock 支持 | 是 | 否 | 否 | 是 |
 | 驱动类型 | mongo-go-model | GORM | go-redis/v9 | Kafka/go-redis/v9 |
-
-## Mock 功能对比
-
-| 功能 | Mongo Mock | Cache Mock | Queue Mock |
-|------|-----------|-----------|------------|
-| 设置返回值 | ✓ | ✓ | ✓ |
-| 调用记录 | ✓ | ✓ | ✓ |
-| 调用计数 | ✓ | ✓ | ✓ |
-| 数据存储 | ✓ | ✓ | ✓ |
-| 序列化支持 | ✓ | ✓ | ✓ |
-| 消息模拟 | ✓ | ✓ | ✓ |
 
 ## 使用场景
 
@@ -164,11 +148,10 @@ ch.Subscribe(func(msg *queue.Message[Event]) (queue.ProcessRsp, error) {
 
 ```go
 func TestUserService(t *testing.T) {
-    // 使用 Mock
+    // 使用 Mock (MongoDB 和 Queue 支持)
     mockMongo := mongo.NewMockClient()
-    mockCache := cache.NewMockCache()
 
-    service := NewUserService(mockMongo, mockCache)
+    service := NewUserService(mockMongo)
     result, err := service.GetUser("123")
 
     require.NoError(t, err)
@@ -205,11 +188,11 @@ func TestUserServiceIntegration(t *testing.T) {
 ```go
 func initStorage() (mongo.Client, db.Client, cache.Cache) {
     if os.Getenv("USE_MOCK") == "true" {
-        // 本地开发使用 Mock（仅 Mongo 和 Cache）
-        return
-            mongo.NewMockClient(),
-            nil, // DB 不使用 Mock
-            cache.NewMockCache(),
+        // 本地开发使用 Mock（仅 Mongo 支持）
+        mongoClient := mongo.NewMockClient()
+        // Cache 使用内存缓存
+        cacheClient, _ := cache.New(&cache.Config{Type: cache.Mem})
+        return mongoClient, nil, cacheClient
     }
 
     // 生产环境使用真实存储
@@ -218,35 +201,6 @@ func initStorage() (mongo.Client, db.Client, cache.Cache) {
     cacheClient, _ := cache.New(cacheConfig)
 
     return mongoClient, dbClient, cacheClient
-}
-```
-
-## Mock 三路测试示例
-
-### 三路测试（3A 模式）
-
-```go
-func TestCacheOperation(t *testing.T) {
-    // Arrange - 准备测试环境
-    mockCache := cache.NewMockCache()
-    mockCache.SetErr = nil
-    mockCache.GetRet = "expected_value"
-    
-    service := NewCacheService(mockCache)
-
-    // Act - 执行被测试的代码
-    err := service.CacheData("key", "value")
-    require.NoError(t, err)
-
-    val, err := service.RetrieveCachedData("key")
-    require.NoError(t, err)
-
-    // Assert - 验证结果
-    require.Equal(t, "expected_value", val)
-    require.Equal(t, 1, mockCache.GetCallCount("Set"))
-    require.Equal(t, 1, mockCache.GetCallCount("Get"))
-    require.True(t, mockCache.AssertCalled("Set"))
-    require.True(t, mockCache.AssertCalled("Get"))
 }
 ```
 
@@ -269,12 +223,15 @@ func NewUserService(mongo mongo.Client, db db.Client, c cache.Cache) *UserServic
     }
 }
 
-// 测试中可以传入 Mock（仅 Mongo 和 Cache）
+// 测试中可以传入 Mock（仅 Mongo 支持）
 func TestWith_MockServices(t *testing.T) {
+    // Cache 使用内存缓存
+    cacheClient, _ := cache.New(&cache.Config{Type: cache.Mem})
+    
     service := NewUserService(
         mongo.NewMockClient(),
         nil, // DB 使用真实客户端或测试数据库
-        cache.NewMockCache(),
+        cacheClient,
     )
 }
 ```
@@ -284,10 +241,12 @@ func TestWith_MockServices(t *testing.T) {
 ```go
 func CreateStorageClients(useMock bool) (mongo.Client, db.Client, cache.Cache) {
     if useMock {
+        // Cache 使用内存缓存
+        cacheClient, _ := cache.New(&cache.Config{Type: cache.Mem})
         return
             mongo.NewMockClient().SetupPingSuccess(),
             nil, // DB 不使用 Mock
-            cache.NewMockCache().SetupSuccess(),
+            cacheClient,
     }
 
     // 创建真实客户端
@@ -311,9 +270,9 @@ func init() {
     case "mock":
         mongoClient = mongo.NewMockClient()
         dbClient, _ = db.New(testDBConfig) // DB 使用测试数据库
-        cacheClient = cache.NewMockCache()
+        cacheClient, _ = cache.New(&cache.Config{Type: cache.Mem})
     case "memory":
-        cacheClient, _ = cache.New(cache.WithBackend("memory"))
+        cacheClient, _ = cache.New(&cache.Config{Type: cache.Mem})
     case "docker":
         // 使用 Docker 容器中的真实服务
         mongoClient, _ = mongo.New(dockerMongoConfig)
@@ -374,7 +333,7 @@ mongoClient := createStorageClient(useTest)
 ## 最佳实践清单
 
 ### 通用最佳实践
-- [ ] 使用 Mock 编写单元测试（Mongo、Cache、Queue 支持）
+- [ ] 使用 Mock 编写单元测试（Mongo、Queue 支持）
 - [ ] 使用依赖注入便于切换实现
 - [ ] 始终关闭连接（defer）
 - [ ] 在启动时执行健康检查
@@ -416,30 +375,16 @@ if err != nil {
 }
 ```
 
-### 问题：找不到调用记录
-
-```go
-// 确保在执行操作后再检查
-mockCache := cache.NewMockCache()
-mockCache.Get("key") // 执行操作
-
-// 现在检查调用
-count := mockCache.GetCallCount("Get")
-if count == 0 {
-    log.Fatal("Get was not called")
-}
-```
-
 ### 问题：切换存储后出现错误
 
 ```go
-// 确保所有 Mock 都返回有效值
-mockCache := cache.NewMockCache()
-mockCache.GetRet = "default_value"  // 设置默认值
-mockCache.GetErr = nil              // 确保无错误
-
-// 或使用一键设置
-mockCache.SetupSuccess()  // 快速设置所有操作成功
+// 确保配置正确
+cacheClient, err := cache.New(&cache.Config{
+    Type: cache.Mem,
+})
+if err != nil {
+    log.Fatalf("Failed to create cache: %v", err)
+}
 ```
 
 ## 参考资源
@@ -457,7 +402,6 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
 ### 缓存模块
 - 文档：`middleware/storage/cache/llms.txt`
 - 源码：`middleware/storage/cache/`
-- Mock：`middleware/storage/cache/mock.go`
 - go-redis/v9 文档：https://redis.uptrace.dev/
 - Redis 文档：https://redis.io/
 
@@ -503,8 +447,7 @@ mockCache.SetupSuccess()  // 快速设置所有操作成功
     - 完整的 llms.txt 文档
 
 - v1.0.0: 初始发布
-  - 添加 MockClient 支持 (mongo/db)
-  - 添加 MockCache 支持
+  - 添加 MockClient 支持 (mongo)
   - 添加完整的 llms.txt 文档
   - 添加三路测试支持
   - 添加调用跟踪功能
