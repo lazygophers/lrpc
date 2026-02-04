@@ -109,7 +109,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 				file_path = tool_input.get("file_path", "")
 				for locked_file in edit_files:
 					if file_path.find(locked_file) == 0:
-						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}"))
+						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {
 								"hookEventName": "PreToolUse",
