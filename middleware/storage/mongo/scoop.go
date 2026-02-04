@@ -607,7 +607,7 @@ func (s *Scoop) Delete() *DeleteResult {
 
 // Aggregate creates an aggregation pipeline
 func (s *Scoop) Aggregate(pipeline ...bson.M) *Aggregation {
-	return NewAggregation(s.coll, s.getContext(), pipeline...)
+	return NewAggregation(s.client, s.coll.Name(), s.getContext(), pipeline...)
 }
 
 // Clone creates a copy of the scoop with current state

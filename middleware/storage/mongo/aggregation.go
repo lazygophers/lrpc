@@ -4,27 +4,28 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Aggregation represents a MongoDB aggregation pipeline
 type Aggregation struct {
-	coll     *mongo.Collection
+	client   *Client
+	collName string
 	ctx      context.Context
 	pipeline bson.A
 	opts     *options.AggregateOptions
 }
 
 // NewAggregation creates a new aggregation pipeline
-func NewAggregation(coll *mongo.Collection, ctx context.Context, stages ...bson.M) *Aggregation {
+func NewAggregation(client *Client, collName string, ctx context.Context, stages ...bson.M) *Aggregation {
 	pipeline := bson.A{}
 	for _, stage := range stages {
 		pipeline = append(pipeline, stage)
 	}
 
 	return &Aggregation{
-		coll:     coll,
+		client:   client,
+		collName: collName,
 		ctx:      ctx,
 		pipeline: pipeline,
 		opts:     options.Aggregate(),
@@ -117,7 +118,8 @@ func (a *Aggregation) AddStage(stage bson.M) *Aggregation {
 
 // Execute executes the aggregation pipeline
 func (a *Aggregation) Execute(result interface{}) error {
-	cursor, err := a.coll.Aggregate(a.ctx, a.pipeline, a.opts)
+	coll := a.client.db.Collection(a.collName)
+	cursor, err := coll.Aggregate(a.ctx, a.pipeline, a.opts)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,8 @@ func (a *Aggregation) Execute(result interface{}) error {
 
 // ExecuteOne executes the aggregation pipeline and returns a single result
 func (a *Aggregation) ExecuteOne(result interface{}) error {
-	cursor, err := a.coll.Aggregate(a.ctx, a.pipeline, a.opts)
+	coll := a.client.db.Collection(a.collName)
+	cursor, err := coll.Aggregate(a.ctx, a.pipeline, a.opts)
 	if err != nil {
 		return err
 	}
