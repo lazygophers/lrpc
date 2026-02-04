@@ -77,13 +77,12 @@ type BaseCache interface {
 	XPending(stream, group string) (int64, error)
 
 	Del(key ...string) error
-
-	//Reset() error
-
 	Clean() error
-	Close() error
 
+	Close() error
 	Ping() error
+
+	Client() any
 }
 
 type Cache interface {

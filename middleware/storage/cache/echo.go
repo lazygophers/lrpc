@@ -341,6 +341,10 @@ func (p *CacheSugarDB) Close() error {
 	return nil
 }
 
+func (p *CacheSugarDB) Client() any {
+	return p.cli
+}
+
 func (p *CacheSugarDB) Ping() error {
 	// SugarDB doesn't have Ping method, use DBSize as health check
 	_, err := p.cli.DBSize()

@@ -238,6 +238,10 @@ func (p *Database) Close() error {
 	return p.db.Close()
 }
 
+func (p *Database) Client() any {
+	return p.db
+}
+
 func (p *Database) SetPrefix(prefix string) {
 	p.prefix = prefix
 }

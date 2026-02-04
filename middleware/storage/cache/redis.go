@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"github.com/lazygophers/utils/candy"
@@ -13,9 +14,10 @@ import (
 )
 
 type CacheRedis struct {
-	cli    *redis.Client
-	prefix string
-	ctx    context.Context
+	cli       *redis.Client
+	prefix    string
+	ctx       context.Context
+	miniRedis *miniredis.Miniredis // mock Redis 实例，仅在 Mock 模式下使用
 }
 
 func (p *CacheRedis) Clean() error {
@@ -416,6 +418,12 @@ func (p *CacheRedis) Close() error {
 		log.Errorf("err:%v", err)
 		return err
 	}
+
+	// 如果使用的是 miniredis，关闭它
+	if p.miniRedis != nil {
+		p.miniRedis.Close()
+	}
+
 	return nil
 }
 
@@ -745,7 +753,7 @@ func (p *CacheRedis) XPending(stream, group string) (int64, error) {
 	return pending.Count, nil
 }
 
-func (p *CacheRedis) Redis() *redis.Client {
+func (p *CacheRedis) Client() any {
 	return p.cli
 }
 
@@ -792,6 +800,21 @@ func NewRedisWithConfig(config *Config) (Cache, error) {
 	}
 	config.apply()
 
+	// 如果启用 Mock，使用 miniredis
+	if config.Mock {
+		mr, err := miniredis.Run()
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return nil, err
+		}
+
+		client := redis.NewClient(&redis.Options{
+			Addr: mr.Addr(),
+		})
+
+		return NewRedisWithMiniRedis(client, "", mr)
+	}
+
 	client := redis.NewClient(&redis.Options{
 		Addr:         config.Address,
 		Password:     config.Password,
@@ -809,10 +832,16 @@ func NewRedisWithConfig(config *Config) (Cache, error) {
 
 // NewRedisWithClient 使用已有的 redis.Client 创建缓存
 func NewRedisWithClient(client *redis.Client, prefix string) (Cache, error) {
+	return NewRedisWithMiniRedis(client, prefix, nil)
+}
+
+// NewRedisWithMiniRedis 使用已有的 redis.Client 和可选的 miniredis 创建缓存
+func NewRedisWithMiniRedis(client *redis.Client, prefix string, mr *miniredis.Miniredis) (Cache, error) {
 	p := &CacheRedis{
-		cli:    client,
-		prefix: prefix,
-		ctx:    context.Background(),
+		cli:       client,
+		prefix:    prefix,
+		ctx:       context.Background(),
+		miniRedis: mr,
 	}
 
 	// 测试连接

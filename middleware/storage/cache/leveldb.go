@@ -587,6 +587,10 @@ func (p *CacheLevelDB) Close() error {
 	return nil
 }
 
+func (p *CacheLevelDB) Client() any {
+	return p.db
+}
+
 func (p *CacheLevelDB) SetPrefix(prefix string) {
 	p.prefix = prefix
 }

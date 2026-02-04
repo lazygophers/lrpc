@@ -790,6 +790,10 @@ func (p *CacheBbolt) Close() error {
 	return p.conn.Close()
 }
 
+func (p *CacheBbolt) Client() any {
+	return p.conn
+}
+
 func (p *CacheBbolt) Reset() error {
 	return p.conn.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(p.prefix))

@@ -667,6 +667,10 @@ func (p *CacheMem) Close() error {
 	return nil
 }
 
+func (p *CacheMem) Client() any {
+	return nil
+}
+
 func (p *CacheMem) Reset() error {
 	p.Lock()
 	defer p.Unlock()
