@@ -192,24 +192,9 @@ func TestIntegration_DataStorageAndTracking(t *testing.T) {
 	require.Equal(t, 1, mockModel.GetCallCount("IsNotFound"))
 }
 
-// TestNewMock 测试通过 NewMock 函数创建 mock 客户端
-func TestNewMock(t *testing.T) {
-	cfg := &Config{
-		Address:  "localhost",
-		Port:     27017,
-		Database: "test_db",
-		Mock:     true,
-	}
 
-	client, err := NewMock(cfg)
-	require.NoError(t, err)
-	require.NotNil(t, client)
-	require.Equal(t, "test_db", client.GetDatabase())
-	require.Equal(t, cfg, client.GetConfig())
-}
-
-// TestNew_WithMockConfig 测试通过 New 函数使用 mock 配置
-func TestNew_WithMockConfig(t *testing.T) {
+// TestNewWithMockConfig 测试通过 New 函数使用 mock 配置
+func TestNewWithMockConfig(t *testing.T) {
 	cfg := &Config{
 		Address:  "localhost",
 		Port:     27017,
@@ -223,13 +208,13 @@ func TestNew_WithMockConfig(t *testing.T) {
 	require.Equal(t, "test_db", client.GetDatabase())
 }
 
-// TestNewMock_DefaultConfig 测试使用默认配置创建 mock 客户端
-func TestNewMock_DefaultConfig(t *testing.T) {
+// TestNewWithMock_DefaultConfig 测试使用默认配置创建 mock 客户端
+func TestNewWithMock_DefaultConfig(t *testing.T) {
 	cfg := &Config{
 		Mock: true,
 	}
 
-	client, err := NewMock(cfg)
+	client, err := New(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
@@ -238,10 +223,15 @@ func TestNewMock_DefaultConfig(t *testing.T) {
 	require.Equal(t, 27017, client.GetConfig().Port)
 }
 
-// TestNewMock_NilConfig 测试使用 nil 配置创建 mock 客户端
-func TestNewMock_NilConfig(t *testing.T) {
-	client, err := NewMock(nil)
+// TestNewWithMock_NilConfig 测试使用 nil 配置创建 mock 客户端
+func TestNewWithMock_NilConfig(t *testing.T) {
+	cfg := &Config{
+		Mock: true,
+	}
+
+	client, err := New(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 	require.NotNil(t, client.GetConfig())
 }
+

@@ -8,9 +8,68 @@ import (
 	"github.com/lazygophers/log"
 )
 
-// NewMock creates a new mock MongoDB client for testing
+// MockDB represents a mock MongoDB client with MockClient for testing
+type MockDB struct {
+	MockClient *MockClient
+}
+
+// newMockDB creates a new MockDB instance
+func newMockDB(mockClient *MockClient) *MockDB {
+	return &MockDB{
+		MockClient: mockClient,
+	}
+}
+
+// Close closes the mock database connection
+func (m *MockDB) Close() error {
+	return m.MockClient.Close()
+}
+
+// ExpectationsWereMet checks if all expectations were met
+// For MongoDB, this always returns nil as we use a different approach
+func (m *MockDB) ExpectationsWereMet() error {
+	return nil
+}
+
+// ExpectQuery sets up expectations for query operations
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectQuery() *MockClient {
+	return m.MockClient
+}
+
+// ExpectExec sets up expectations for exec operations
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectExec() *MockClient {
+	return m.MockClient
+}
+
+// ExpectBegin sets up expectations for transaction begin
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectBegin() *MockClient {
+	return m.MockClient
+}
+
+// ExpectCommit sets up expectations for transaction commit
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectCommit() *MockClient {
+	return m.MockClient
+}
+
+// ExpectRollback sets up expectations for transaction rollback
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectRollback() *MockClient {
+	return m.MockClient
+}
+
+// ExpectClose sets up expectations for close operation
+// This returns MockClient for chaining setup calls
+func (m *MockDB) ExpectClose() *MockClient {
+	return m.MockClient
+}
+
+// newMock creates a new mock MongoDB client for testing (internal use only)
 // This returns a real Client instance that uses MockClient internally
-func NewMock(cfg *Config) (*Client, error) {
+func newMock(cfg *Config) (*Client, error) {
 	log.Infof("creating mock MongoDB client")
 
 	if cfg == nil {
@@ -33,10 +92,11 @@ func NewMock(cfg *Config) (*Client, error) {
 
 	// Return a Client that wraps the mock
 	client := &Client{
-		cfg:      cfg,
-		client:   nil, // No real MongoDB client in mock mode
-		database: cfg.Database,
-		db:       nil, // No real database in mock mode
+		cfg:        cfg,
+		client:     nil, // No real MongoDB client in mock mode
+		database:   cfg.Database,
+		db:         nil, // No real database in mock mode
+		mockClient: mockClient,
 	}
 
 	log.Infof("successfully created mock MongoDB client for database: %s", cfg.Database)

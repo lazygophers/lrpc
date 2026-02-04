@@ -11,10 +11,11 @@ import (
 
 // Client represents a MongoDB client wrapper using MGM
 type Client struct {
-	cfg      *Config
-	client   *mongo.Client
-	database string
-	db       *mongo.Database
+	cfg        *Config
+	client     *mongo.Client
+	database   string
+	db         *mongo.Database
+	mockClient *MockClient // Mock client for testing (non-nil only in mock mode)
 }
 
 // New creates a new MongoDB client with the given configuration
@@ -28,7 +29,7 @@ func New(cfg *Config) (*Client, error) {
 
 	// Check if mock mode is enabled
 	if cfg.Mock {
-		return NewMock(cfg)
+		return newMock(cfg)
 	}
 
 	// Build MongoDB client options
@@ -194,4 +195,13 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	}
 
 	return nil
+}
+
+// MockDB returns the mock database instance for testing
+// This is only available in mock mode (when cfg.Mock = true)
+func (c *Client) MockDB() *MockDB {
+	if c.mockClient == nil {
+		return nil
+	}
+	return newMockDB(c.mockClient)
 }
