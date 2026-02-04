@@ -7,11 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Collectioner interface for models that can provide their collection name
-type Collectioner interface {
-	Collection() string
-}
-
 var (
 	collectionNameCacheMu sync.RWMutex
 	collectionNameCache   = make(map[reflect.Type]string)
@@ -76,22 +71,18 @@ func getCollectionNameFromType(t reflect.Type) string {
 
 // determineCollectionName determines the collection name using multiple strategies
 func determineCollectionName(t reflect.Type) string {
-	// Strategy 1: Check if type implements Collectioner interface
-	if x, ok := reflect.New(t).Interface().(Collectioner); ok {
-		if collName := x.Collection(); collName != "" {
-			return collName
+	// Strategy 1: Look for Collection() method via reflection and try to call it
+	if method, ok := t.MethodByName("Collection"); ok && method.Type.NumOut() == 1 && method.Type.Out(0).Kind() == reflect.String {
+		// Create a value to call the method on
+		v := reflect.New(t).Elem()
+		if results := method.Func.Call([]reflect.Value{v}); len(results) == 1 {
+			if collName := results[0].String(); collName != "" {
+				return collName
+			}
 		}
 	}
 
-	// Strategy 2: Look for Collection() method via reflection
-	if method, ok := t.MethodByName("Collection"); ok && method.Type.NumOut() == 1 {
-		if method.Type.Out(0).Kind() == reflect.String {
-			// Method exists and returns string, but we can't call it on the type directly
-			// So we use the type name as fallback
-		}
-	}
-
-	// Strategy 3: Use the type name as collection name (default)
+	// Strategy 2: Use the type name as collection name (default)
 	return t.Name()
 }
 
@@ -101,13 +92,6 @@ func determineCollectionName(t reflect.Type) string {
 func getCollectionName(m any) string {
 	if m == nil {
 		return ""
-	}
-
-	// Check if implements Collectioner interface
-	if c, ok := m.(Collectioner); ok {
-		if collName := c.Collection(); collName != "" {
-			return collName
-		}
 	}
 
 	// Use reflection to get the type and retrieve collection name

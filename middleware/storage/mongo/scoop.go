@@ -273,14 +273,6 @@ func (s *Scoop) Select(fields ...string) *Scoop {
 
 // Find finds documents matching the filter and returns a FindResult
 func (s *Scoop) Find(result interface{}) *FindResult {
-	// Check for injected failures (test only)
-	injector := GetGlobalInjector()
-	if injector.ShouldFailFind() {
-		return &FindResult{
-			Error: injector.GetFindError(),
-		}
-	}
-
 	begin := time.Now()
 	var docsCount int64
 
@@ -389,12 +381,6 @@ func (s *Scoop) First(result interface{}) *FirstResult {
 // Count counts documents matching the filter
 func (s *Scoop) Count() (int64, error) {
 	begin := time.Now()
-
-	// Check for injected failures (test only)
-	injector := GetGlobalInjector()
-	if injector.ShouldFailCount() {
-		return 0, injector.GetCountError()
-	}
 
 	count, err := s.coll.CountDocuments(s.getContext(), s.filter.ToBson())
 	if err != nil {
@@ -576,16 +562,6 @@ func (s *Scoop) Updates(update interface{}) *UpdateResult {
 func (s *Scoop) Delete() *DeleteResult {
 	begin := time.Now()
 
-	// Check for injected failures (test only)
-	injector := GetGlobalInjector()
-	if injector.ShouldFailDelete() {
-		err := injector.GetDeleteError()
-		s.logger.Log(s.depth, begin, func() (string, int64) {
-			return fmt.Sprintf("db.%s.deleteMany(%v)", s.coll.Name(), s.filter.ToBson()), 0
-		}, err)
-		return &DeleteResult{Error: err}
-	}
-
 	result, err := s.coll.DeleteMany(s.getContext(), s.filter.ToBson())
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -692,12 +668,6 @@ func (s *Scoop) IsNotFound(err error) bool {
 
 // Begin starts a transaction - creates session lazily if needed
 func (s *Scoop) Begin() (*Scoop, error) {
-	// Check for injected failures (test only)
-	injector := GetGlobalInjector()
-	if injector.ShouldFailTransaction() {
-		return nil, injector.GetTransactionError()
-	}
-
 	// Lazy initialization: create session only when needed
 	if s.session == nil {
 		_, mongoClient, _, err := mgm.DefaultConfigs()

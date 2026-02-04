@@ -11,11 +11,10 @@ import (
 
 // Client represents a MongoDB client wrapper using MGM
 type Client struct {
-	cfg        *Config
-	client     *mongo.Client
-	database   string
-	db         *mongo.Database
-	mockClient *MockClient // Mock client for testing (non-nil only in mock mode)
+	cfg      *Config
+	client   *mongo.Client
+	database string
+	db       *mongo.Database
 }
 
 // New creates a new MongoDB client with the given configuration
@@ -26,11 +25,6 @@ func New(cfg *Config) (*Client, error) {
 
 	// Apply defaults
 	cfg.apply()
-
-	// Check if mock mode is enabled
-	if cfg.Mock {
-		return newMock(cfg)
-	}
 
 	// Build MongoDB client options
 	opts := cfg.BuildClientOpts()
@@ -73,12 +67,6 @@ func New(cfg *Config) (*Client, error) {
 
 // Ping checks the connection to MongoDB
 func (c *Client) Ping() error {
-	// Check for injected failures (test only)
-	injector := GetGlobalInjector()
-	if injector.ShouldFailPing() {
-		return injector.GetPingError()
-	}
-
 	_, client, _, err := mgm.DefaultConfigs()
 	if err != nil {
 		return err
@@ -145,15 +133,15 @@ func (c *Client) AutoMigrates(models ...interface{}) (err error) {
 }
 
 // AutoMigrate ensures that the collection for a given model exists in MongoDB
-// It validates that the model implements the Collectioner interface and creates
-// the collection if it doesn't already exist
+// It retrieves the collection name from the model and creates the collection
+// if it doesn't already exist
 func (c *Client) AutoMigrate(model interface{}) (err error) {
-	collectioner, ok := model.(Collectioner)
-	if !ok {
-		return fmt.Errorf("model type %T does not implement Collectioner interface", model)
+	// Get collection name using reflection
+	collectionName := getCollectionName(model)
+	if collectionName == "" {
+		return fmt.Errorf("unable to determine collection name for model type %T", model)
 	}
 
-	collectionName := collectioner.Collection()
 	log.Infof("auto migrate collection %s", collectionName)
 
 	// Check if collection exists
@@ -195,13 +183,4 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	}
 
 	return nil
-}
-
-// MockDB returns the mock database instance for testing
-// This is only available in mock mode (when cfg.Mock = true)
-func (c *Client) MockDB() *MockDB {
-	if c.mockClient == nil {
-		return nil
-	}
-	return newMockDB(c.mockClient)
 }
