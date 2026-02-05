@@ -23,10 +23,7 @@ func ExampleMemoryStorage_Insert() {
 	}
 
 	// Find the document
-	results, err := storage.Find("users", bson.M{}, nil)
-	if err != nil {
-		panic(err)
-	}
+	results := storage.Find("users", bson.M{}, nil)
 
 	fmt.Printf("Found %d document(s)\n", len(results))
 	// Output: Found 1 document(s)
@@ -48,10 +45,7 @@ func ExampleMemoryStorage_InsertMany() {
 	}
 
 	// Count documents
-	count, err := storage.Count("users", bson.M{})
-	if err != nil {
-		panic(err)
-	}
+	count := storage.Count("users", bson.M{})
 
 	fmt.Printf("Total documents: %d\n", count)
 	// Output: Total documents: 3
@@ -79,10 +73,7 @@ func ExampleMemoryStorage_Find() {
 		Skip:  &skip,
 	}
 
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		panic(err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	fmt.Printf("Found %d document(s)\n", len(results))
 	// Output: Found 2 document(s)
@@ -100,10 +91,7 @@ func ExampleMemoryStorage_Update() {
 
 	// Update the document
 	update := bson.M{"$set": bson.M{"age": 26}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	if err != nil {
-		panic(err)
-	}
+	updated := storage.Update("users", bson.M{}, update)
 
 	fmt.Printf("Updated %d document(s)\n", updated)
 	// Output: Updated 1 document(s)
@@ -123,18 +111,12 @@ func ExampleMemoryStorage_Delete() {
 	}
 
 	// Delete one document
-	deleted, err := storage.DeleteOne("users", bson.M{})
-	if err != nil {
-		panic(err)
-	}
+	deleted := storage.DeleteOne("users", bson.M{})
 
 	fmt.Printf("Deleted %d document(s)\n", deleted)
 
 	// Count remaining documents
-	count, err := storage.Count("users", bson.M{})
-	if err != nil {
-		panic(err)
-	}
+	count := storage.Count("users", bson.M{})
 
 	fmt.Printf("Remaining documents: %d\n", count)
 	// Output: Deleted 1 document(s)

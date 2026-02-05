@@ -55,12 +55,7 @@ func (m *MockCollection) Drop(ctx context.Context) error {
 // EstimatedDocumentCount returns an estimate of the count of documents in the collection
 // In mock implementation, returns the exact count
 func (m *MockCollection) EstimatedDocumentCount(ctx context.Context, opts ...*options.EstimatedDocumentCountOptions) (int64, error) {
-	count, err := m.storage.Count(m.name, bson.M{})
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return 0, err
-	}
-
+	count := m.storage.Count(m.name, bson.M{})
 	return count, nil
 }
 
@@ -73,12 +68,7 @@ func (m *MockCollection) CountDocuments(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	count, err := m.storage.Count(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return 0, err
-	}
-
+	count := m.storage.Count(m.name, filterDoc)
 	return count, nil
 }
 

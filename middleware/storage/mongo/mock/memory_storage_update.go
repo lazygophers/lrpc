@@ -1,20 +1,18 @@
 package mock
 
 import (
-	"fmt"
-
 	"github.com/lazygophers/log"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Update updates documents in the specified collection that match the filter
 // Applies update operations to matched documents
-// Returns the number of documents updated and any error encountered
-func (m *MemoryStorage) Update(collName string, filter bson.M, update bson.M) (int64, error) {
+// Returns the number of documents updated
+func (m *MemoryStorage) Update(collName string, filter bson.M, update bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, no documents updated", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.Lock()
@@ -24,12 +22,7 @@ func (m *MemoryStorage) Update(collName string, filter bson.M, update bson.M) (i
 	for i := range coll.documents {
 		if m.matchFilter(coll.documents[i], filter) {
 			docKey := extractDocumentKey(coll.documents[i])
-			err := m.applyUpdate(&coll.documents[i], update)
-			if err != nil {
-				m.mu.Unlock()
-				log.Errorf("err:%v", err)
-				return updated, err
-			}
+			m.applyUpdate(&coll.documents[i], update)
 			updatedDocs = append(updatedDocs, docKey)
 			updated++
 		}
@@ -50,17 +43,17 @@ func (m *MemoryStorage) Update(collName string, filter bson.M, update bson.M) (i
 	}
 
 	log.Debugf("updated %d documents in collection %s", updated, collName)
-	return updated, nil
+	return updated
 }
 
 // UpdateOne updates a single document in the specified collection that matches the filter
 // Applies update operations to the first matched document
-// Returns the number of documents updated (0 or 1) and any error encountered
-func (m *MemoryStorage) UpdateOne(collName string, filter bson.M, update bson.M) (int64, error) {
+// Returns the number of documents updated (0 or 1)
+func (m *MemoryStorage) UpdateOne(collName string, filter bson.M, update bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, no documents updated", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.Lock()
@@ -70,12 +63,7 @@ func (m *MemoryStorage) UpdateOne(collName string, filter bson.M, update bson.M)
 	for i := range coll.documents {
 		if m.matchFilter(coll.documents[i], filter) {
 			docKey = extractDocumentKey(coll.documents[i])
-			err := m.applyUpdate(&coll.documents[i], update)
-			if err != nil {
-				m.mu.Unlock()
-				log.Errorf("err:%v", err)
-				return 0, err
-			}
+			m.applyUpdate(&coll.documents[i], update)
 			updatedDoc = &coll.documents[i]
 			break
 		}
@@ -95,21 +83,21 @@ func (m *MemoryStorage) UpdateOne(collName string, filter bson.M, update bson.M)
 		})
 
 		log.Debugf("updated 1 document in collection %s", collName)
-		return 1, nil
+		return 1
 	}
 
 	log.Debugf("no matching document found in collection %s", collName)
-	return 0, nil
+	return 0
 }
 
 // ReplaceOne replaces a single document in the specified collection that matches the filter
 // This method publishes a replace event instead of separate delete+insert events
-// Returns the number of documents replaced (0 or 1) and any error encountered
-func (m *MemoryStorage) ReplaceOne(collName string, filter bson.M, replacement bson.M) (int64, error) {
+// Returns the number of documents replaced (0 or 1)
+func (m *MemoryStorage) ReplaceOne(collName string, filter bson.M, replacement bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, no documents replaced", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.Lock()
@@ -143,22 +131,16 @@ func (m *MemoryStorage) ReplaceOne(collName string, filter bson.M, replacement b
 		})
 
 		log.Debugf("replaced 1 document in collection %s", collName)
-		return 1, nil
+		return 1
 	}
 
 	log.Debugf("no matching document found in collection %s", collName)
-	return 0, nil
+	return 0
 }
 
 // applyUpdate applies update operations to a document
 // Supports MongoDB update operators like $set, $inc, $unset, etc.
-func (m *MemoryStorage) applyUpdate(doc *bson.M, update bson.M) error {
-	if doc == nil {
-		err := fmt.Errorf("cannot update nil document")
-		log.Errorf("err:%v", err)
-		return err
-	}
-
+func (m *MemoryStorage) applyUpdate(doc *bson.M, update bson.M) {
 	// Handle update operators
 	for operator, value := range update {
 		switch operator {
@@ -198,8 +180,6 @@ func (m *MemoryStorage) applyUpdate(doc *bson.M, update bson.M) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // isOperator checks if a string is a MongoDB update operator

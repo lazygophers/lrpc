@@ -48,11 +48,7 @@ func (m *MockCollection) Find(ctx context.Context, filter interface{}, opts ...*
 		}
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	return NewMockCursor(documents), nil
 }
@@ -83,12 +79,7 @@ func (m *MockCollection) FindOne(ctx context.Context, filter interface{}, opts .
 		findOpts.Projection = projDoc
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	if len(documents) == 0 {
 		emptyDoc := bson.D{}
@@ -121,12 +112,7 @@ func (m *MockCollection) FindOneAndDelete(ctx context.Context, filter interface{
 		Limit: ptrInt64(1),
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	if len(documents) == 0 {
 		emptyDoc := bson.D{}
@@ -134,12 +120,7 @@ func (m *MockCollection) FindOneAndDelete(ctx context.Context, filter interface{
 	}
 
 	// Delete the document
-	_, err = m.storage.DeleteOne(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	m.storage.DeleteOne(m.name, filterDoc)
 
 	// Convert bson.M to raw BSON
 	rawBytes, err := bson.Marshal(documents[0])
@@ -174,12 +155,7 @@ func (m *MockCollection) FindOneAndReplace(ctx context.Context, filter interface
 		Limit: ptrInt64(1),
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	returnNew := false
 	upsert := false
@@ -226,12 +202,7 @@ func (m *MockCollection) FindOneAndReplace(ctx context.Context, filter interface
 	originalDoc := documents[0]
 
 	// Delete old document and insert new one (replace)
-	_, err = m.storage.DeleteOne(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	m.storage.DeleteOne(m.name, filterDoc)
 
 	// Preserve _id if present in original
 	if id, hasID := originalDoc["_id"]; hasID {
@@ -285,12 +256,7 @@ func (m *MockCollection) FindOneAndUpdate(ctx context.Context, filter interface{
 		Limit: ptrInt64(1),
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	returnNew := false
 	upsert := false
@@ -345,23 +311,13 @@ func (m *MockCollection) FindOneAndUpdate(ctx context.Context, filter interface{
 	originalDoc := documents[0]
 
 	// Update the document
-	_, err = m.storage.UpdateOne(m.name, filterDoc, updateDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		emptyDoc := bson.D{}
-		return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-	}
+	m.storage.UpdateOne(m.name, filterDoc, updateDoc)
 
 	// Return the appropriate document
 	var resultDoc bson.M
 	if returnNew {
 		// Fetch the updated document
-		updatedDocs, err := m.storage.Find(m.name, filterDoc, findOpts)
-		if err != nil {
-			log.Errorf("err:%v", err)
-			emptyDoc := bson.D{}
-			return gomongo.NewSingleResultFromDocument(emptyDoc, err, nil)
-		}
+		updatedDocs := m.storage.Find(m.name, filterDoc, findOpts)
 		if len(updatedDocs) == 0 {
 			emptyDoc := bson.D{}
 			return gomongo.NewSingleResultFromDocument(emptyDoc, gomongo.ErrNoDocuments, nil)
@@ -466,11 +422,7 @@ func (m *MockCollection) UpdateOne(ctx context.Context, filter interface{}, upda
 		Limit: ptrInt64(1),
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	// Handle upsert
 	upsert := false
@@ -514,11 +466,7 @@ func (m *MockCollection) UpdateOne(ctx context.Context, filter interface{}, upda
 		}, nil
 	}
 
-	modifiedCount, err := m.storage.UpdateOne(m.name, filterDoc, updateDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	modifiedCount := m.storage.UpdateOne(m.name, filterDoc, updateDoc)
 
 	return &gomongo.UpdateResult{
 		MatchedCount:  1,
@@ -543,11 +491,7 @@ func (m *MockCollection) UpdateMany(ctx context.Context, filter interface{}, upd
 	}
 
 	// Count matched documents before update
-	matchedCount, err := m.storage.Count(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	matchedCount := m.storage.Count(m.name, filterDoc)
 
 	// Handle upsert
 	upsert := false
@@ -583,11 +527,7 @@ func (m *MockCollection) UpdateMany(ctx context.Context, filter interface{}, upd
 		}, nil
 	}
 
-	modifiedCount, err := m.storage.Update(m.name, filterDoc, updateDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	modifiedCount := m.storage.Update(m.name, filterDoc, updateDoc)
 
 	return &gomongo.UpdateResult{
 		MatchedCount:  matchedCount,
@@ -623,11 +563,7 @@ func (m *MockCollection) ReplaceOne(ctx context.Context, filter interface{}, rep
 		Limit: ptrInt64(1),
 	}
 
-	documents, err := m.storage.Find(m.name, filterDoc, findOpts)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	documents := m.storage.Find(m.name, filterDoc, findOpts)
 
 	// Handle upsert
 	upsert := false
@@ -670,11 +606,7 @@ func (m *MockCollection) ReplaceOne(ctx context.Context, filter interface{}, rep
 	}
 
 	// Use ReplaceOne to publish correct event
-	replaced, err := m.storage.ReplaceOne(m.name, filterDoc, replacementDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	replaced := m.storage.ReplaceOne(m.name, filterDoc, replacementDoc)
 
 	return &gomongo.UpdateResult{
 		MatchedCount:  replaced,
@@ -692,11 +624,7 @@ func (m *MockCollection) DeleteOne(ctx context.Context, filter interface{}, opts
 		return nil, err
 	}
 
-	deletedCount, err := m.storage.DeleteOne(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	deletedCount := m.storage.DeleteOne(m.name, filterDoc)
 
 	return &gomongo.DeleteResult{
 		DeletedCount: deletedCount,
@@ -712,11 +640,7 @@ func (m *MockCollection) DeleteMany(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	deletedCount, err := m.storage.Delete(m.name, filterDoc)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	deletedCount := m.storage.Delete(m.name, filterDoc)
 
 	return &gomongo.DeleteResult{
 		DeletedCount: deletedCount,

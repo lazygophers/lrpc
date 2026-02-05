@@ -160,12 +160,12 @@ func (m *MemoryStorage) InsertMany(collName string, docs []bson.M) error {
 
 // Find finds documents in the specified collection that match the filter
 // Applies sorting, pagination, and projection options if provided
-// Returns matched documents and any error encountered
-func (m *MemoryStorage) Find(collName string, filter bson.M, opts *FindOptions) ([]bson.M, error) {
+// Returns matched documents
+func (m *MemoryStorage) Find(collName string, filter bson.M, opts *FindOptions) []bson.M {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, returning empty result", collName)
-		return []bson.M{}, nil
+		return []bson.M{}
 	}
 
 	m.mu.RLock()
@@ -210,16 +210,16 @@ func (m *MemoryStorage) Find(collName string, filter bson.M, opts *FindOptions) 
 	}
 
 	log.Debugf("found %d documents in collection %s", len(matched), collName)
-	return matched, nil
+	return matched
 }
 
 // Count counts the number of documents in the specified collection that match the filter
 // Returns 0 if collection doesn't exist
-func (m *MemoryStorage) Count(collName string, filter bson.M) (int64, error) {
+func (m *MemoryStorage) Count(collName string, filter bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, returning count 0", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.RLock()
@@ -233,16 +233,16 @@ func (m *MemoryStorage) Count(collName string, filter bson.M) (int64, error) {
 	}
 
 	log.Debugf("counted %d documents in collection %s", count, collName)
-	return count, nil
+	return count
 }
 
 // Delete deletes documents from the specified collection that match the filter
-// Returns the number of documents deleted and any error encountered
-func (m *MemoryStorage) Delete(collName string, filter bson.M) (int64, error) {
+// Returns the number of documents deleted
+func (m *MemoryStorage) Delete(collName string, filter bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, no documents deleted", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.Lock()
@@ -272,16 +272,16 @@ func (m *MemoryStorage) Delete(collName string, filter bson.M) (int64, error) {
 	}
 
 	log.Debugf("deleted %d documents from collection %s", deleted, collName)
-	return deleted, nil
+	return deleted
 }
 
 // DeleteOne deletes a single document from the specified collection that matches the filter
-// Returns the number of documents deleted (0 or 1) and any error encountered
-func (m *MemoryStorage) DeleteOne(collName string, filter bson.M) (int64, error) {
+// Returns the number of documents deleted (0 or 1)
+func (m *MemoryStorage) DeleteOne(collName string, filter bson.M) int64 {
 	coll := m.getCollection(collName)
 	if coll == nil {
 		log.Debugf("collection %s not found, no documents deleted", collName)
-		return 0, nil
+		return 0
 	}
 
 	m.mu.Lock()
@@ -306,11 +306,11 @@ func (m *MemoryStorage) DeleteOne(collName string, filter bson.M) (int64, error)
 		})
 
 		log.Debugf("deleted 1 document from collection %s", collName)
-		return 1, nil
+		return 1
 	}
 
 	log.Debugf("no matching document found in collection %s", collName)
-	return 0, nil
+	return 0
 }
 
 // DropCollection drops the specified collection and all its documents

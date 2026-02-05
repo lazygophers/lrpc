@@ -45,10 +45,7 @@ func TestInsertAndFind(t *testing.T) {
 	}
 
 	// Find all documents
-	results, err := storage.Find("users", bson.M{}, nil)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, nil)
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 document, got %d", len(results))
@@ -73,10 +70,7 @@ func TestInsertMany(t *testing.T) {
 		t.Fatalf("failed to insert documents: %v", err)
 	}
 
-	results, err := storage.Find("users", bson.M{}, nil)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, nil)
 
 	if len(results) != 3 {
 		t.Fatalf("expected 3 documents, got %d", len(results))
@@ -97,20 +91,14 @@ func TestCount(t *testing.T) {
 		t.Fatalf("failed to insert documents: %v", err)
 	}
 
-	count, err := storage.Count("users", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to count documents: %v", err)
-	}
+	count := storage.Count("users", bson.M{})
 
 	if count != 3 {
 		t.Fatalf("expected count 3, got %d", count)
 	}
 
 	// Count non-existent collection
-	count, err = storage.Count("non_existent", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to count documents: %v", err)
-	}
+	count = storage.Count("non_existent", bson.M{})
 
 	if count != 0 {
 		t.Fatalf("expected count 0 for non-existent collection, got %d", count)
@@ -128,20 +116,14 @@ func TestUpdateWithSetOperator(t *testing.T) {
 
 	// Update with $set operator
 	update := bson.M{"$set": bson.M{"age": 26}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	if err != nil {
-		t.Fatalf("failed to update document: %v", err)
-	}
+	updated := storage.Update("users", bson.M{}, update)
 
 	if updated != 1 {
 		t.Fatalf("expected 1 document updated, got %d", updated)
 	}
 
 	// Verify update
-	results, err := storage.Find("users", bson.M{}, nil)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, nil)
 
 	if results[0]["age"] != 26 {
 		t.Errorf("expected age 26, got %v", results[0]["age"])
@@ -159,20 +141,14 @@ func TestUpdateWithIncOperator(t *testing.T) {
 
 	// Update with $inc operator
 	update := bson.M{"$inc": bson.M{"count": 5}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	if err != nil {
-		t.Fatalf("failed to update document: %v", err)
-	}
+	updated := storage.Update("users", bson.M{}, update)
 
 	if updated != 1 {
 		t.Fatalf("expected 1 document updated, got %d", updated)
 	}
 
 	// Verify update
-	results, err := storage.Find("users", bson.M{}, nil)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, nil)
 
 	if results[0]["count"] != 15 {
 		t.Errorf("expected count 15, got %v", results[0]["count"])
@@ -194,20 +170,14 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Delete all documents
-	deleted, err := storage.Delete("users", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to delete documents: %v", err)
-	}
+	deleted := storage.Delete("users", bson.M{})
 
 	if deleted != 3 {
 		t.Fatalf("expected 3 documents deleted, got %d", deleted)
 	}
 
 	// Verify deletion
-	count, err := storage.Count("users", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to count documents: %v", err)
-	}
+	count := storage.Count("users", bson.M{})
 
 	if count != 0 {
 		t.Fatalf("expected count 0 after deletion, got %d", count)
@@ -228,20 +198,14 @@ func TestDeleteOne(t *testing.T) {
 	}
 
 	// Delete one document
-	deleted, err := storage.DeleteOne("users", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to delete document: %v", err)
-	}
+	deleted := storage.DeleteOne("users", bson.M{})
 
 	if deleted != 1 {
 		t.Fatalf("expected 1 document deleted, got %d", deleted)
 	}
 
 	// Verify only one deleted
-	count, err := storage.Count("users", bson.M{})
-	if err != nil {
-		t.Fatalf("failed to count documents: %v", err)
-	}
+	count := storage.Count("users", bson.M{})
 
 	if count != 1 {
 		t.Fatalf("expected count 1 after deletion, got %d", count)
@@ -265,10 +229,7 @@ func TestFindWithLimit(t *testing.T) {
 	limit := int64(2)
 	opts := &FindOptions{Limit: &limit}
 
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	if len(results) != 2 {
 		t.Fatalf("expected 2 documents with limit, got %d", len(results))
@@ -292,10 +253,7 @@ func TestFindWithSkip(t *testing.T) {
 	skip := int64(1)
 	opts := &FindOptions{Skip: &skip}
 
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	if len(results) != 2 {
 		t.Fatalf("expected 2 documents with skip, got %d", len(results))
@@ -318,10 +276,7 @@ func TestFindWithSorting(t *testing.T) {
 
 	// Sort by age ascending
 	opts := &FindOptions{Sort: bson.M{"age": 1}}
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	if results[0]["age"] != 25 {
 		t.Errorf("expected first age 25, got %v", results[0]["age"])
@@ -332,10 +287,7 @@ func TestFindWithSorting(t *testing.T) {
 
 	// Sort by age descending
 	opts = &FindOptions{Sort: bson.M{"age": -1}}
-	results, err = storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results = storage.Find("users", bson.M{}, opts)
 
 	if results[0]["age"] != 35 {
 		t.Errorf("expected first age 35, got %v", results[0]["age"])
@@ -416,10 +368,7 @@ func TestProjectionInclusion(t *testing.T) {
 
 	// Project only name field
 	opts := &FindOptions{Projection: bson.M{"name": 1}}
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 document, got %d", len(results))
@@ -445,10 +394,7 @@ func TestProjectionExclusion(t *testing.T) {
 
 	// Exclude email field
 	opts := &FindOptions{Projection: bson.M{"email": 0}}
-	results, err := storage.Find("users", bson.M{}, opts)
-	if err != nil {
-		t.Fatalf("failed to find documents: %v", err)
-	}
+	results := storage.Find("users", bson.M{}, opts)
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 document, got %d", len(results))
@@ -499,8 +445,7 @@ func TestInsertMany_NilDocument(t *testing.T) {
 func TestUpdate_NonExistentCollection(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	updated, err := storage.Update("non_existent", bson.M{}, bson.M{"$set": bson.M{"name": "test"}})
-	assert.NoError(t, err)
+	updated := storage.Update("non_existent", bson.M{}, bson.M{"$set": bson.M{"name": "test"}})
 	assert.Equal(t, int64(0), updated)
 }
 
@@ -514,13 +459,11 @@ func TestUpdate_WithUnsetOperator(t *testing.T) {
 
 	// Update with $unset operator
 	update := bson.M{"$unset": bson.M{"email": ""}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 
 	// Verify unset
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.NotContains(t, results[0], "email")
 	assert.Contains(t, results[0], "name")
@@ -578,13 +521,11 @@ func TestUpdate_WithMultiplyOperator(t *testing.T) {
 
 			// Update with $mul operator
 			update := bson.M{"$mul": bson.M{"count": tt.updateValue}}
-			updated, err := storage.Update("users", bson.M{}, update)
-			assert.NoError(t, err)
+			updated := storage.Update("users", bson.M{}, update)
 			assert.Equal(t, int64(1), updated)
 
 			// Verify update
-			results, err := storage.Find("users", bson.M{}, nil)
-			assert.NoError(t, err)
+			results := storage.Find("users", bson.M{}, nil)
 			assert.Len(t, results, 1)
 			assert.Equal(t, tt.expectedResult, results[0]["count"])
 		})
@@ -601,13 +542,11 @@ func TestUpdate_DirectFieldUpdate(t *testing.T) {
 
 	// Direct field update
 	update := bson.M{"status": "active"}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 
 	// Verify update
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "active", results[0]["status"])
 }
@@ -616,8 +555,7 @@ func TestUpdate_DirectFieldUpdate(t *testing.T) {
 func TestUpdateOne_NonExistentCollection(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	updated, err := storage.UpdateOne("non_existent", bson.M{}, bson.M{"$set": bson.M{"name": "test"}})
-	assert.NoError(t, err)
+	updated := storage.UpdateOne("non_existent", bson.M{}, bson.M{"$set": bson.M{"name": "test"}})
 	assert.Equal(t, int64(0), updated)
 }
 
@@ -630,8 +568,7 @@ func TestUpdateOne_NoMatch(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to update with non-matching filter
-	updated, err := storage.UpdateOne("users", bson.M{"name": "bob"}, bson.M{"$set": bson.M{"age": 30}})
-	assert.NoError(t, err)
+	updated := storage.UpdateOne("users", bson.M{"name": "bob"}, bson.M{"$set": bson.M{"age": 30}})
 	assert.Equal(t, int64(0), updated)
 }
 
@@ -648,13 +585,11 @@ func TestUpdateOne_UpdatesOnlyFirst(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Update only one document
-	updated, err := storage.UpdateOne("users", bson.M{"name": "alice"}, bson.M{"$set": bson.M{"age": 100}})
-	assert.NoError(t, err)
+	updated := storage.UpdateOne("users", bson.M{"name": "alice"}, bson.M{"$set": bson.M{"age": 100}})
 	assert.Equal(t, int64(1), updated)
 
 	// Verify only one was updated
-	results, err := storage.Find("users", bson.M{"age": 100}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{"age": 100}, nil)
 	assert.Len(t, results, 1)
 }
 
@@ -662,8 +597,7 @@ func TestUpdateOne_UpdatesOnlyFirst(t *testing.T) {
 func TestDelete_NonExistentCollection(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	deleted, err := storage.Delete("non_existent", bson.M{})
-	assert.NoError(t, err)
+	deleted := storage.Delete("non_existent", bson.M{})
 	assert.Equal(t, int64(0), deleted)
 }
 
@@ -680,17 +614,14 @@ func TestDelete_WithFilter(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Delete only documents with age 25
-	deleted, err := storage.Delete("users", bson.M{"age": 25})
-	assert.NoError(t, err)
+	deleted := storage.Delete("users", bson.M{"age": 25})
 	assert.Equal(t, int64(2), deleted)
 
 	// Verify remaining documents
-	count, err := storage.Count("users", bson.M{})
-	assert.NoError(t, err)
+	count := storage.Count("users", bson.M{})
 	assert.Equal(t, int64(1), count)
 
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "bob", results[0]["name"])
 }
@@ -699,8 +630,7 @@ func TestDelete_WithFilter(t *testing.T) {
 func TestDeleteOne_NonExistentCollection(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	deleted, err := storage.DeleteOne("non_existent", bson.M{})
-	assert.NoError(t, err)
+	deleted := storage.DeleteOne("non_existent", bson.M{})
 	assert.Equal(t, int64(0), deleted)
 }
 
@@ -713,13 +643,11 @@ func TestDeleteOne_NoMatch(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to delete with non-matching filter
-	deleted, err := storage.DeleteOne("users", bson.M{"name": "bob"})
-	assert.NoError(t, err)
+	deleted := storage.DeleteOne("users", bson.M{"name": "bob"})
 	assert.Equal(t, int64(0), deleted)
 
 	// Verify document still exists
-	count, err := storage.Count("users", bson.M{})
-	assert.NoError(t, err)
+	count := storage.Count("users", bson.M{})
 	assert.Equal(t, int64(1), count)
 }
 
@@ -738,8 +666,7 @@ func TestApplySorting_NilValues(t *testing.T) {
 
 	// Sort ascending - nil values should come first
 	opts := &FindOptions{Sort: bson.M{"age": 1}}
-	results, err := storage.Find("users", bson.M{}, opts)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, opts)
 	assert.Len(t, results, 4)
 	// First two should have nil age
 	assert.Nil(t, results[0]["age"])
@@ -747,8 +674,7 @@ func TestApplySorting_NilValues(t *testing.T) {
 
 	// Sort descending - nil values should come last
 	opts = &FindOptions{Sort: bson.M{"age": -1}}
-	results, err = storage.Find("users", bson.M{}, opts)
-	assert.NoError(t, err)
+	results = storage.Find("users", bson.M{}, opts)
 	assert.Len(t, results, 4)
 	// Last two should have nil age
 	assert.Nil(t, results[2]["age"])
@@ -759,8 +685,7 @@ func TestApplySorting_NilValues(t *testing.T) {
 func TestApplySorting_EmptyDocs(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	results, err := storage.Find("non_existent", bson.M{}, &FindOptions{Sort: bson.M{"age": 1}})
-	assert.NoError(t, err)
+	results := storage.Find("non_existent", bson.M{}, &FindOptions{Sort: bson.M{"age": 1}})
 	assert.Empty(t, results)
 }
 
@@ -777,8 +702,7 @@ func TestApplySorting_EmptySort(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Empty sort should return documents in original order
-	results, err := storage.Find("users", bson.M{}, &FindOptions{Sort: bson.M{}})
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, &FindOptions{Sort: bson.M{}})
 	assert.Len(t, results, 3)
 }
 
@@ -842,8 +766,7 @@ func TestCompareValuesForSort_DifferentTypes(t *testing.T) {
 			assert.NoError(t, err)
 
 			opts := &FindOptions{Sort: bson.M{tt.sortKey: 1}}
-			results, err := storage.Find("test", bson.M{}, opts)
-			assert.NoError(t, err)
+			results := storage.Find("test", bson.M{}, opts)
 			assert.Len(t, results, len(tt.expected))
 
 			for i, expected := range tt.expected {
@@ -868,8 +791,7 @@ func TestCompareValuesForSort_MixedTypes(t *testing.T) {
 
 	// Sort by value - mixed types should maintain order
 	opts := &FindOptions{Sort: bson.M{"value": 1}}
-	results, err := storage.Find("test", bson.M{}, opts)
-	assert.NoError(t, err)
+	results := storage.Find("test", bson.M{}, opts)
 	assert.Len(t, results, 3)
 }
 
@@ -924,13 +846,11 @@ func TestApplyIncrement_DifferentTypes(t *testing.T) {
 
 			// Update with $inc operator
 			update := bson.M{"$inc": bson.M{"count": tt.incValue}}
-			updated, err := storage.Update("users", bson.M{}, update)
-			assert.NoError(t, err)
+			updated := storage.Update("users", bson.M{}, update)
 			assert.Equal(t, int64(1), updated)
 
 			// Verify update
-			results, err := storage.Find("users", bson.M{}, nil)
-			assert.NoError(t, err)
+			results := storage.Find("users", bson.M{}, nil)
 			assert.Len(t, results, 1)
 			assert.Equal(t, tt.expectedResult, results[0]["count"])
 		})
@@ -947,13 +867,11 @@ func TestApplyIncrement_TypeMismatch(t *testing.T) {
 
 	// Try to increment int field with float64 - should not change value due to type mismatch
 	update := bson.M{"$inc": bson.M{"count": float64(5.5)}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 
 	// Verify value remains unchanged
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 10, results[0]["count"])
 }
@@ -968,13 +886,11 @@ func TestApplyMultiply_TypeMismatch(t *testing.T) {
 
 	// Try to multiply int field with float64 - should not change value due to type mismatch
 	update := bson.M{"$mul": bson.M{"count": float64(2.5)}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 
 	// Verify value remains unchanged
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, 10, results[0]["count"])
 }
@@ -1004,8 +920,7 @@ func TestFindWithSkip_ExceedsLength(t *testing.T) {
 	skip := int64(10)
 	opts := &FindOptions{Skip: &skip}
 
-	results, err := storage.Find("users", bson.M{}, opts)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, opts)
 	assert.Empty(t, results)
 }
 
@@ -1032,8 +947,7 @@ func TestConcurrentOperations(t *testing.T) {
 	wg.Wait()
 
 	// Verify all documents were inserted
-	count, err := storage.Count("concurrent", bson.M{})
-	assert.NoError(t, err)
+	count := storage.Count("concurrent", bson.M{})
 	assert.Equal(t, int64(numGoroutines*numOps), count)
 
 	// Concurrent reads
@@ -1042,8 +956,7 @@ func TestConcurrentOperations(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for j := 0; j < numOps; j++ {
-				_, err := storage.Find("concurrent", bson.M{}, nil)
-				assert.NoError(t, err)
+				_ = storage.Find("concurrent", bson.M{}, nil)
 			}
 		}()
 	}
@@ -1060,13 +973,11 @@ func TestApplyUpdate_InvalidOperator(t *testing.T) {
 
 	// Update with invalid $set value (not bson.M)
 	update := bson.M{"$set": "invalid"}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 
 	// Document should remain unchanged
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "alice", results[0]["name"])
 	assert.Equal(t, 25, results[0]["age"])
@@ -1086,13 +997,11 @@ func TestUpdate_MultipleDocuments(t *testing.T) {
 
 	// Update all inactive users
 	update := bson.M{"$set": bson.M{"status": "active"}}
-	updated, err := storage.Update("users", bson.M{"status": "inactive"}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{"status": "inactive"}, update)
 	assert.Equal(t, int64(2), updated)
 
 	// Verify all are now active
-	results, err := storage.Find("users", bson.M{"status": "active"}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{"status": "active"}, nil)
 	assert.Len(t, results, 3)
 }
 
@@ -1110,8 +1019,7 @@ func TestFindWithSorting_NonIntegerOrder(t *testing.T) {
 
 	// Sort with non-integer order (should default to ascending)
 	opts := &FindOptions{Sort: bson.M{"age": "invalid"}}
-	results, err := storage.Find("users", bson.M{}, opts)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, opts)
 	assert.Len(t, results, 3)
 	// Should be sorted ascending by default
 	assert.Equal(t, 25, results[0]["age"])
@@ -1129,8 +1037,7 @@ func TestUpdate_ErrorInApplyUpdate(t *testing.T) {
 	// Try to update with nil document should not fail at Update level
 	// but applyUpdate might have different behaviors
 	update := bson.M{"$inc": bson.M{"count": "not_a_number"}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 }
 
@@ -1145,8 +1052,7 @@ func TestUpdateOne_ErrorInApplyUpdate(t *testing.T) {
 
 	// Try to update with invalid operator value
 	update := bson.M{"$inc": bson.M{"count": "not_a_number"}}
-	updated, err := storage.UpdateOne("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.UpdateOne("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 }
 
@@ -1188,8 +1094,7 @@ func TestApplyUpdate_InvalidOperators(t *testing.T) {
 			err := storage.Insert("test", tt.doc)
 			assert.NoError(t, err)
 
-			updated, err := storage.Update("test", bson.M{}, tt.update)
-			assert.NoError(t, err)
+			updated := storage.Update("test", bson.M{}, tt.update)
 			assert.Equal(t, int64(1), updated)
 		})
 	}
@@ -1252,12 +1157,10 @@ func TestApplyIncrement_AllNumericTypes(t *testing.T) {
 			assert.NoError(t, err)
 
 			update := bson.M{"$inc": bson.M{"value": tt.incrementValue}}
-			updated, err := storage.Update("test", bson.M{}, update)
-			assert.NoError(t, err)
+			updated := storage.Update("test", bson.M{}, update)
 			assert.Equal(t, int64(1), updated)
 
-			results, err := storage.Find("test", bson.M{}, nil)
-			assert.NoError(t, err)
+			results := storage.Find("test", bson.M{}, nil)
 			assert.Len(t, results, 1)
 			assert.Equal(t, tt.expectedValue, results[0]["value"])
 		})
@@ -1321,12 +1224,10 @@ func TestApplyMultiply_AllNumericTypes(t *testing.T) {
 			assert.NoError(t, err)
 
 			update := bson.M{"$mul": bson.M{"value": tt.multiplyValue}}
-			updated, err := storage.Update("test", bson.M{}, update)
-			assert.NoError(t, err)
+			updated := storage.Update("test", bson.M{}, update)
 			assert.Equal(t, int64(1), updated)
 
-			results, err := storage.Find("test", bson.M{}, nil)
-			assert.NoError(t, err)
+			results := storage.Find("test", bson.M{}, nil)
 			assert.Len(t, results, 1)
 			assert.Equal(t, tt.expectedValue, results[0]["value"])
 		})
@@ -1404,8 +1305,7 @@ func TestCompareValuesForSort_AllBranches(t *testing.T) {
 			assert.NoError(t, err)
 
 			opts := &FindOptions{Sort: bson.M{tt.sortKey: 1}}
-			results, err := storage.Find("test", bson.M{}, opts)
-			assert.NoError(t, err)
+			results := storage.Find("test", bson.M{}, opts)
 			assert.Len(t, results, len(tt.expectedOrder))
 
 			for i, expected := range tt.expectedOrder {
@@ -1452,8 +1352,7 @@ func TestProjection_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := &FindOptions{Projection: tt.projection}
-			results, err := storage.Find("users", bson.M{}, opts)
-			assert.NoError(t, err)
+			results := storage.Find("users", bson.M{}, opts)
 			assert.Len(t, results, 1)
 
 			for _, field := range tt.expectedFields {
@@ -1478,13 +1377,11 @@ func TestReplaceOne(t *testing.T) {
 
 	// Replace the document
 	replacement := bson.M{"name": "alice_new", "age": 30, "email": "alice@example.com"}
-	replaced, err := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
-	assert.NoError(t, err)
+	replaced := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
 	assert.Equal(t, int64(1), replaced)
 
 	// Verify replacement
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "alice_new", results[0]["name"])
 	assert.Equal(t, 30, results[0]["age"])
@@ -1497,8 +1394,7 @@ func TestReplaceOne(t *testing.T) {
 func TestReplaceOne_NonExistentCollection(t *testing.T) {
 	storage := NewMemoryStorage()
 
-	replaced, err := storage.ReplaceOne("non_existent", bson.M{}, bson.M{"name": "test"})
-	assert.NoError(t, err)
+	replaced := storage.ReplaceOne("non_existent", bson.M{}, bson.M{"name": "test"})
 	assert.Equal(t, int64(0), replaced)
 }
 
@@ -1511,13 +1407,11 @@ func TestReplaceOne_NoMatch(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to replace with non-matching filter
-	replaced, err := storage.ReplaceOne("users", bson.M{"name": "bob"}, bson.M{"name": "charlie", "age": 30})
-	assert.NoError(t, err)
+	replaced := storage.ReplaceOne("users", bson.M{"name": "bob"}, bson.M{"name": "charlie", "age": 30})
 	assert.Equal(t, int64(0), replaced)
 
 	// Verify original document unchanged
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "alice", results[0]["name"])
 }
@@ -1532,13 +1426,11 @@ func TestReplaceOne_PreserveID(t *testing.T) {
 
 	// Replace without _id in replacement
 	replacement := bson.M{"name": "alice_new", "age": 30}
-	replaced, err := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
-	assert.NoError(t, err)
+	replaced := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
 	assert.Equal(t, int64(1), replaced)
 
 	// Verify _id is preserved
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "original_id", results[0]["_id"])
 }
@@ -1553,13 +1445,11 @@ func TestReplaceOne_WithIDInReplacement(t *testing.T) {
 
 	// Replace with _id in replacement
 	replacement := bson.M{"_id": "new_id", "name": "alice_new", "age": 30}
-	replaced, err := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
-	assert.NoError(t, err)
+	replaced := storage.ReplaceOne("users", bson.M{"name": "alice"}, replacement)
 	assert.Equal(t, int64(1), replaced)
 
 	// Verify replacement _id is used
-	results, err := storage.Find("users", bson.M{}, nil)
-	assert.NoError(t, err)
+	results := storage.Find("users", bson.M{}, nil)
 	assert.Len(t, results, 1)
 	assert.Equal(t, "new_id", results[0]["_id"])
 }
@@ -1577,8 +1467,7 @@ func TestUpdate_ErrorPath(t *testing.T) {
 	// The actual error path in Update is when applyUpdate returns an error
 	// Since applyUpdate doesn't fail easily, we verify the code path exists
 	update := bson.M{"$set": bson.M{"age": 30}}
-	updated, err := storage.Update("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.Update("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
 }
 
@@ -1593,18 +1482,8 @@ func TestUpdateOne_ErrorPath(t *testing.T) {
 
 	// Test the error path
 	update := bson.M{"$set": bson.M{"age": 30}}
-	updated, err := storage.UpdateOne("users", bson.M{}, update)
-	assert.NoError(t, err)
+	updated := storage.UpdateOne("users", bson.M{}, update)
 	assert.Equal(t, int64(1), updated)
-}
-
-// TestApplyUpdate_NilDocument tests applyUpdate with nil document
-func TestApplyUpdate_NilDocument(t *testing.T) {
-	storage := NewMemoryStorage()
-
-	err := storage.applyUpdate(nil, bson.M{"$set": bson.M{"field": "value"}})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot update nil document")
 }
 
 // TestApplyIncrement_MismatchedTypes tests increment with type mismatches
@@ -1652,13 +1531,11 @@ func TestApplyIncrement_MismatchedTypes(t *testing.T) {
 			assert.NoError(t, err)
 
 			update := bson.M{"$inc": bson.M{"value": tt.incValue}}
-			updated, err := storage.Update("test", bson.M{}, update)
-			assert.NoError(t, err)
+			updated := storage.Update("test", bson.M{}, update)
 			assert.Equal(t, int64(1), updated)
 
 			// The value should remain unchanged due to type mismatch
-			results, err := storage.Find("test", bson.M{}, nil)
-			assert.NoError(t, err)
+			results := storage.Find("test", bson.M{}, nil)
 			assert.Len(t, results, 1)
 			// Value should be unchanged
 			assert.Equal(t, tt.currentValue, results[0]["value"])

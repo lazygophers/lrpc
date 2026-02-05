@@ -22,11 +22,7 @@ func (m *MockCollection) Aggregate(ctx context.Context, pipeline interface{}, op
 	}
 
 	// Get all documents from collection
-	allDocs, err := m.storage.Find(m.name, bson.M{}, nil)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	allDocs := m.storage.Find(m.name, bson.M{}, nil)
 
 	// Process aggregation pipeline
 	result, err := processAggregationPipeline(allDocs, pipelineSlice)
@@ -50,11 +46,7 @@ func (m *MockCollection) Distinct(ctx context.Context, fieldName string, filter 
 	}
 
 	// Find all matching documents
-	documents, err := m.storage.Find(m.name, filterDoc, nil)
-	if err != nil {
-		log.Errorf("err:%v", err)
-		return nil, err
-	}
+	documents := m.storage.Find(m.name, filterDoc, nil)
 
 	// Use map to track distinct values
 	// We need to use a unique key for each value
