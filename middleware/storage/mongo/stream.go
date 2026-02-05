@@ -29,7 +29,7 @@ type ChangeStreamHandler func(*ChangeEvent) error
 
 // ChangeStream represents a MongoDB change stream watcher
 type ChangeStream struct {
-	coll   *mongo.Collection
+	coll   MongoCollection
 	client *Client
 }
 

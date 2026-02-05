@@ -40,7 +40,8 @@ func (s *Scoop) Find(result interface{}) *FindResult {
 	}
 
 	ctx := s.getContext()
-	cursor, err := s.coll.Find(ctx, s.filter.ToBson(), opts)
+	var cursor MongoCursor
+	cursor, err = s.coll.Find(ctx, s.filter.ToBson(), opts)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		s.logger.Log(s.depth, begin, func() (string, int64) {

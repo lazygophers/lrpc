@@ -74,7 +74,7 @@ func (s *Scoop) Clear() *Scoop {
 }
 
 // GetCollection returns the underlying MongoDB collection
-func (s *Scoop) GetCollection() *mongo.Collection {
+func (s *Scoop) GetCollection() MongoCollection {
 	return s.coll
 }
 

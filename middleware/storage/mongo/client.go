@@ -12,9 +12,20 @@ import (
 // Client represents a MongoDB client wrapper using MGM
 type Client struct {
 	cfg      *Config
-	client   *mongo.Client
+	client   MongoClient
 	database string
-	db       *mongo.Database
+	db       MongoDatabase
+}
+
+// mockClientFactory 用于创建 Mock client 的工厂函数
+// 通过 init() 或外部注册来设置，避免直接导入 mock 包造成循环依赖
+var mockClientFactory func() MongoClient
+
+// RegisterMockClientFactory 注册 Mock client 工厂函数
+// 由 mock 包在 init() 中调用，实现自动注册
+func RegisterMockClientFactory(factory func() MongoClient) {
+	mockClientFactory = factory
+	log.Debugf("MockClientFactory registered successfully")
 }
 
 // New creates a new MongoDB client with the given configuration
@@ -26,6 +37,24 @@ func New(cfg *Config) (*Client, error) {
 	// Apply defaults
 	cfg.apply()
 
+	c := &Client{
+		cfg:      cfg,
+		database: cfg.Database,
+	}
+
+	// Mock mode
+	if cfg.Mock {
+		if mockClientFactory == nil {
+			return nil, fmt.Errorf("mock mode enabled but mockClientFactory not registered, please import _ \"github.com/lazygophers/lrpc/middleware/storage/mongo/mock\"")
+		}
+		mockClient := mockClientFactory()
+		c.client = mockClient
+		c.db = mockClient.Database(cfg.Database)
+		log.Infof("MongoDB Mock mode enabled for database: %s", cfg.Database)
+		return c, nil
+	}
+
+	// Real mode - original logic
 	// Build MongoDB client options
 	opts := cfg.BuildClientOpts()
 
@@ -53,12 +82,10 @@ func New(cfg *Config) (*Client, error) {
 	db := mongoClient.Database(cfg.Database)
 	log.Infof("MongoDB database instance for '%s': %v", cfg.Database, db)
 
-	c := &Client{
-		cfg:      cfg,
-		client:   mongoClient,
-		database: cfg.Database,
-		db:       db,
-	}
+	// Wrap real MongoDB client with interface implementation
+	realClient := NewRealClient(mongoClient)
+	c.client = realClient
+	c.db = realClient.Database(cfg.Database)
 
 	log.Infof("successfully connected to MongoDB: %s:%d, database: %s", cfg.Address, cfg.Port, cfg.Database)
 

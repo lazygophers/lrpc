@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
@@ -76,7 +75,7 @@ func (ms *ModelScoop[M]) Aggregate(pipeline ...bson.M) *Aggregation {
 }
 
 // GetCollection returns the underlying MongoDB collection
-func (ms *ModelScoop[M]) GetCollection() *mongo.Collection {
+func (ms *ModelScoop[M]) GetCollection() MongoCollection {
 	return ms.Scoop.GetCollection()
 }
 

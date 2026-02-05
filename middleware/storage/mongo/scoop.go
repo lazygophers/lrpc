@@ -36,7 +36,7 @@ type UpdateResult struct {
 // Scoop is a generic MongoDB query builder for simplified operations
 type Scoop struct {
 	client        *Client
-	coll          *mongo.Collection
+	coll          MongoCollection // 使用 MongoCollection interface 便于测试和扩展
 	filter        *Cond
 	limit         *int64
 	offset        *int64
@@ -107,10 +107,14 @@ func (s *Scoop) getCollectionNameFromOut(out interface{}) string {
 }
 
 // getCollection retrieves a MongoDB collection using MGM
-func (s *Scoop) getCollection(collName string) *mongo.Collection {
+// 返回 MongoCollection interface 便于测试和扩展
+func (s *Scoop) getCollection(collName string) MongoCollection {
 	mgmColl := mgm.CollectionByName(collName)
-	// MGM Collection embeds *mongo.Collection
-	return mgmColl.Collection
+	// MGM Collection embeds *mongo.Collection，需要包装成 RealCollection
+	return &RealCollection{
+		Collection: mgmColl.Collection,
+		database:   nil, // MGM 不提供 database 引用，这里可以为 nil
+	}
 }
 
 // ensureCollection 确保 Scoop 有关联的集合
