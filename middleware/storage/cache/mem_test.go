@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beefsack/go-rate"
 	"gotest.tools/v3/assert"
 )
 
@@ -393,10 +392,11 @@ func TestCacheMem_ConcurrentAccess(t *testing.T) {
 }
 
 func TestCacheMem_AutoClear(t *testing.T) {
-	// Create cache with faster rate limiter for testing
+	// Create cache
 	memCache := &CacheMem{
-		data: make(map[string]*Item),
-		rt:   rate.New(100, time.Millisecond), // Allow more frequent clearing
+		data:     make(map[string]*Item),
+		streams:  make(map[string]*Stream),
+		streamID: 0,
 	}
 	cache := newBaseCache(memCache)
 	defer cache.Close()

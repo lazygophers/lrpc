@@ -1,24 +1,60 @@
 package cache
 
 import (
-	"encoding/json"
-	"errors"
-	"math/rand"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/beefsack/go-rate"
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
 	"gorm.io/gorm/utils"
 )
 
+// PubSubSubscription 订阅信息
+type PubSubSubscription struct {
+	channel string
+	handler func(channel string, message []byte) error
+	quit    chan struct{}
+}
+
+// StreamMessage Stream 消息
+type StreamMessage struct {
+	ID        string
+	Values    map[string]interface{}
+	CreatedAt time.Time
+	Acked     bool // 是否已确认
+}
+
+// ConsumerGroup 消费者组
+type ConsumerGroup struct {
+	Name      string
+	LastID    string
+	Pending   map[string]*StreamMessage // 待处理的消息 ID -> 消息
+	Consumers map[string]string         // consumer -> 最后投递的消息 ID
+}
+
+// Stream 数据流
+type Stream struct {
+	Messages []*StreamMessage
+	Groups   map[string]*ConsumerGroup
+	mu       sync.RWMutex
+}
+
 type CacheMem struct {
 	sync.RWMutex
 
 	data map[string]*Item
-	rt   *rate.RateLimiter
+
+	// Pub/Sub
+	pubsubMu      sync.RWMutex
+	subscriptions map[string][]*PubSubSubscription // channel -> subscriptions
+
+	// Stream
+	streamsMu sync.RWMutex
+	streams   map[string]*Stream // stream name -> stream
+
+	// 全局消息 ID 生成器
+	streamID int64
 }
 
 func (p *CacheMem) Clean() error {
@@ -141,399 +177,6 @@ func (p *CacheMem) Exists(keys ...string) (bool, error) {
 	return true, nil
 }
 
-func (p *CacheMem) HIncr(key string, subKey string) (int64, error) {
-	val, err := p.HIncrBy(key, subKey, 1)
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
-}
-
-func (p *CacheMem) HIncrBy(key string, field string, increment int64) (int64, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		p.data[key] = &Item{Data: "{}"}
-		item = p.data[key]
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		hashMap = make(map[string]string)
-	}
-
-	current, err := strconv.ParseInt(hashMap[field], 10, 64)
-	if err != nil {
-		current = 0
-	}
-
-	newVal := current + increment
-	hashMap[field] = strconv.FormatInt(newVal, 10)
-
-	data, _ := json.Marshal(hashMap)
-	item.Data = string(data)
-
-	return newVal, nil
-}
-
-func (p *CacheMem) HDecr(key string, field string) (int64, error) {
-	val, err := p.HIncrBy(key, field, -1)
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
-}
-
-func (p *CacheMem) HDecrBy(key string, field string, increment int64) (int64, error) {
-	val, err := p.HIncrBy(key, field, -increment)
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
-}
-
-func (p *CacheMem) SAdd(key string, members ...string) (int64, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		p.data[key] = &Item{Data: "[]"}
-		item = p.data[key]
-	}
-
-	var setMembers []string
-	if err := json.Unmarshal([]byte(item.Data), &setMembers); err != nil {
-		setMembers = make([]string, 0)
-	}
-
-	setMap := make(map[string]bool)
-	for _, member := range setMembers {
-		setMap[member] = true
-	}
-
-	addedCount := int64(0)
-	for _, member := range members {
-		if !setMap[member] {
-			setMap[member] = true
-			addedCount++
-		}
-	}
-
-	newMembers := make([]string, 0, len(setMap))
-	for member := range setMap {
-		newMembers = append(newMembers, member)
-	}
-
-	data, _ := json.Marshal(newMembers)
-	item.Data = string(data)
-
-	return addedCount, nil
-}
-
-func (p *CacheMem) SMembers(key string) ([]string, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return []string{}, nil
-	}
-
-	var members []string
-	if err := json.Unmarshal([]byte(item.Data), &members); err != nil {
-		return []string{}, nil
-	}
-
-	return members, nil
-}
-
-func (p *CacheMem) SRem(key string, members ...string) (int64, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return 0, nil
-	}
-
-	var setMembers []string
-	if err := json.Unmarshal([]byte(item.Data), &setMembers); err != nil {
-		return 0, nil
-	}
-
-	removeMap := make(map[string]bool)
-	for _, member := range members {
-		removeMap[member] = true
-	}
-
-	newMembers := make([]string, 0)
-	removedCount := int64(0)
-	for _, member := range setMembers {
-		if removeMap[member] {
-			removedCount++
-		} else {
-			newMembers = append(newMembers, member)
-		}
-	}
-
-	data, _ := json.Marshal(newMembers)
-	item.Data = string(data)
-
-	return removedCount, nil
-}
-
-func (p *CacheMem) SRandMember(key string, count ...int64) ([]string, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return []string{}, nil
-	}
-
-	var members []string
-	if err := json.Unmarshal([]byte(item.Data), &members); err != nil {
-		return []string{}, nil
-	}
-
-	if len(members) == 0 {
-		return []string{}, nil
-	}
-
-	n := int64(1)
-	if len(count) > 0 && count[0] > 0 {
-		n = count[0]
-	}
-
-	if n >= int64(len(members)) {
-		return members, nil
-	}
-
-	result := make([]string, 0, n)
-	selected := make(map[int]bool)
-	for int64(len(result)) < n {
-		idx := rand.Intn(len(members))
-		if !selected[idx] {
-			selected[idx] = true
-			result = append(result, members[idx])
-		}
-	}
-
-	return result, nil
-}
-
-func (p *CacheMem) SPop(key string) (string, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return "", nil
-	}
-
-	var members []string
-	if err := json.Unmarshal([]byte(item.Data), &members); err != nil || len(members) == 0 {
-		return "", nil
-	}
-
-	idx := rand.Intn(len(members))
-	popped := members[idx]
-	newMembers := make([]string, 0, len(members)-1)
-	for i, member := range members {
-		if i != idx {
-			newMembers = append(newMembers, member)
-		}
-	}
-
-	data, _ := json.Marshal(newMembers)
-	item.Data = string(data)
-
-	return popped, nil
-}
-
-func (p *CacheMem) SisMember(key, field string) (bool, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return false, nil
-	}
-
-	var members []string
-	if err := json.Unmarshal([]byte(item.Data), &members); err != nil {
-		return false, nil
-	}
-
-	for _, member := range members {
-		if member == field {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func (p *CacheMem) HExists(key string, field string) (bool, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return false, nil
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return false, nil
-	}
-
-	_, exists = hashMap[field]
-	return exists, nil
-}
-
-func (p *CacheMem) HKeys(key string) ([]string, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return []string{}, nil
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return []string{}, nil
-	}
-
-	keys := make([]string, 0, len(hashMap))
-	for k := range hashMap {
-		keys = append(keys, k)
-	}
-
-	return keys, nil
-}
-
-func (p *CacheMem) HSet(key string, field string, value interface{}) (bool, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		p.data[key] = &Item{Data: "{}"}
-		item = p.data[key]
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		hashMap = make(map[string]string)
-	}
-
-	_, existed := hashMap[field]
-	hashMap[field] = utils.ToString(value)
-
-	data, _ := json.Marshal(hashMap)
-	item.Data = string(data)
-
-	return !existed, nil
-}
-
-func (p *CacheMem) HGet(key, field string) (string, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return "", ErrNotFound
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return "", ErrNotFound
-	}
-
-	value, exists := hashMap[field]
-	if !exists {
-		return "", ErrNotFound
-	}
-
-	return value, nil
-}
-
-func (p *CacheMem) HDel(key string, fields ...string) (int64, error) {
-	p.autoClear()
-
-	p.Lock()
-	defer p.Unlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return 0, nil
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return 0, nil
-	}
-
-	deletedCount := int64(0)
-	for _, field := range fields {
-		if _, exists := hashMap[field]; exists {
-			delete(hashMap, field)
-			deletedCount++
-		}
-	}
-
-	data, _ := json.Marshal(hashMap)
-	item.Data = string(data)
-
-	return deletedCount, nil
-}
-
-func (p *CacheMem) HGetAll(key string) (map[string]string, error) {
-	p.autoClear()
-
-	p.RLock()
-	defer p.RUnlock()
-
-	item, exists := p.data[key]
-	if !exists || (!item.ExpireAt.IsZero() && time.Now().After(item.ExpireAt)) {
-		return make(map[string]string), nil
-	}
-
-	var hashMap map[string]string
-	if err := json.Unmarshal([]byte(item.Data), &hashMap); err != nil {
-		return make(map[string]string), nil
-	}
-
-	return hashMap, nil
-}
-
 func (p *CacheMem) SetEx(key string, value any, timeout time.Duration) error {
 	p.autoClear()
 
@@ -549,11 +192,6 @@ func (p *CacheMem) SetEx(key string, value any, timeout time.Duration) error {
 }
 
 func (p *CacheMem) autoClear() {
-	ok, _ := p.rt.Try()
-	if !ok {
-		return
-	}
-
 	p.clear()
 }
 
@@ -684,66 +322,11 @@ func (p *CacheMem) Ping() error {
 	return nil
 }
 
-func (p *CacheMem) Publish(channel string, message interface{}) (int64, error) {
-	return 0, errors.New("mem cache does not support pub/sub")
-}
-
-func (p *CacheMem) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
-	return errors.New("mem cache does not support pub/sub")
-}
-
-func (p *CacheMem) XAdd(stream string, values map[string]interface{}) (string, error) {
-	return "", errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XLen(stream string) (int64, error) {
-	return 0, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
-	return nil, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
-	return nil, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XDel(stream string, ids ...string) (int64, error) {
-	return 0, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XTrim(stream string, maxLen int64) (int64, error) {
-	return 0, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XGroupCreate(stream, group, start string) error {
-	return errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XGroupDestroy(stream, group string) error {
-	return errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XGroupSetID(stream, group, id string) error {
-	return errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
-	return errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XAck(stream, group string, ids ...string) (int64, error) {
-	return 0, errors.New("mem cache does not support stream")
-}
-
-func (p *CacheMem) XPending(stream, group string) (int64, error) {
-	return 0, errors.New("mem cache does not support stream")
-}
-
 func NewMem() Cache {
 	p := &CacheMem{
-		data: make(map[string]*Item),
-		rt:   rate.New(2, time.Minute),
+		data:     make(map[string]*Item),
+		streams:  make(map[string]*Stream),
+		streamID: 0,
 	}
 
 	atexit.Register(func() {

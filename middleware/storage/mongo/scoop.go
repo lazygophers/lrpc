@@ -106,9 +106,15 @@ func (s *Scoop) getCollectionNameFromOut(out interface{}) string {
 	return outType.Name()
 }
 
-// getCollection retrieves a MongoDB collection using MGM
+// getCollection retrieves a MongoDB collection using MGM or client.db in Mock mode
 // 返回 MongoCollection interface 便于测试和扩展
 func (s *Scoop) getCollection(collName string) MongoCollection {
+	// In Mock mode, use client.db.Collection() instead of MGM
+	if s.client.cfg.Mock && s.client.db != nil {
+		return s.client.db.Collection(collName)
+	}
+
+	// Real mode - use MGM
 	mgmColl := mgm.CollectionByName(collName)
 	// MGM Collection embeds *mongo.Collection，需要包装成 RealCollection
 	return &RealCollection{

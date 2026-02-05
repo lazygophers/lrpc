@@ -126,6 +126,11 @@ type Cache interface {
 func New(c *Config) (Cache, error) {
 	c.apply()
 
+	// 如果是 mock 模式，统一使用 mem 缓存
+	if c.Mock {
+		return NewMem(), nil
+	}
+
 	switch c.Type {
 	case Bbolt:
 		return NewBbolt(c.Address, &bbolt.Options{
