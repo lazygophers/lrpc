@@ -93,7 +93,7 @@ func New(cfg *Config) (*Client, error) {
 }
 
 // Ping checks the connection to MongoDB
-func (c *Client) Ping() error {
+func (p *Client) Ping() error {
 	_, client, _, err := mgm.DefaultConfigs()
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (c *Client) Ping() error {
 }
 
 // Close closes the MongoDB client connection
-func (c *Client) Close() error {
+func (p *Client) Close() error {
 	_, client, _, err := mgm.DefaultConfigs()
 	if err != nil {
 		return err
@@ -118,26 +118,26 @@ func (c *Client) Close() error {
 }
 
 // GetConfig returns the client configuration
-func (c *Client) GetConfig() *Config {
-	return c.cfg
+func (p *Client) GetConfig() *Config {
+	return p.cfg
 }
 
 // Context returns the operation context
-func (c *Client) Context() context.Context {
+func (p *Client) Context() context.Context {
 	return context.Background()
 }
 
 // GetDatabase returns the database name
-func (c *Client) GetDatabase() string {
-	if c.cfg.Database == "" {
+func (p *Client) GetDatabase() string {
+	if p.cfg.Database == "" {
 		return "test"
 	}
-	return c.cfg.Database
+	return p.cfg.Database
 }
 
 // Health checks the health of the connection
-func (c *Client) Health() error {
-	err := c.Ping()
+func (p *Client) Health() error {
+	err := p.Ping()
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return fmt.Errorf("health check failed: %w", err)
@@ -147,9 +147,9 @@ func (c *Client) Health() error {
 
 // AutoMigrates ensures that all provided models have their corresponding collections in MongoDB
 // It iterates through each model and calls AutoMigrate for each one
-func (c *Client) AutoMigrates(models ...interface{}) (err error) {
+func (p *Client) AutoMigrates(models ...Collectioner) (err error) {
 	for _, model := range models {
-		err = c.AutoMigrate(model)
+		err = p.AutoMigrate(model)
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return err
@@ -162,17 +162,14 @@ func (c *Client) AutoMigrates(models ...interface{}) (err error) {
 // AutoMigrate ensures that the collection for a given model exists in MongoDB
 // It retrieves the collection name from the model and creates the collection
 // if it doesn't already exist
-func (c *Client) AutoMigrate(model interface{}) (err error) {
+func (p *Client) AutoMigrate(model Collectioner) (err error) {
 	// Get collection name using reflection
-	collectionName := getCollectionName(model)
-	if collectionName == "" {
-		return fmt.Errorf("unable to determine collection name for model type %T", model)
-	}
+	collectionName := model.Collection()
 
 	log.Infof("auto migrate collection %s", collectionName)
 
 	// Check if collection exists
-	collections, err := c.db.ListCollectionNames(context.Background(), nil)
+	collections, err := p.db.ListCollectionNames(context.Background(), nil)
 
 	collectionExists := false
 	if err == nil {
@@ -186,7 +183,7 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 
 	// If collection doesn't exist or couldn't verify, create it
 	if !collectionExists {
-		err = c.db.CreateCollection(context.Background(), collectionName)
+		err = p.db.CreateCollection(context.Background(), collectionName)
 		if err != nil {
 			log.Errorf("err:%v", err)
 			return err
@@ -199,7 +196,7 @@ func (c *Client) AutoMigrate(model interface{}) (err error) {
 	if indexer, ok := model.(interface{ Indexes() []mongo.IndexModel }); ok {
 		indexes := indexer.Indexes()
 		if len(indexes) > 0 {
-			coll := c.db.Collection(collectionName)
+			coll := p.db.Collection(collectionName)
 			_, err = coll.Indexes().CreateMany(context.Background(), indexes)
 			if err != nil {
 				log.Errorf("err:%v", err)

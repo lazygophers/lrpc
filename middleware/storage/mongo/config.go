@@ -55,61 +55,61 @@ type Config struct {
 }
 
 // apply applies default values to the configuration
-func (c *Config) apply() {
-	if c.Logger == nil {
-		c.Logger = GetDefaultLogger()
+func (p *Config) apply() {
+	if p.Logger == nil {
+		p.Logger = GetDefaultLogger()
 	}
 
-	if c.Address == "" {
-		c.Address = "127.0.0.1"
+	if p.Address == "" {
+		p.Address = "127.0.0.1"
 	}
 
-	if c.Port == 0 {
-		c.Port = 27017
+	if p.Port == 0 {
+		p.Port = 27017
 	}
 
-	if c.ConnectTimeout <= 0 {
-		c.ConnectTimeout = 10 * time.Second
+	if p.ConnectTimeout <= 0 {
+		p.ConnectTimeout = 10 * time.Second
 	}
 
-	if c.ContextTimeout <= 0 {
-		c.ContextTimeout = 30 * time.Second
+	if p.ContextTimeout <= 0 {
+		p.ContextTimeout = 30 * time.Second
 	}
 
-	if c.MaxPoolSize == 0 {
-		c.MaxPoolSize = 100
+	if p.MaxPoolSize == 0 {
+		p.MaxPoolSize = 100
 	}
 
-	if c.MinPoolSize == 0 {
-		c.MinPoolSize = 10
+	if p.MinPoolSize == 0 {
+		p.MinPoolSize = 10
 	}
 
-	if c.MaxConnIdleTime == 0 {
-		c.MaxConnIdleTime = 5 * time.Minute
+	if p.MaxConnIdleTime == 0 {
+		p.MaxConnIdleTime = 5 * time.Minute
 	}
 }
 
 // buildURI builds MongoDB connection URI from config
-func (c *Config) buildURI() string {
+func (p *Config) buildURI() string {
 	uri := "mongodb://"
 
 	// Add credentials if provided
-	if c.Username != "" && c.Password != "" {
-		uri += fmt.Sprintf("%s:%s@", c.Username, c.Password)
+	if p.Username != "" && p.Password != "" {
+		uri += fmt.Sprintf("%s:%s@", p.Username, p.Password)
 	}
 
 	// Add host and port
-	uri += fmt.Sprintf("%s:%d", c.Address, c.Port)
+	uri += fmt.Sprintf("%s:%d", p.Address, p.Port)
 
 	// Build query parameters
 	var params []string
 
-	if c.ReplicaSet != "" {
-		params = append(params, fmt.Sprintf("replicaSet=%s", c.ReplicaSet))
+	if p.ReplicaSet != "" {
+		params = append(params, fmt.Sprintf("replicaSet=%s", p.ReplicaSet))
 	}
 
-	if c.AuthSource != "" {
-		params = append(params, fmt.Sprintf("authSource=%s", c.AuthSource))
+	if p.AuthSource != "" {
+		params = append(params, fmt.Sprintf("authSource=%s", p.AuthSource))
 	}
 
 	if len(params) > 0 {
@@ -125,12 +125,12 @@ func (c *Config) buildURI() string {
 }
 
 // BuildClientOpts builds MongoDB client options from config
-func (c *Config) BuildClientOpts() *options.ClientOptions {
+func (p *Config) BuildClientOpts() *options.ClientOptions {
 	opts := options.Client().
-		ApplyURI(c.buildURI()).
-		SetMaxConnIdleTime(c.MaxConnIdleTime).
-		SetMaxPoolSize(c.MaxPoolSize).
-		SetMinPoolSize(c.MinPoolSize)
+		ApplyURI(p.buildURI()).
+		SetMaxConnIdleTime(p.MaxConnIdleTime).
+		SetMaxPoolSize(p.MaxPoolSize).
+		SetMinPoolSize(p.MinPoolSize)
 
 	return opts
 }

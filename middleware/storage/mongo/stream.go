@@ -117,9 +117,9 @@ func (cs *ChangeStream) Close() {
 }
 
 // WatchAllCollections watches for changes across all collections in a database
-func (c *Client) WatchAllCollections() (*DatabaseChangeStream, error) {
+func (p *Client) WatchAllCollections() (*DatabaseChangeStream, error) {
 	return &DatabaseChangeStream{
-		client: c,
+		client: p,
 	}, nil
 }
 

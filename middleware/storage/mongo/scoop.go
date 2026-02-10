@@ -49,9 +49,9 @@ type Scoop struct {
 }
 
 // NewScoop creates a new scoop instance, optionally accepting a transaction scoop
-func (c *Client) NewScoop(tx ...*Scoop) *Scoop {
+func (p *Client) NewScoop(tx ...*Scoop) *Scoop {
 	scoop := &Scoop{
-		client:        c,
+		client:        p,
 		filter:        NewCond(),
 		sort:          bson.M{},
 		projection:    bson.M{},
