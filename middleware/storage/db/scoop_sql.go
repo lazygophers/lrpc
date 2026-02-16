@@ -421,11 +421,11 @@ func (p *Scoop) findSql() string {
 
 	b.WriteString("SELECT ")
 	if len(p.selects) > 0 {
-		b.WriteString(p.selects[0])
+		b.WriteString(quoteFieldName(p.selects[0], p.clientType))
 
 		for _, s := range p.selects[1:] {
 			b.WriteString(", ")
-			b.WriteString(s)
+			b.WriteString(quoteFieldName(s, p.clientType))
 		}
 	} else {
 		b.WriteString("*")

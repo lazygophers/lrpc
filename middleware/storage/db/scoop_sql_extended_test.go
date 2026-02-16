@@ -813,3 +813,65 @@ func TestScoopSQLInjectionPrevention(t *testing.T) {
 		assert.Contains(t, sql, "SET")
 	})
 }
+
+// TestScoopSQLSelectReservedKeywords 测试 SELECT 语句中的保留关键字
+func TestScoopSQLSelectReservedKeywords(t *testing.T) {
+	t.Run("select with reserved keyword field (MySQL)", func(t *testing.T) {
+		config := &db.Config{
+			Type: db.MySQL,
+			Mock: true,
+		}
+
+		client, err := db.New(config)
+		assert.NoError(t, err)
+		defer client.MockDB().Mock.ExpectClose()
+
+		// 测试 group 保留关键字
+		scoop := client.NewScoop().Model(TestUser{}).Select("id", "name", "group")
+		sql := scoop.ToSQL(db.SQLOperationSelect)
+
+		// 验证保留关键字被正确引用
+		assert.Contains(t, sql, "`group`", "Reserved keyword 'group' should be quoted with backticks")
+		// 验证非保留关键字不被引用
+		assert.Contains(t, sql, "id")
+		assert.Contains(t, sql, "name")
+	})
+
+	t.Run("select with multiple reserved keywords (MySQL)", func(t *testing.T) {
+		config := &db.Config{
+			Type: db.MySQL,
+			Mock: true,
+		}
+
+		client, err := db.New(config)
+		assert.NoError(t, err)
+		defer client.MockDB().Mock.ExpectClose()
+
+		// 测试多个保留关键字
+		scoop := client.NewScoop().Model(TestUser{}).Select("id", "group", "order", "select")
+		sql := scoop.ToSQL(db.SQLOperationSelect)
+
+		// 验证所有保留关键字都被正确引用
+		assert.Contains(t, sql, "`group`")
+		assert.Contains(t, sql, "`order`")
+		assert.Contains(t, sql, "`select`")
+	})
+
+	t.Run("select with reserved keyword field (Postgres)", func(t *testing.T) {
+		config := &db.Config{
+			Type: db.Postgres,
+			Mock: true,
+		}
+
+		client, err := db.New(config)
+		assert.NoError(t, err)
+		defer client.MockDB().Mock.ExpectClose()
+
+		// 测试 PostgreSQL 保留关键字
+		scoop := client.NewScoop().Model(TestUser{}).Select("id", "name", "user")
+		sql := scoop.ToSQL(db.SQLOperationSelect)
+
+		// 验证保留关键字被正确引用（PostgreSQL 使用双引号）
+		assert.Contains(t, sql, "\"user\"", "Reserved keyword 'user' should be quoted with double quotes in PostgreSQL")
+	})
+}
