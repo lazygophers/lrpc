@@ -1,2 +1,4 @@
 # 忽略插件数据
 /ccplugin/notify/
+/ccplugin/log
+/ccplugin/notify
