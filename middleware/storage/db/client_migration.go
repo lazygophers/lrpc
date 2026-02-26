@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -72,6 +73,13 @@ func getFieldsForMigration(model interface{}) []reflect.StructField {
 		// 跳过 protoimpl 内部字段
 		if field.Type.PkgPath() == "google.golang.org/protobuf/runtime/protoimpl" {
 			continue
+		}
+
+		// 对于 slice/map/pointer 类型，使用 json.RawMessage 作为迁移时的类型
+		// 这样 GORM 会创建 JSON 类型的列，而不是报错
+		// pointer 类型通常是 proto message（如 *ChatMessage）
+		if field.Type.Kind() == reflect.Slice || field.Type.Kind() == reflect.Map || field.Type.Kind() == reflect.Ptr || field.Type.Kind() == reflect.Struct {
+			field.Type = reflect.TypeOf(json.RawMessage{})
 		}
 
 		fields = append(fields, field)
