@@ -201,7 +201,7 @@ func ParseAcceptLanguageList(value string) []Language {
 	return langs
 }
 
-func ParseAcceptLanguage(value string) string {
+func ParseAcceptLanguage(value string) Language {
 	langs := ParseAcceptLanguageList(value)
 	if len(langs) > 0 {
 		return string(langs[0])
@@ -212,11 +212,11 @@ func ParseAcceptLanguage(value string) string {
 		return ""
 	}
 
-	return string(parsed)
+	return parsed
 }
 
-func ParseAcceptLanguageHeader(headers http.Header) string {
-	return string(ParseForHeader(headers))
+func ParseAcceptLanguageHeader(headers http.Header) Language {
+	return ParseForHeader(headers)
 }
 
 func ParseForHeader(headers http.Header) Language {
