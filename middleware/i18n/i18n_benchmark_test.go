@@ -3,6 +3,8 @@ package i18n
 import (
 	"fmt"
 	"testing"
+
+	middlewareLanguage "github.com/lazygophers/lrpc/middleware/language"
 )
 
 func BenchmarkI18n_Localize(b *testing.B) {
@@ -131,7 +133,7 @@ func BenchmarkParseLangCode(b *testing.B) {
 		b.Run(fmt.Sprintf("parse_%s", tc), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _ = ParseLangCode(tc)
+				_, _ = middlewareLanguage.ParseLangCode(tc)
 			}
 		})
 	}

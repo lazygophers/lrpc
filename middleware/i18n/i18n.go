@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
+	middlewareLanguage "github.com/lazygophers/lrpc/middleware/language"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/stringx"
@@ -25,7 +26,7 @@ import (
 // Pack 语言包
 type Pack struct {
 	lang string
-	code *LanguageCode
+	code *middlewareLanguage.LanguageCode
 
 	mu     sync.RWMutex
 	corpus map[string]string
@@ -142,7 +143,7 @@ func (p *Pack) parseInternal(prefixs []string, m map[string]any) {
 func NewPack(lang string) *Pack {
 	return &Pack{
 		lang:   lang,
-		code:   MustParseLangCode(lang),
+		code:   middlewareLanguage.MustParseLangCode(lang),
 		corpus: map[string]string{},
 	}
 }
@@ -318,8 +319,8 @@ func (p *I18n) SetDefaultLang(lang string) *I18n {
 	return p
 }
 
-func (p *I18n) AllSupportedLanguageCode() []*LanguageCode {
-	langs := make([]*LanguageCode, 0, len(p.packMap))
+func (p *I18n) AllSupportedLanguageCode() []*middlewareLanguage.LanguageCode {
+	langs := make([]*middlewareLanguage.LanguageCode, 0, len(p.packMap))
 	for _, pack := range p.packMap {
 		langs = append(langs, pack.code)
 	}

@@ -170,3 +170,14 @@ if err != nil {
 }
 ```
 - 针对middleware的测试，如果需要第三方那个服务（如 redis、etcd 等），可以通过 make test 创建、清理 docker 用以创建相关的临时服务
+- 若需求是“middleware 添加语言包”，优先在 `middleware` 下创建独立目录（如 `middleware/language`）实现标准语言类型与解析处理，不放在 `middleware/i18n` 内耦合实现
+- `middleware/language` 中的语言类型命名和常量命名需与 `golang.org/x/text/language` 风格对齐（如 `type Language string`、`English`、`SimplifiedChinese`、`TraditionalChinese`）
+- `middleware/language` 的语言常量与标准集合需补全常用语言，并将“常量定义”和“标准/别名注册表”拆为两个独立文件维护
+- 用户要求时需移除 `standardLanguageMap`、`IsStandardCode`、`IsStandard`、`StandardLanguages` 相关实现，不保留标准集合判断接口
+- 用户要求时需移除公开 `Normalize` API（仅允许包内私有标准化函数）
+- `ParseLangCode` 需使用缓存（复用解析结果，降低重复解析内存分配）
+- 用户要求时不得使用统一 `language_registry.go` 注册表，需按场景分离映射逻辑（如 Parse 场景、Accept-Language 场景）
+- 中文地区码（`zh-hk`、`zh-tw`、`zh-mo`、`zh-sg`、`zh-cht`、`zh-hant`）必须作为独立 code 处理，不能统一折叠为同一个 code
+- 用户明确要求时仅提供 `ParseForHeader` 场景接口，不额外扩展其他场景 API
+- 用户要求时需移除 `normalize` 函数，不保留该命名的标准化实现
+- 用户要求时 `Parse`/`ParseLangCode` 不能依赖 `xlanguage.Parse`，需使用自实现语言标签解析规则
