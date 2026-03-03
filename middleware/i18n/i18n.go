@@ -13,20 +13,19 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
-	middlewareLanguage "github.com/lazygophers/lrpc/middleware/language"
+	"github.com/lazygophers/lrpc/middleware/language"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/stringx"
 	"github.com/petermattis/goid"
 	"go.uber.org/atomic"
-	"golang.org/x/text/language"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Pack 语言包
 type Pack struct {
 	lang string
-	code *middlewareLanguage.LanguageCode
+	code *language.LanguageCode
 
 	mu     sync.RWMutex
 	corpus map[string]string
@@ -143,7 +142,7 @@ func (p *Pack) parseInternal(prefixs []string, m map[string]any) {
 func NewPack(lang string) *Pack {
 	return &Pack{
 		lang:   lang,
-		code:   middlewareLanguage.MustParseLangCode(lang),
+		code:   language.MustParseLangCode(lang),
 		corpus: map[string]string{},
 	}
 }
@@ -319,8 +318,8 @@ func (p *I18n) SetDefaultLang(lang string) *I18n {
 	return p
 }
 
-func (p *I18n) AllSupportedLanguageCode() []*middlewareLanguage.LanguageCode {
-	langs := make([]*middlewareLanguage.LanguageCode, 0, len(p.packMap))
+func (p *I18n) AllSupportedLanguageCode() []*language.LanguageCode {
+	langs := make([]*language.LanguageCode, 0, len(p.packMap))
 	for _, pack := range p.packMap {
 		langs = append(langs, pack.code)
 	}
@@ -405,7 +404,7 @@ func GetLanguage(gid ...int64) string {
 func NewI18n() *I18n {
 	p := &I18n{
 		packMap:     map[string]*Pack{},
-		defaultLang: atomic.NewString(language.English.String()),
+		defaultLang: atomic.NewString(string(language.English)),
 
 		templateFunc: maps.Clone(defaultTemplateFunc),
 	}
@@ -457,7 +456,7 @@ func LocalizeWithHeaders(headers http.Header, key string, args ...interface{}) s
 	}
 
 	if value, ok := headers["Accept-Language"]; ok {
-		return localize(ParseLanguage(strings.Join(value, "; ")), key, args...)
+		return localize(string(language.ParseAcceptLanguage(strings.Join(value, "; "))), key, args...)
 	}
 
 	return localize("", key, args...)

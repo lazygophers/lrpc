@@ -204,7 +204,7 @@ func ParseAcceptLanguageList(value string) []Language {
 func ParseAcceptLanguage(value string) Language {
 	langs := ParseAcceptLanguageList(value)
 	if len(langs) > 0 {
-		return string(langs[0])
+		return langs[0]
 	}
 
 	parsed, err := Parse(value)
