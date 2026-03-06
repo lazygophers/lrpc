@@ -95,15 +95,24 @@ func (s *Scoop) First(result interface{}) *FirstResult {
 	}
 	sr := s.coll.FindOne(ctx, s.filter.ToBson(), opts)
 	if sr.Err() != nil {
-		log.Errorf("err:%v", sr.Err())
+		err := sr.Err()
+		// 如果是 mongo.ErrNoDocuments，返回用户设置的自定义错误
+		if err == mongo.ErrNoDocuments && s.notFoundError != nil {
+			err = s.notFoundError
+		}
+		log.Errorf("err:%v", err)
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
-		}, sr.Err())
-		return &FirstResult{Error: sr.Err()}
+		}, err)
+		return &FirstResult{Error: err}
 	}
 
 	err = sr.Decode(result)
 	if err != nil {
+		// 如果是 mongo.ErrNoDocuments，返回用户设置的自定义错误
+		if err == mongo.ErrNoDocuments && s.notFoundError != nil {
+			err = s.notFoundError
+		}
 		log.Errorf("err:%v", err)
 		s.logger.Log(s.depth, begin, func() (string, int64) {
 			return fmt.Sprintf("db.%s.findOne(%v)", s.coll.Name(), s.filter.ToBson()), 0
