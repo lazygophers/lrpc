@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Cond is a MongoDB condition builder for constructing complex queries
@@ -32,6 +33,19 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 		panic(fmt.Sprintf("empty op for field %s", fieldName))
 	}
 
+	// Special handling for id/_id equality queries
+	if (op == "=" || op == "$eq") && (fieldName == "id" || fieldName == "_id") {
+		orCond, skip := p.buildIdOrCondition(fieldName, val)
+		if skip {
+			// Skip empty/zero values
+			return
+		}
+		if orCond != nil {
+			p.conds = append(p.conds, orCond)
+			return
+		}
+	}
+
 	// Simple equality condition: field: value
 	if op == "=" || op == "$eq" {
 		p.conds = append(p.conds, bson.M{fieldName: val})
@@ -44,6 +58,63 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 		mongoOp = "$" + op
 	}
 	p.conds = append(p.conds, bson.M{fieldName: bson.M{mongoOp: val}})
+}
+
+// buildIdOrCondition builds an $or condition for id/_id equivalence
+// When querying id, also query _id; when querying _id, also query id
+// Returns (condition, skip). If skip is true, the condition should be skipped entirely
+func (p *Cond) buildIdOrCondition(fieldName string, val interface{}) (bson.M, bool) {
+	var orConditions []bson.M
+
+	if fieldName == "id" {
+		// Querying id (string type)
+		// Add id condition if value is string type
+		if strVal, ok := val.(string); ok {
+			if strVal == "" {
+				// Skip empty string
+				return nil, true
+			}
+			orConditions = append(orConditions, bson.M{"id": strVal})
+
+			// Try to convert to ObjectID and add _id condition
+			if objectID, err := primitive.ObjectIDFromHex(strVal); err == nil {
+				orConditions = append(orConditions, bson.M{"_id": objectID})
+			}
+		}
+	} else if fieldName == "_id" {
+		// Querying _id (ObjectID type)
+		// Add _id condition if value is ObjectID type
+		if objectID, ok := val.(primitive.ObjectID); ok {
+			if objectID.IsZero() {
+				// Skip zero ObjectID
+				return nil, true
+			}
+			orConditions = append(orConditions, bson.M{"_id": objectID})
+
+			// Convert to Hex string and add id condition
+			orConditions = append(orConditions, bson.M{"id": objectID.Hex()})
+		} else if strVal, ok := val.(string); ok {
+			if strVal == "" {
+				// Skip empty string
+				return nil, true
+			}
+			// If value is string, try to convert to ObjectID
+			if objectID, err := primitive.ObjectIDFromHex(strVal); err == nil {
+				orConditions = append(orConditions, bson.M{"_id": objectID})
+				orConditions = append(orConditions, bson.M{"id": strVal})
+			}
+		}
+	}
+
+	if len(orConditions) == 0 {
+		return nil, false
+	}
+
+	if len(orConditions) == 1 {
+		return orConditions[0], false
+	}
+
+	return bson.M{"$or": orConditions}, false
 }
 
 // addSubWhere adds a sub-condition (nested OR/AND group)

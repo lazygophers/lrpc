@@ -69,6 +69,9 @@ func (s *Scoop) Updates(update interface{}) *UpdateResult {
 		updateDoc = bson.M{"$set": m}
 	}
 
+	// Auto fill updated_at field
+	autoFillUpdateFields(updateDoc)
+
 	result, err := s.coll.UpdateMany(s.getContext(), s.filter.ToBson(), updateDoc)
 	if err != nil {
 		log.Errorf("err:%v", err)

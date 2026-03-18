@@ -16,6 +16,9 @@ func (s *Scoop) Create(doc interface{}) error {
 		return err
 	}
 
+	// Auto fill id, _id, created_at, updated_at fields
+	autoFillCreateFields(doc)
+
 	_, err = s.coll.InsertOne(s.getContext(), doc)
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -46,6 +49,11 @@ func (s *Scoop) BatchCreate(docs ...interface{}) error {
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return err
+	}
+
+	// Auto fill id, _id, created_at, updated_at fields for each document
+	for _, doc := range docs {
+		autoFillCreateFields(doc)
 	}
 
 	result, err := s.coll.InsertMany(s.getContext(), docs)

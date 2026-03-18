@@ -14,6 +14,8 @@ description: MongoDB storage middleware for LRPC framework with Mock support
 - **轻量级包装**：在 MGM 基础上最小化封装
 - **完整的 Mock 支持**：用于单元测试、集成测试和本地调试
 - **调用跟踪**：记录所有方法调用以支持三路测试
+- **自动填充**：自动填充 id、_id、created_at、updated_at 系统字段
+- **ID 等价查询**：id 和 _id 字段自动等价转换查询
 
 ### 应用场景
 - **单元测试**：模拟数据库依赖
@@ -401,6 +403,65 @@ mockClient := mongo.NewMockClient()
 mockClient.SetupHealthError(errors.New("connection timeout"))
 ```
 
+## 自动填充功能
+
+MongoDB middleware 提供了自动填充功能，在创建和更新文档时自动设置系统字段。
+
+### 自动填充字段
+
+**创建时（Create/BatchCreate）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | `string` | 文档 ID（ObjectID 的 Hex 字符串） |
+| `_id` | `primitive.ObjectID` | MongoDB 原生主键 |
+| `created_at` | `int64` | 创建时间（Unix 秒级时间戳） |
+| `updated_at` | `int64` | 更新时间（Unix 秒级时间戳） |
+
+**更新时（Updates）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `updated_at` | `int64` | 更新时间（Unix 秒级时间戳） |
+
+### ID 等价查询
+
+当使用 `Where` 查询 `id` 或 `_id` 字段时，自动进行等价转换：
+
+- 查询 `id` (string) 时，同时查询 `_id` (ObjectID)
+- 查询 `_id` (ObjectID) 时，同时查询 `id` (string)
+
+```go
+// 两种方式都能找到同一个文档
+scoop.Where("id", "507f1f77bcf86cd799439011").First(&user)
+scoop.Where("_id", objectID).First(&user)
+```
+
+### 使用示例
+
+```go
+// 创建文档 - 系统字段自动填充
+doc := bson.M{
+    "name":  "Alice",
+    "email": "alice@example.com",
+}
+err := scoop.Create(doc)
+// doc 现在包含: id, _id, created_at, updated_at
+
+// 更新文档 - updated_at 自动更新
+scoop.Where("name", "Alice").Updates(bson.M{
+    "email": "alice.new@example.com",
+})
+// 实际执行: {$set: {email: "...", updated_at: <timestamp>}}
+```
+
+**字段保留策略**：
+- 如果字段已存在且不是零值，不会覆盖
+- 只在字段不存在或为零值时才填充
+- 类型必须匹配才会填充
+
+详见：[AUTO_FILL.md](./AUTO_FILL.md)
+
 ## 存储方案说明
 
 MongoDB 存储方案采用以下策略：
@@ -409,6 +470,7 @@ MongoDB 存储方案采用以下策略：
 2. **文档结构**：支持任意 Go 结构体作为文档模型
 3. **批量操作**：通过 Scoop（查询建造器）支持高效的批量操作
 4. **事务支持**：通过 `NewScoop(tx)` 支持 MongoDB 事务
+5. **自动填充**：创建和更新时自动填充系统字段
 
 ## 最佳实践
 
