@@ -1115,3 +1115,138 @@ func TestRedis_ErrorHandling(t *testing.T) {
 func ttlDuration(d int64) time.Duration {
 	return time.Duration(d)
 }
+
+// TestCacheRedis_ZSet_Comprehensive ZSet综合测试
+func TestCacheRedis_ZSet_Comprehensive(t *testing.T) {
+	cache, err := NewRedisWithConfig(&Config{Mock: true})
+	assert.NilError(t, err)
+	defer cache.Close()
+
+	key := "leaderboard"
+
+	// 测试ZAdd
+	count, err := cache.ZAdd(key, 100.0, "user1", 95.0, "user2", 90.0, "user3")
+	assert.NilError(t, err)
+	assert.Equal(t, count, int64(3))
+
+	// 测试ZCard
+	card, err := cache.ZCard(key)
+	assert.NilError(t, err)
+	assert.Equal(t, card, int64(3))
+
+	// 测试ZScore
+	score, err := cache.ZScore(key, "user1")
+	assert.NilError(t, err)
+	assert.Equal(t, score, 100.0)
+
+	// 测试ZRange（升序）
+	members, err := cache.ZRange(key, 0, -1)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, members, []string{"user3", "user2", "user1"})
+
+	// 测试ZRevRange（降序）
+	members, err = cache.ZRevRange(key, 0, -1)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, members, []string{"user1", "user2", "user3"})
+
+	// 测试ZRank
+	rank, err := cache.ZRank(key, "user3")
+	assert.NilError(t, err)
+	assert.Equal(t, rank, int64(0)) // 最低分，排名第0
+
+	// 测试ZRevRank
+	revRank, err := cache.ZRevRank(key, "user1")
+	assert.NilError(t, err)
+	assert.Equal(t, revRank, int64(0)) // 最高分，降序排名第0
+
+	// 测试ZIncrBy
+	newScore, err := cache.ZIncrBy(key, 5.0, "user3")
+	assert.NilError(t, err)
+	assert.Equal(t, newScore, 95.0)
+
+	// 测试ZRangeWithScores
+	withScores, err := cache.ZRangeWithScores(key, 0, -1)
+	assert.NilError(t, err)
+	assert.Equal(t, len(withScores), 3)
+	assert.Equal(t, withScores[0].Member, "user2")
+	assert.Equal(t, withScores[0].Score, 95.0)
+
+	// 测试ZCount
+	count, err = cache.ZCount(key, "90", "100")
+	assert.NilError(t, err)
+	assert.Equal(t, count, int64(3))
+
+	// 测试ZRangeByScore
+	members, err = cache.ZRangeByScore(key, "95", "100", 0, 0)
+	assert.NilError(t, err)
+	assert.Equal(t, len(members), 3)
+
+	// 测试ZRem
+	removed, err := cache.ZRem(key, "user2", "user3")
+	assert.NilError(t, err)
+	assert.Equal(t, removed, int64(2))
+
+	// 验证删除后的结果
+	card, err = cache.ZCard(key)
+	assert.NilError(t, err)
+	assert.Equal(t, card, int64(1))
+
+	// 测试ZRemRangeByRank
+	cache.ZAdd(key, 80.0, "user4", 85.0, "user5")
+	removed, err = cache.ZRemRangeByRank(key, 0, 1)
+	assert.NilError(t, err)
+	assert.Equal(t, removed, int64(2))
+
+	// 测试ZRemRangeByScore
+	cache.ZAdd(key, 70.0, "user6", 75.0, "user7")
+	removed, err = cache.ZRemRangeByScore(key, "70", "75")
+	assert.NilError(t, err)
+	assert.Equal(t, removed, int64(2))
+
+	// 测试ZUnionStore和ZInterStore
+	cache.ZAdd("set1", 1.0, "a", 2.0, "b")
+	cache.ZAdd("set2", 2.0, "b", 3.0, "c")
+
+	unionCount, err := cache.ZUnionStore("union", "set1", "set2")
+	assert.NilError(t, err)
+	assert.Equal(t, unionCount, int64(3))
+
+	interCount, err := cache.ZInterStore("inter", "set1", "set2")
+	assert.NilError(t, err)
+	assert.Equal(t, interCount, int64(1)) // 只有b在两个集合中
+
+	// 测试错误情况
+	_, err = cache.ZScore("nonexistent", "user1")
+	assert.Equal(t, err, ErrNotFound)
+
+	_, err = cache.ZRank("nonexistent", "user1")
+	assert.Equal(t, err, ErrNotFound)
+}
+
+// TestCacheRedis_ZSet_EdgeCases ZSet边界测试
+func TestCacheRedis_ZSet_EdgeCases(t *testing.T) {
+	cache, err := NewRedisWithConfig(&Config{Mock: true})
+	assert.NilError(t, err)
+	defer cache.Close()
+
+	// 空集合测试
+	members, err := cache.ZRange("empty", 0, -1)
+	assert.NilError(t, err)
+	assert.Equal(t, len(members), 0)
+
+	card, err := cache.ZCard("empty")
+	assert.NilError(t, err)
+	assert.Equal(t, card, int64(0))
+
+	// 单元素测试
+	cache.ZAdd("single", 100.0, "only")
+	members, err = cache.ZRange("single", 0, -1)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, members, []string{"only"})
+
+	// 负索引测试
+	cache.ZAdd("neg", 1.0, "a", 2.0, "b", 3.0, "c")
+	members, err = cache.ZRange("neg", -2, -1)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, members, []string{"b", "c"})
+}

@@ -53,6 +53,10 @@ type CacheMem struct {
 	streamsMu sync.RWMutex
 	streams   map[string]*Stream // stream name -> stream
 
+	// ZSet
+	zsetsMu sync.RWMutex
+	zsets   map[string]*ZSet // zset name -> zset
+
 	// 全局消息 ID 生成器
 	streamID int64
 }

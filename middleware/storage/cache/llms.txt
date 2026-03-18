@@ -88,6 +88,23 @@ type BaseCache interface {
     SRandMember(key string, count ...int64) ([]string, error)
     SPop(key string) (string, error)
     SisMember(key, field string) (bool, error)
+    ZAdd(key string, members ...interface{}) (int64, error)
+    ZScore(key, member string) (float64, error)
+    ZRange(key string, start, stop int64) ([]string, error)
+    ZRangeByScore(key, min, max string, offset, count int64) ([]string, error)
+    ZRem(key string, members ...string) (int64, error)
+    ZCard(key string) (int64, error)
+    ZCount(key, min, max string) (int64, error)
+    ZIncrBy(key string, increment float64, member string) (float64, error)
+    ZRank(key, member string) (int64, error)
+    ZRevRange(key string, start, stop int64) ([]string, error)
+    ZRevRank(key, member string) (int64, error)
+    ZRangeWithScores(key string, start, stop int64) ([]Z, error)
+    ZRevRangeByScore(key, max, min string, offset, count int64) ([]string, error)
+    ZRemRangeByRank(key string, start, stop int64) (int64, error)
+    ZRemRangeByScore(key, min, max string) (int64, error)
+    ZUnionStore(destination string, keys ...string) (int64, error)
+    ZInterStore(destination string, keys ...string) (int64, error)
     Publish(channel string, message interface{}) (int64, error)
     Subscribe(handler func(channel string, message []byte) error, channels ...string) error
     XAdd(stream string, values map[string]interface{}) (string, error)
@@ -238,6 +255,72 @@ go c.Subscribe(func(channel string, message []byte) error {
     return nil
 }, "updates")
 ```
+
+### ZSet 有序集合操作
+
+有序集合（Sorted Set）是按分数排序的字符串集合，支持高效的范围查询和排名操作。
+
+#### 核心命令
+
+- `ZAdd(key, members...)` - 添加成员到有序集合（members 为 score-member 对）
+- `ZScore(key, member)` - 获取成员分数
+- `ZRange(key, start, stop)` - 按索引范围获取成员（升序）
+- `ZRangeByScore(key, min, max, offset, count)` - 按分数范围获取成员
+- `ZRem(key, members...)` - 删除成员
+- `ZCard(key)` - 获取集合成员数
+- `ZCount(key, min, max)` - 统计分数范围内成员数
+- `ZIncrBy(key, increment, member)` - 增加成员分数
+- `ZRank(key, member)` - 获取成员排名（升序，从0开始）
+- `ZRevRange(key, start, stop)` - 按索引范围获取成员（降序）
+- `ZRevRank(key, member)` - 获取成员排名（降序，从0开始）
+
+#### 高级命令
+
+- `ZRangeWithScores(key, start, stop)` - 按索引范围获取成员和分数
+- `ZRevRangeByScore(key, max, min, offset, count)` - 按分数范围获取成员（降序）
+- `ZRemRangeByRank(key, start, stop)` - 按排名范围删除成员
+- `ZRemRangeByScore(key, min, max)` - 按分数范围删除成员
+- `ZUnionStore(destination, keys...)` - 并集存储
+- `ZInterStore(destination, keys...)` - 交集存储
+
+#### 使用示例
+
+```go
+// 排行榜场景
+c.ZAdd("leaderboard", 100.0, "user1", 95.0, "user2", 90.0, "user3")
+
+// 获取排名前10
+topUsers, _ := c.ZRevRange("leaderboard", 0, 9)
+
+// 获取用户排名
+rank, _ := c.ZRevRank("leaderboard", "user1")
+
+// 增加分数
+newScore, _ := c.ZIncrBy("leaderboard", 5.0, "user3")
+
+// 获取分数段内的用户
+users, _ := c.ZRangeByScore("leaderboard", "90", "100", 0, 0)
+
+// 获取带分数的结果
+withScores, _ := c.ZRangeWithScores("leaderboard", 0, -1)
+for _, z := range withScores {
+    fmt.Printf("Member: %s, Score: %.2f\n", z.Member, z.Score)
+}
+
+// 集合运算
+c.ZUnionStore("union_board", "leaderboard1", "leaderboard2")
+c.ZInterStore("common_users", "leaderboard1", "leaderboard2")
+```
+
+#### 支持情况
+
+| 后端 | 支持情况 |
+|------|----------|
+| Redis | ✅ 完全支持 |
+| Memory | ✅ 完全支持 |
+| BBolt | ❌ 不支持（返回 ErrZSetNotSupported） |
+| LevelDB | ❌ 不支持（返回 ErrZSetNotSupported） |
+| Database | ❌ 不支持（返回 ErrZSetNotSupported） |
 
 ## 缓存后端对比
 

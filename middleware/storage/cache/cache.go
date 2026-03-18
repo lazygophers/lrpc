@@ -12,6 +12,12 @@ import (
 
 var ErrNotFound = errors.New("key not found")
 
+// Z represents a member and its score in a sorted set
+type Z struct {
+	Member string
+	Score  float64
+}
+
 type BaseCache interface {
 	SetPrefix(prefix string)
 
@@ -49,6 +55,25 @@ type BaseCache interface {
 	SRandMember(key string, count ...int64) ([]string, error)
 	SPop(key string) (string, error)
 	SisMember(key, field string) (bool, error) // 成员是否存在
+
+	// ZSet 有序集合操作
+	ZAdd(key string, members ...interface{}) (int64, error)
+	ZScore(key, member string) (float64, error)
+	ZRange(key string, start, stop int64) ([]string, error)
+	ZRangeByScore(key, min, max string, offset, count int64) ([]string, error)
+	ZRem(key string, members ...string) (int64, error)
+	ZCard(key string) (int64, error)
+	ZCount(key, min, max string) (int64, error)
+	ZIncrBy(key string, increment float64, member string) (float64, error)
+	ZRank(key, member string) (int64, error)
+	ZRevRange(key string, start, stop int64) ([]string, error)
+	ZRevRank(key, member string) (int64, error)
+	ZRangeWithScores(key string, start, stop int64) ([]Z, error)
+	ZRevRangeByScore(key, max, min string, offset, count int64) ([]string, error)
+	ZRemRangeByRank(key string, start, stop int64) (int64, error)
+	ZRemRangeByScore(key, min, max string) (int64, error)
+	ZUnionStore(destination string, keys ...string) (int64, error)
+	ZInterStore(destination string, keys ...string) (int64, error)
 
 	// Pub/Sub 发布订阅
 	Publish(channel string, message interface{}) (int64, error)

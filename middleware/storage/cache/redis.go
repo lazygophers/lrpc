@@ -753,6 +753,266 @@ func (p *CacheRedis) XPending(stream, group string) (int64, error) {
 	return pending.Count, nil
 }
 
+// ZAdd 添加成员到有序集合
+func (p *CacheRedis) ZAdd(key string, members ...interface{}) (int64, error) {
+	ctx := p.ctx
+
+	// 将可变参数转换为redis.Z结构
+	zMembers := make([]redis.Z, 0, len(members)/2)
+	for i := 0; i < len(members); i += 2 {
+		if i+1 >= len(members) {
+			break
+		}
+		score, ok := members[i].(float64)
+		if !ok {
+			// 尝试从其他数值类型转换
+			if intScore, ok := members[i].(int); ok {
+				score = float64(intScore)
+			} else if int64Score, ok := members[i].(int64); ok {
+				score = float64(int64Score)
+			} else {
+				continue
+			}
+		}
+		member := candy.ToString(members[i+1])
+		zMembers = append(zMembers, redis.Z{Score: score, Member: member})
+	}
+
+	val, err := p.cli.ZAdd(ctx, p.prefix+key, zMembers...).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZScore 获取成员分数
+func (p *CacheRedis) ZScore(key, member string) (float64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZScore(ctx, p.prefix+key, member).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return 0, ErrNotFound
+		}
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZRange 按索引范围获取成员（升序）
+func (p *CacheRedis) ZRange(key string, start, stop int64) ([]string, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRange(ctx, p.prefix+key, start, stop).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return val, nil
+}
+
+// ZRangeByScore 按分数范围获取成员
+func (p *CacheRedis) ZRangeByScore(key, min, max string, offset, count int64) ([]string, error) {
+	ctx := p.ctx
+	opt := &redis.ZRangeBy{
+		Min:    min,
+		Max:    max,
+		Offset: offset,
+		Count:  count,
+	}
+	val, err := p.cli.ZRangeByScore(ctx, p.prefix+key, opt).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return val, nil
+}
+
+// ZRem 删除成员
+func (p *CacheRedis) ZRem(key string, members ...string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRem(ctx, p.prefix+key, members).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZCard 获取集合成员数
+func (p *CacheRedis) ZCard(key string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZCard(ctx, p.prefix+key).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZCount 统计分数范围内成员数
+func (p *CacheRedis) ZCount(key, min, max string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZCount(ctx, p.prefix+key, min, max).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZIncrBy 增加成员分数
+func (p *CacheRedis) ZIncrBy(key string, increment float64, member string) (float64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZIncrBy(ctx, p.prefix+key, increment, member).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZRank 获取成员排名（升序，从0开始）
+func (p *CacheRedis) ZRank(key, member string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRank(ctx, p.prefix+key, member).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return -1, ErrNotFound
+		}
+		log.Errorf("err:%v", err)
+		return -1, err
+	}
+	return val, nil
+}
+
+// ZRevRange 按索引范围获取成员（降序）
+func (p *CacheRedis) ZRevRange(key string, start, stop int64) ([]string, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRevRange(ctx, p.prefix+key, start, stop).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return val, nil
+}
+
+// ZRevRank 获取成员排名（降序，从0开始）
+func (p *CacheRedis) ZRevRank(key, member string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRevRank(ctx, p.prefix+key, member).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return -1, ErrNotFound
+		}
+		log.Errorf("err:%v", err)
+		return -1, err
+	}
+	return val, nil
+}
+
+// ZRangeWithScores 按索引范围获取成员和分数
+func (p *CacheRedis) ZRangeWithScores(key string, start, stop int64) ([]Z, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRangeWithScores(ctx, p.prefix+key, start, stop).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	result := make([]Z, len(val))
+	for i, z := range val {
+		result[i] = Z{
+			Member: z.Member.(string),
+			Score:  z.Score,
+		}
+	}
+	return result, nil
+}
+
+// ZRevRangeByScore 按分数范围获取成员（降序）
+func (p *CacheRedis) ZRevRangeByScore(key, max, min string, offset, count int64) ([]string, error) {
+	ctx := p.ctx
+	opt := &redis.ZRangeBy{
+		Min:    min,
+		Max:    max,
+		Offset: offset,
+		Count:  count,
+	}
+	val, err := p.cli.ZRevRangeByScore(ctx, p.prefix+key, opt).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+	return val, nil
+}
+
+// ZRemRangeByRank 按排名范围删除成员
+func (p *CacheRedis) ZRemRangeByRank(key string, start, stop int64) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRemRangeByRank(ctx, p.prefix+key, start, stop).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZRemRangeByScore 按分数范围删除成员
+func (p *CacheRedis) ZRemRangeByScore(key, min, max string) (int64, error) {
+	ctx := p.ctx
+	val, err := p.cli.ZRemRangeByScore(ctx, p.prefix+key, min, max).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZUnionStore 并集存储
+func (p *CacheRedis) ZUnionStore(destination string, keys ...string) (int64, error) {
+	ctx := p.ctx
+
+	// 添加prefix
+	prefixedKeys := make([]string, len(keys))
+	for i, key := range keys {
+		prefixedKeys[i] = p.prefix + key
+	}
+
+	store := &redis.ZStore{
+		Keys: prefixedKeys,
+	}
+
+	val, err := p.cli.ZUnionStore(ctx, p.prefix+destination, store).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+// ZInterStore 交集存储
+func (p *CacheRedis) ZInterStore(destination string, keys ...string) (int64, error) {
+	ctx := p.ctx
+
+	// 添加prefix
+	prefixedKeys := make([]string, len(keys))
+	for i, key := range keys {
+		prefixedKeys[i] = p.prefix + key
+	}
+
+	store := &redis.ZStore{
+		Keys: prefixedKeys,
+	}
+
+	val, err := p.cli.ZInterStore(ctx, p.prefix+destination, store).Result()
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return 0, err
+	}
+	return val, nil
+}
+
 func (p *CacheRedis) Client() any {
 	return p.cli
 }
