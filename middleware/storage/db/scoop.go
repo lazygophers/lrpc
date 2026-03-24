@@ -240,19 +240,7 @@ func (p *Scoop) IsDuplicatedKeyError(err error) bool {
 		return errors.Is(err, p.duplicatedKeyError)
 	}
 
-	if errors.Is(err, gorm.ErrDuplicatedKey) {
-		return true
-	}
-
-	if strings.Contains(err.Error(), "Error 1062") {
-		return true
-	}
-
-	if strings.Contains(err.Error(), "Duplicate entry") {
-		return true
-	}
-
-	return false
+	return IsUniqueIndexConflictErr(err)
 }
 
 func (p *Scoop) AutoMigrate(dst ...interface{}) error {

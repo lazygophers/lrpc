@@ -407,10 +407,23 @@ func IsUniqueIndexConflictErr(err error) bool {
 	if err == nil {
 		return false
 	}
+
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+
+	if strings.Contains(err.Error(), "Error 1062") {
+		return true
+	}
+
+	if strings.Contains(err.Error(), "Duplicate entry") {
+		return true
+	}
+
 	// Check for "Duplicate entry" which covers both:
 	// - "Error 1062: Duplicate entry" (MySQL error format)
 	// - "Duplicate entry" (shorter format)
-	return strings.Contains(err.Error(), "Duplicate entry")
+	return false
 }
 
 var ErrBatchesStop = errors.New("batches stop")

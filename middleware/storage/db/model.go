@@ -59,7 +59,19 @@ func (p *Model[M]) IsNotFound(err error) bool {
 }
 
 func (p *Model[M]) IsDuplicatedKeyError(err error) bool {
-	return err == p.duplicatedKeyError || gorm.ErrDuplicatedKey == err
+	if err == nil {
+		return false
+	}
+
+	if p.duplicatedKeyError != nil {
+		if x, ok := err.(*xerror.Error); ok {
+			return xerror.CheckCode(err, x.Code)
+		}
+
+		return errors.Is(err, p.duplicatedKeyError)
+	}
+
+	return IsUniqueIndexConflictErr(err)
 }
 
 func (p *Model[M]) NewScoop(tx ...*Scoop) *ModelScoop[M] {
