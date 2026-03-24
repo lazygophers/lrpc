@@ -1,8 +1,10 @@
 package db
 
 import (
+	"errors"
 	"reflect"
 
+	"github.com/lazygophers/lrpc/middleware/xerror"
 	"gorm.io/gorm"
 )
 

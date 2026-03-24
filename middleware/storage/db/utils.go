@@ -13,6 +13,7 @@ import (
 	"github.com/lazygophers/utils"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/stringx"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
