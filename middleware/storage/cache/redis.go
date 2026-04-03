@@ -1042,8 +1042,8 @@ func NewRedis(address string, opts ...interface{}) (Cache, error) {
 		Addr:         address,
 		Password:     password,
 		DB:           db,
-		PoolSize:     1000,
-		MinIdleConns: 100,
+		PoolSize:     1, // Default to 1 to reduce memory usage
+		MinIdleConns: 0,
 		DialTimeout:  5 * time.Second,
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
@@ -1076,15 +1076,21 @@ func NewRedisWithConfig(config *Config) (Cache, error) {
 	}
 
 	client := redis.NewClient(&redis.Options{
-		Addr:         config.Address,
-		Password:     config.Password,
-		DB:           config.Db,
-		PoolSize:     1000,
-		MinIdleConns: 100,
-		DialTimeout:  5 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
-		PoolTimeout:  4 * time.Second,
+		Addr:            config.Address,
+		Password:        config.Password,
+		DB:              config.Db,
+		PoolSize:        config.PoolSize,
+		MinIdleConns:    config.MinIdleConns,
+		MaxIdleConns:    config.MaxIdleConns,
+		DialTimeout:     5 * time.Second,
+		ReadTimeout:     3 * time.Second,
+		WriteTimeout:    3 * time.Second,
+		PoolTimeout:     4 * time.Second,
+		ConnMaxLifetime: config.ConnMaxLifetime,
+		ConnMaxIdleTime: config.ConnMaxIdleTime,
+		MaxRetries:      config.MaxRetries,
+		MinRetryBackoff: config.MinRetryBackoff,
+		MaxRetryBackoff: config.MaxRetryBackoff,
 	})
 
 	return NewRedisWithClient(client, "")
