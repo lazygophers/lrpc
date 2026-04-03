@@ -12,3 +12,5 @@ coverage-*.html
 .codannaignore
 .fastembed_cache
 .DS_Store
+.gitnexus
+*.db
