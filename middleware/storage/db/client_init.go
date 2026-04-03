@@ -199,6 +199,14 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		sqlDb.SetMaxIdleConns(0)
 	}
 
+	if c.ConnMaxLifetime > 0 {
+		sqlDb.SetConnMaxLifetime(c.ConnMaxLifetime)
+	}
+
+	if c.ConnMaxIdleTime > 0 {
+		sqlDb.SetConnMaxIdleTime(c.ConnMaxIdleTime)
+	}
+
 	err = p.AutoMigrates(tables...)
 	if err != nil {
 		log.Errorf("err:%v", err)

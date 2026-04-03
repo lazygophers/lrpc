@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lazygophers/utils/app"
 )
@@ -80,6 +81,14 @@ type Config struct {
 
 	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty"` // 最大空闲连接数，-1 表示不限制
 	MaxOpenConns int `yaml:"max_open_conns,omitempty" json:"max_open_conns,omitempty"` // 最大连接数，-1 表示不限制
+
+	// ConnMaxLifetime is the maximum connection lifetime.
+	// Default: 1 hour (avoid long-lived connection issues)
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime,omitempty" json:"conn_max_lifetime,omitempty"`
+
+	// ConnMaxIdleTime is the maximum idle time for connections.
+	// Default: 10 minutes (release idle connections promptly)
+	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty"`
 
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
@@ -194,6 +203,14 @@ func (c *Config) apply() {
 		if c.Name == "" {
 			c.Name = app.Name
 		}
+	}
+
+	// Set default connection lifecycle values
+	if c.ConnMaxLifetime == 0 {
+		c.ConnMaxLifetime = time.Hour // Connection lifetime: 1 hour
+	}
+	if c.ConnMaxIdleTime == 0 {
+		c.ConnMaxIdleTime = 10 * time.Minute // Idle timeout: 10 minutes
 	}
 }
 
