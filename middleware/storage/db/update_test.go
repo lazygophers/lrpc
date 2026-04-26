@@ -44,22 +44,22 @@ func TestUpdateCase(t *testing.T) {
 
 	t.Run("update case with various value types", func(t *testing.T) {
 		caseMap := map[string]any{
-			"(`type` = 'string')":      "string_value",
-			"(`type` = 'int')":         42,
-			"(`type` = 'int8')":        int8(8),
-			"(`type` = 'int16')":       int16(16),
-			"(`type` = 'int32')":       int32(32),
-			"(`type` = 'int64')":       int64(64),
-			"(`type` = 'uint')":        uint(100),
-			"(`type` = 'uint8')":       uint8(8),
-			"(`type` = 'uint16')":      uint16(16),
-			"(`type` = 'uint32')":      uint32(32),
-			"(`type` = 'uint64')":      uint64(64),
-			"(`type` = 'float32')":     float32(3.14),
-			"(`type` = 'float64')":     float64(3.14159),
-			"(`type` = 'bool_true')":   true,
-			"(`type` = 'bool_false')":  false,
-			"(`type` = 'bytes')":       []byte("bytes_value"),
+			"(`type` = 'string')":     "string_value",
+			"(`type` = 'int')":        42,
+			"(`type` = 'int8')":       int8(8),
+			"(`type` = 'int16')":      int16(16),
+			"(`type` = 'int32')":      int32(32),
+			"(`type` = 'int64')":      int64(64),
+			"(`type` = 'uint')":       uint(100),
+			"(`type` = 'uint8')":      uint8(8),
+			"(`type` = 'uint16')":     uint16(16),
+			"(`type` = 'uint32')":     uint32(32),
+			"(`type` = 'uint64')":     uint64(64),
+			"(`type` = 'float32')":    float32(3.14),
+			"(`type` = 'float64')":    float64(3.14159),
+			"(`type` = 'bool_true')":  true,
+			"(`type` = 'bool_false')": false,
+			"(`type` = 'bytes')":      []byte("bytes_value"),
 		}
 
 		expr := UpdateCase(caseMap)

@@ -219,12 +219,12 @@ func TestSerializerJsonSpecialFeatures(t *testing.T) {
 				},
 			},
 			ComplexJson: map[string]interface{}{
-				"string":  "test",
-				"number":  123.45,
-				"bool":    true,
-				"null":    nil,
-				"array":   []interface{}{1, 2, 3, "four"},
-				"nested":  map[string]interface{}{"key": "value"},
+				"string": "test",
+				"number": 123.45,
+				"bool":   true,
+				"null":   nil,
+				"array":  []interface{}{1, 2, 3, "four"},
+				"nested": map[string]interface{}{"key": "value"},
 			},
 		}
 
@@ -464,12 +464,12 @@ func TestSerializerTomlSpecialFeatures(t *testing.T) {
 
 		model := &TestTomlFeaturesModel{
 			TomlMap: map[string]interface{}{
-				"basic_key":    "value1",
-				"dashed-key":   "value2",
+				"basic_key":      "value1",
+				"dashed-key":     "value2",
 				"underscore_key": "value3",
-				"number":       42,
-				"float":        3.14,
-				"bool":         true,
+				"number":         42,
+				"float":          3.14,
+				"bool":           true,
 			},
 		}
 
@@ -732,7 +732,7 @@ func TestSerializerUpdateOperations(t *testing.T) {
 
 		// 更新
 		model.NestedObject = map[string]interface{}{
-			"key":   "updated_value",
+			"key":    "updated_value",
 			"newKey": "new_value",
 		}
 		err = client.NewScoop().Model(TestJsonFeaturesModel{}).Where("id", model.Id).Updates(model).Error
@@ -772,7 +772,7 @@ func TestSerializerUpdateOperations(t *testing.T) {
 
 		// 更新
 		model.YamlMap = map[string]interface{}{
-			"key":   "updated_value",
+			"key":    "updated_value",
 			"newKey": "new_value",
 		}
 		err = client.NewScoop().Model(TestYamlFeaturesModel{}).Where("id", model.Id).Updates(model).Error
@@ -787,7 +787,7 @@ func TestSerializerUpdateOperations(t *testing.T) {
 
 // TestSerializerProtojson 测试 ProtoJSON 序列化器
 type TestProtojsonModel struct {
-	Id       int                 `gorm:"primaryKey;autoIncrement"`
+	Id       int                     `gorm:"primaryKey;autoIncrement"`
 	ProtoMsg *wrapperspb.StringValue `gorm:"column:proto_msg;type:text;serializer:protojson"`
 }
 

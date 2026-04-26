@@ -10,10 +10,10 @@ import (
 
 // TestSerializerJsonWithArrays 测试 JSON 序列化器处理数组
 type TestJsonArrayModel struct {
-	Id    int      `gorm:"primaryKey;autoIncrement"`
-	Name  string   `gorm:"size:100;not null"`
-	Tags  []string `gorm:"column:tags;type:text;serializer:json;not null"`
-	Ids   []int    `gorm:"column:ids;type:text;serializer:json;not null"`
+	Id   int      `gorm:"primaryKey;autoIncrement"`
+	Name string   `gorm:"size:100;not null"`
+	Tags []string `gorm:"column:tags;type:text;serializer:json;not null"`
+	Ids  []int    `gorm:"column:ids;type:text;serializer:json;not null"`
 }
 
 func (TestJsonArrayModel) TableName() string {
@@ -237,4 +237,3 @@ func TestYamlSerializerComplex(t *testing.T) {
 		assert.NotNil(t, found.Metadata)
 	})
 }
-

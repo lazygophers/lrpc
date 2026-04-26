@@ -18,7 +18,7 @@ func TestExprFunctions(t *testing.T) {
 	})
 
 	t.Run("ExprIncBy with custom increment", func(t *testing.T) {
-			// 测试 ExprIncBy 函数
+		// 测试 ExprIncBy 函数
 		expr := db.ExprIncBy(db.MySQL, "views", 5)
 		assert.NotNil(t, expr)
 		// 生成 "`views` + 5"

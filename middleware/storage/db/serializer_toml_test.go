@@ -10,13 +10,13 @@ import (
 
 // TestModelWithTOMLAdvanced 测试使用 TOML 序列化器的高级场景
 type TestModelWithTOMLAdvanced struct {
-	Id       int                 `gorm:"primaryKey;autoIncrement"`
-	Name     string              `gorm:"size:100;not null"`
-	Config   map[string]any      `gorm:"column:config;type:text;serializer:toml;not null"`
-	Settings map[string]string  `gorm:"column:settings;type:text;serializer:toml"`
-	Metadata map[string]int64   `gorm:"column:metadata;type:text;serializer:toml"`
-	Created  int64               `gorm:"autoCreateTime:milli"`
-	Updated  int64               `gorm:"autoUpdateTime:milli"`
+	Id       int               `gorm:"primaryKey;autoIncrement"`
+	Name     string            `gorm:"size:100;not null"`
+	Config   map[string]any    `gorm:"column:config;type:text;serializer:toml;not null"`
+	Settings map[string]string `gorm:"column:settings;type:text;serializer:toml"`
+	Metadata map[string]int64  `gorm:"column:metadata;type:text;serializer:toml"`
+	Created  int64             `gorm:"autoCreateTime:milli"`
+	Updated  int64             `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithTOMLAdvanced) TableName() string {
@@ -53,7 +53,7 @@ func TestTomlSerializerAdvanced(t *testing.T) {
 					"port": 8080,
 				},
 				"database": map[string]any{
-					"driver":   "mysql",
+					"driver":  "mysql",
 					"timeout": 30,
 				},
 			},
@@ -130,9 +130,9 @@ func TestTomlSerializerAdvanced(t *testing.T) {
 		model := &TestModelWithTOMLAdvanced{
 			Name: "Test Int64 TOML",
 			Metadata: map[string]int64{
-				"count":    1000,
-				"size":     2048,
-				"timeout":  30,
+				"count":   1000,
+				"size":    2048,
+				"timeout": 30,
 			},
 		}
 
@@ -243,10 +243,10 @@ func TestTomlSerializerAdvanced(t *testing.T) {
 			Name: "Test Mixed TOML",
 			Config: map[string]any{
 				"string_val": "test",
-				"int_val":     42,
-				"bool_val":    true,
-				"float_val":   3.14,
-				"array_val":   []any{"a", "b", "c"},
+				"int_val":    42,
+				"bool_val":   true,
+				"float_val":  3.14,
+				"array_val":  []any{"a", "b", "c"},
 			},
 		}
 
@@ -285,9 +285,9 @@ func TestTomlSerializerAdvanced(t *testing.T) {
 			Name: "Test Special TOML",
 			Settings: map[string]string{
 				"key_with_underscore": "value1",
-				"key-with-dash":      "value2",
-				"key.with.dots":      "value3",
-				"special chars":      "value with spaces\nand\ttabs",
+				"key-with-dash":       "value2",
+				"key.with.dots":       "value3",
+				"special chars":       "value with spaces\nand\ttabs",
 			},
 		}
 

@@ -10,14 +10,14 @@ import (
 
 // TestModelWithBSONAdvanced 测试使用 BSON 序列化器的高级场景
 type TestModelWithBSONAdvanced struct {
-	Id       int                 `gorm:"primaryKey;autoIncrement"`
-	Name     string              `gorm:"size:100;not null"`
-	Metadata map[string]any      `gorm:"column:metadata;type:blob;serializer:bson;not null"`
-	Config   map[string]any      `gorm:"column:config;type:blob;serializer:bson;not null"`
-	Settings map[string]string  `gorm:"column:settings;type:blob;serializer:bson"`
-	Counters  map[string]int64   `gorm:"column:counters;type:blob;serializer:bson"`
-	Created  int64               `gorm:"autoCreateTime:milli"`
-	Updated  int64               `gorm:"autoUpdateTime:milli"`
+	Id       int               `gorm:"primaryKey;autoIncrement"`
+	Name     string            `gorm:"size:100;not null"`
+	Metadata map[string]any    `gorm:"column:metadata;type:blob;serializer:bson;not null"`
+	Config   map[string]any    `gorm:"column:config;type:blob;serializer:bson;not null"`
+	Settings map[string]string `gorm:"column:settings;type:blob;serializer:bson"`
+	Counters map[string]int64  `gorm:"column:counters;type:blob;serializer:bson"`
+	Created  int64             `gorm:"autoCreateTime:milli"`
+	Updated  int64             `gorm:"autoUpdateTime:milli"`
 }
 
 func (TestModelWithBSONAdvanced) TableName() string {
@@ -174,7 +174,7 @@ func TestBsonSerializerAdvanced(t *testing.T) {
 			Counters: map[string]int64{
 				"requests":   10000,
 				"errors":     50,
-				"timeout_ms":  5000,
+				"timeout_ms": 5000,
 			},
 		}
 
@@ -288,8 +288,8 @@ func TestBsonSerializerAdvanced(t *testing.T) {
 			Name: "Test Special BSON",
 			Settings: map[string]string{
 				"unicode": "测试中文字符",
-				"quotes": "\"quoted\"",
-				"mixed":  "value\nwith\tnewlines",
+				"quotes":  "\"quoted\"",
+				"mixed":   "value\nwith\tnewlines",
 			},
 		}
 

@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
@@ -63,9 +62,9 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		d = mysql.New(mysql.Config{
 			DSN: c.DSN(),
 			DSNConfig: &mysqlC.Config{
-				Timeout:                 time.Second * 5,
-				ReadTimeout:             time.Second * 30,
-				WriteTimeout:            time.Second * 30,
+				Timeout:                 c.ConnectTimeout,
+				ReadTimeout:             c.ReadTimeout,
+				WriteTimeout:            c.WriteTimeout,
 				AllowAllFiles:           true,
 				AllowCleartextPasswords: true,
 				AllowNativePasswords:    true,
@@ -104,9 +103,9 @@ func New(c *Config, tables ...interface{}) (*Client, error) {
 		d = mysql.New(mysql.Config{
 			DSN: c.DSN(),
 			DSNConfig: &mysqlC.Config{
-				Timeout:                 time.Second * 5,
-				ReadTimeout:             time.Second * 30,
-				WriteTimeout:            time.Second * 30,
+				Timeout:                 c.ConnectTimeout,
+				ReadTimeout:             c.ReadTimeout,
+				WriteTimeout:            c.WriteTimeout,
 				AllowAllFiles:           true,
 				AllowCleartextPasswords: true,
 				AllowNativePasswords:    true,

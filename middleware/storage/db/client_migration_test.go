@@ -67,8 +67,8 @@ func TestHasProtobufOneofFields(t *testing.T) {
 
 	t.Run("struct with protobuf_oneof tag", func(t *testing.T) {
 		type ProtobufStruct struct {
-			ID      int64
-			Name    string
+			ID         int64
+			Name       string
 			OneofField string `protobuf_oneof:"test_oneof"`
 		}
 
@@ -273,12 +273,12 @@ func TestAutoMigrates_Multiple(t *testing.T) {
 
 	t.Run("auto migrate multiple models", func(t *testing.T) {
 		type Model1 struct {
-			ID   int64  `gorm:"primaryKey"`
+			ID   int64 `gorm:"primaryKey"`
 			Name string
 		}
 
 		type Model2 struct {
-			ID    int64  `gorm:"primaryKey"`
+			ID    int64 `gorm:"primaryKey"`
 			Email string
 		}
 

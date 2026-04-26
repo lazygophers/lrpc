@@ -103,6 +103,7 @@ type TestModelWithOneofProto struct {
 func (TestModelWithOneofProto) TableName() string {
 	return "test_oneof_proto_models"
 }
+
 // TestYAMLSerializer tests the YAML serializer
 func TestYAMLSerializer(t *testing.T) {
 	t.Run("test YAML serialization with Scoop", func(t *testing.T) {
@@ -474,6 +475,7 @@ func TestINISerializer(t *testing.T) {
 		assert.Equal(t, "newdb", result.Config.Database.Name)
 	})
 }
+
 // TestProtojsonSerializer 测试 protojson 序列化器
 func TestProtojsonSerializer(t *testing.T) {
 	t.Run("test simple protobuf message serialization", func(t *testing.T) {

@@ -23,9 +23,9 @@ func (TestModelWithJSON) TableName() string {
 
 // TestModelWithJSON2 测试 JSON 序列化器的 Scan 方法
 type TestModelWithJSON2 struct {
-	Id     int      `gorm:"primaryKey;autoIncrement"`
-	Name   string   `gorm:"size:100;not null"`
-	Tags   []string `gorm:"column:tags;type:text;serializer:json;not null"`
+	Id      int      `gorm:"primaryKey;autoIncrement"`
+	Name    string   `gorm:"size:100;not null"`
+	Tags    []string `gorm:"column:tags;type:text;serializer:json;not null"`
 	Created int64    `gorm:"autoCreateTime:milli"`
 	Updated int64    `gorm:"autoUpdateTime:milli"`
 }

@@ -90,6 +90,18 @@ type Config struct {
 	// Default: 10 minutes (release idle connections promptly)
 	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty"`
 
+	// ConnectTimeout is the MySQL/TiDB connection timeout.
+	// Default: 5 seconds
+	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`
+
+	// ReadTimeout is the MySQL/TiDB read timeout.
+	// Default: 30 seconds
+	ReadTimeout time.Duration `yaml:"read_timeout,omitempty" json:"read_timeout,omitempty"`
+
+	// WriteTimeout is the MySQL/TiDB write timeout.
+	// Default: 30 seconds
+	WriteTimeout time.Duration `yaml:"write_timeout,omitempty" json:"write_timeout,omitempty"`
+
 	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
 
 	Logger Logger `json:"-" yaml:"-"`
@@ -127,6 +139,18 @@ func (c *Config) apply() {
 
 		if c.Name == "" {
 			c.Name = app.Name
+		}
+
+		if c.ConnectTimeout == 0 {
+			c.ConnectTimeout = time.Second * 5
+		}
+
+		if c.ReadTimeout == 0 {
+			c.ReadTimeout = time.Second * 30
+		}
+
+		if c.WriteTimeout == 0 {
+			c.WriteTimeout = time.Second * 30
 		}
 
 	case "postgres", "pg", "postgresql", "pgsql":
@@ -172,6 +196,18 @@ func (c *Config) apply() {
 
 		if c.Name == "" {
 			c.Name = app.Name
+		}
+
+		if c.ConnectTimeout == 0 {
+			c.ConnectTimeout = time.Second * 5
+		}
+
+		if c.ReadTimeout == 0 {
+			c.ReadTimeout = time.Second * 30
+		}
+
+		if c.WriteTimeout == 0 {
+			c.WriteTimeout = time.Second * 30
 		}
 
 	case "gaussdb":
@@ -263,6 +299,10 @@ func (c *Config) DSN() string {
 		query.Set("sslmode", "disable")
 		query.Set("TimeZone", "Asia/Shanghai")
 
+		if c.ConnectTimeout > 0 {
+			query.Set("connect_timeout", fmt.Sprintf("%.0f", c.ConnectTimeout.Seconds()))
+		}
+
 		for key, value := range c.Extras {
 			query.Set(key, value)
 		}
@@ -274,10 +314,24 @@ func (c *Config) DSN() string {
 		// ClickHouse native protocol DSN
 		// clickhouse://username:password@host:port/database?dial_timeout=10s&max_execution_time=60
 		query := &url.Values{}
-		query.Set("dial_timeout", "10s")
-		query.Set("max_execution_time", "60")
-		query.Set("read_timeout", "30s")
-		query.Set("write_timeout", "30s")
+
+		if c.ConnectTimeout > 0 {
+			query.Set("dial_timeout", fmt.Sprintf("%.0fs", c.ConnectTimeout.Seconds()))
+		} else {
+			query.Set("dial_timeout", "10s")
+		}
+
+		if c.ReadTimeout > 0 {
+			query.Set("read_timeout", fmt.Sprintf("%.0fs", c.ReadTimeout.Seconds()))
+		} else {
+			query.Set("read_timeout", "30s")
+		}
+
+		if c.WriteTimeout > 0 {
+			query.Set("write_timeout", fmt.Sprintf("%.0fs", c.WriteTimeout.Seconds()))
+		} else {
+			query.Set("write_timeout", "30s")
+		}
 
 		for key, value := range c.Extras {
 			query.Set(key, value)
@@ -300,6 +354,10 @@ func (c *Config) DSN() string {
 		query := &url.Values{}
 		query.Set("sslmode", "disable")
 		query.Set("TimeZone", "Asia/Shanghai")
+
+		if c.ConnectTimeout > 0 {
+			query.Set("connect_timeout", fmt.Sprintf("%.0f", c.ConnectTimeout.Seconds()))
+		}
 
 		for key, value := range c.Extras {
 			query.Set(key, value)
