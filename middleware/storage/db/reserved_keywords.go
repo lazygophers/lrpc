@@ -3,6 +3,8 @@ package db
 import (
 	"strings"
 	"sync"
+
+	"github.com/lazygophers/log"
 )
 
 // reservedKeywords 存储各数据库的保留关键字集合
@@ -232,7 +234,10 @@ func getReservedKeywords(clientType string) map[string]bool {
 		case GaussDB:
 			return reservedKeywords.data[Postgres]
 		default:
-			return make(map[string]bool)
+			// 当 clientType 为空或未知时，默认使用 MySQL 关键字列表
+			// 因为 MySQL 是最常用的数据库，且其关键字列表覆盖了大多数常见关键字
+			log.Warnf("unknown clientType '%s', defaulting to MySQL keywords for field quoting", clientType)
+			return reservedKeywords.data[MySQL]
 		}
 	}
 	return keywords

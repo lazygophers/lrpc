@@ -129,7 +129,8 @@ func (p *Cond) addCond(fieldName, op string, val interface{}) {
 	if p.tablePrefix == "" {
 		cond = fmt.Sprintf("(%s %s %s)", quoteFieldName(fieldName, p.clientType), op, valStr)
 	} else {
-		cond = fmt.Sprintf("(%s.%s %s %s)", p.tablePrefix, fieldName, op, valStr)
+		// 即使有表前缀，也需要转义字段名以处理保留关键字
+		cond = fmt.Sprintf("(%s.%s %s %s)", p.tablePrefix, quoteFieldName(fieldName, p.clientType), op, valStr)
 	}
 	p.conds = append(p.conds, cond)
 }
