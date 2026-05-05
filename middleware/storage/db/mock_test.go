@@ -33,7 +33,7 @@ func TestNewMock_MySQL(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, 1, user.Id)
+	assert.Equal(t, int64(1), user.Id)
 	assert.Equal(t, "Alice", user.Name)
 	assert.Equal(t, 25, user.Age)
 
@@ -103,7 +103,7 @@ func TestNewMock_SQLite(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, 3, user.Id)
+	assert.Equal(t, int64(3), user.Id)
 	assert.Equal(t, "Charlie", user.Name)
 	assert.Equal(t, 35, user.Age)
 
@@ -139,7 +139,7 @@ func TestNewMock_TiDB(t *testing.T) {
 	var user TestUser
 	err = client.Database().Table("test_users").First(&user).Error
 	assert.NoError(t, err)
-	assert.Equal(t, 4, user.Id)
+	assert.Equal(t, int64(4), user.Id)
 	assert.Equal(t, "David", user.Name)
 
 	// 验证所有期望都被满足

@@ -105,7 +105,7 @@ func (p *Scoop) getDuplicatedKeyError() error {
 }
 
 func (p *Scoop) IsNotFound(err error) bool {
-	return xerror.CheckCode(err, xerror.ErrNoData)
+	return xerror.CheckCode(err, xerror.ErrNoData) || err == gorm.ErrRecordNotFound
 }
 
 func (p *Scoop) IsDuplicatedKeyError(err error) bool {
@@ -126,6 +126,21 @@ func (p *Scoop) dec() {
 
 func (p *Scoop) Model(m any) *Scoop {
 	p._db = p._db.Model(m)
+
+	rt := reflect.TypeOf(m)
+	if rt.Kind() == reflect.Ptr {
+		rt = rt.Elem()
+	}
+
+	if rt.Kind() == reflect.Struct {
+		p.hasCreatedAt = hasCreatedAt(rt)
+		p.hasUpdatedAt = hasUpdatedAt(rt)
+		p.hasDeletedAt = hasDeletedAt(rt)
+		p.hasId = hasId(rt)
+
+		p.table = getTableName(rt)
+	}
+
 	return p
 }
 

@@ -385,9 +385,9 @@ func TestModelScoop_Scan(t *testing.T) {
 		result := model.NewScoop().Where("age >=", 25).Scan(&users)
 		assert.NoError(t, result.Error)
 		assert.Len(t, users, 2)
-		assert.Equal(t, 1, users[0].Id)
+		assert.Equal(t, int64(1), users[0].Id)
 		assert.Equal(t, "User1", users[0].Name)
-		assert.Equal(t, 2, users[1].Id)
+		assert.Equal(t, int64(2), users[1].Id)
 		assert.Equal(t, "User2", users[1].Name)
 
 		err = client.ExpectationsWereMet()

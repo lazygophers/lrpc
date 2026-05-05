@@ -44,7 +44,7 @@ func TestModelScoop_FindByPage(t *testing.T) {
 		assert.NotNil(t, page)
 		assert.Equal(t, uint64(25), page.Total)
 		assert.Len(t, users, 3)
-		assert.Equal(t, 1, users[0].Id)
+		assert.Equal(t, int64(1), users[0].Id)
 
 		err = client.ExpectationsWereMet()
 		assert.NoError(t, err)

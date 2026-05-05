@@ -1,6 +1,8 @@
 package db_test
 
 // TestUser model for testing database operations
+// NOTE: This is a duplicate definition for db_test package
+// The canonical definition is in db package (test_models.go)
 type TestUser struct {
 	Id        int64  `gorm:"primaryKey;autoIncrement"`
 	Name      string `gorm:"size:100;not null"`

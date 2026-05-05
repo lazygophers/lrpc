@@ -264,7 +264,7 @@ func TestTransaction_NestedOperations(t *testing.T) {
 		var found TestUser
 		result2 := tx.Model(TestUser{}).Where("id", 1).First(&found)
 		assert.NoError(t, result2.Error)
-		assert.Equal(t, 1, found.Id)
+		assert.Equal(t, int64(1), found.Id)
 
 		tx.Commit()
 
