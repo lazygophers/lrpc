@@ -225,3 +225,202 @@ func TestClient_ExpectCloseWithNilMockDB(t *testing.T) {
 		assert.Nil(t, expectedClose)
 	}
 }
+
+// TestExpectedQuery_WithArgs 测试 ExpectedQuery.WithArgs 方法
+func TestExpectedQuery_WithArgs(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WithArgs on ExpectQuery", func(t *testing.T) {
+		// 测试 WithArgs 方法
+		expectedQuery := client.ExpectQuery("SELECT \\* FROM users WHERE id = ?")
+		expectedQuery.WithArgs(1)
+		assert.NotNil(t, expectedQuery)
+	})
+}
+
+// TestExpectedQuery_WillReturnError 测试 ExpectedQuery.WillReturnError 方法
+func TestExpectedQuery_WillReturnError(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WillReturnError on ExpectQuery", func(t *testing.T) {
+		expectedQuery := client.ExpectQuery("SELECT \\* FROM users")
+		expectedQuery.WillReturnError(assert.AnError)
+		assert.NotNil(t, expectedQuery)
+	})
+}
+
+// TestExpectedExec_WithArgs 测试 ExpectedExec.WithArgs 方法
+func TestExpectedExec_WithArgs(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WithArgs on ExpectExec", func(t *testing.T) {
+		expectedExec := client.ExpectExec("INSERT INTO users")
+		expectedExec.WithArgs("John", 25)
+		assert.NotNil(t, expectedExec)
+	})
+}
+
+// TestExpectedExec_WillReturnError 测试 ExpectedExec.WillReturnError 方法
+func TestExpectedExec_WillReturnError(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WillReturnError on ExpectExec", func(t *testing.T) {
+		expectedExec := client.ExpectExec("INSERT INTO users")
+		expectedExec.WillReturnError(assert.AnError)
+		assert.NotNil(t, expectedExec)
+	})
+}
+
+// TestClient_Database 测试 Database 方法
+func TestClient_Database(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Database returns gorm.DB", func(t *testing.T) {
+		db := client.Database()
+		assert.NotNil(t, db)
+	})
+}
+
+// TestExpectedBegin_WillReturnError 测试 ExpectedBegin.WillReturnError
+func TestExpectedBegin_WillReturnError(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WillReturnError on ExpectBegin", func(t *testing.T) {
+		expectedBegin := client.ExpectBegin()
+		expectedBegin.WillReturnError(assert.AnError)
+		assert.NotNil(t, expectedBegin)
+	})
+}
+
+// TestExpectedCommit_WillReturnError 测试 ExpectedCommit.WillReturnError
+func TestExpectedCommit_WillReturnError(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WillReturnError on ExpectCommit", func(t *testing.T) {
+		expectedCommit := client.ExpectCommit()
+		expectedCommit.WillReturnError(assert.AnError)
+		assert.NotNil(t, expectedCommit)
+	})
+}
+
+// TestExpectedRollback_WillReturnError 测试 ExpectedRollback.WillReturnError
+func TestExpectedRollback_WillReturnError(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("WillReturnError on ExpectRollback", func(t *testing.T) {
+		expectedRollback := client.ExpectRollback()
+		expectedRollback.WillReturnError(assert.AnError)
+		assert.NotNil(t, expectedRollback)
+	})
+}
+
+
+// TestClient_NewScoop 测试 NewScoop 方法
+func TestClient_NewScoop(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("NewScoop returns Scoop", func(t *testing.T) {
+		scoop := client.NewScoop()
+		assert.NotNil(t, scoop)
+	})
+}
+
+// TestMockDB_ExpectationsWereMet 测试 ExpectationsWereMet 方法
+func TestMockDB_ExpectationsWereMet(t *testing.T) {
+	t.Run("ExpectationsWereMet with unmet expectations", func(t *testing.T) {
+		config := &db.Config{
+			Type: db.MySQL,
+			Mock: true,
+		}
+
+		client, err := db.New(config)
+		assert.NoError(t, err)
+		defer client.MockDB().Mock.ExpectClose()
+		defer client.MockDB().Close()
+
+		// 设置一个期望但不满足它
+		client.ExpectQuery("SELECT * FROM users")
+		// 不执行任何查询，期望不会被满足
+		err = client.ExpectationsWereMet()
+		assert.Error(t, err) // 应该有错误因为期望未满足
+	})
+
+	t.Run("ExpectationsWereMet with all expectations met", func(t *testing.T) {
+		config := &db.Config{
+			Type: db.MySQL,
+			Mock: true,
+		}
+
+		client, err := db.New(config)
+		assert.NoError(t, err)
+		defer client.MockDB().Mock.ExpectClose()
+		defer client.MockDB().Close()
+
+		// 不设置任何期望，应该通过
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+}

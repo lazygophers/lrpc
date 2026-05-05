@@ -58,3 +58,28 @@ func TestScoop_Delete(t *testing.T) {
 		assert.Error(t, result.Error)
 	})
 }
+
+// TestScoop_Delete_WithModel 测试使用 Model 的 Delete
+func TestScoop_Delete_WithModel(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	mockDB := client.MockDB()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	t.Run("Delete with Model", func(t *testing.T) {
+		mockDB.Mock.ExpectExec("UPDATE test_users.*").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		result := client.NewScoop().Model(TestUser{}).Where("id", 1).Delete()
+		assert.NoError(t, result.Error)
+
+		mockDB.Mock.ExpectClose()
+		err = mockDB.Close()
+		assert.NoError(t, err)
+	})
+}

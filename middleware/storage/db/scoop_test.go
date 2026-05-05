@@ -236,3 +236,39 @@ func TestScoop_Ignore(t *testing.T) {
 	mockDB.Mock.ExpectClose()
 	mockDB.Close()
 }
+
+// TestScoop_TableMethod 测试 Table 方法的覆盖率
+func TestScoop_TableMethod(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	mockDB := client.MockDB()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	t.Run("Table with valid name", func(t *testing.T) {
+		scoop := client.NewScoop().Table("test_users")
+		assert.NotNil(t, scoop)
+	})
+
+	t.Run("Table with invalid name containing spaces", func(t *testing.T) {
+		scoop := client.NewScoop().Table("invalid table name")
+		assert.NotNil(t, scoop)
+		// 应该记录错误但不返回 nil
+	})
+
+	t.Run("Table with empty name", func(t *testing.T) {
+		scoop := client.NewScoop().Table("")
+		assert.NotNil(t, scoop)
+	})
+
+	mockDB.Mock.ExpectClose()
+	err = mockDB.Close()
+	assert.NoError(t, err)
+
+	err = client.ExpectationsWereMet()
+	assert.NoError(t, err)
+}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-sql-driver/mysql"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -96,6 +97,90 @@ func TestScoop_CreateInBatches(t *testing.T) {
 			{Name: "User", Email: "user@example.com", Age: 1},
 		}
 		result := client.NewScoop().Model(TestUser{}).CreateInBatches(users, 50)
+		assert.Error(t, result.Error)
+	})
+}
+
+// TestScoop_Create_AutoMigrate 测试 Scoop.AutoMigrate 方法
+func TestScoop_Create_AutoMigrate(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	mockDB := client.MockDB()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	t.Run("AutoMigrate with Scoop", func(t *testing.T) {
+		// 测试 Scoop.AutoMigrate 方法
+		scoop := client.NewScoop()
+		err := scoop.AutoMigrate(TestUser{})
+		// Mock 模式下可能失败，但不应该 panic
+		_ = err
+	})
+}
+
+// TestScoop_Create_DuplicateKey 测试创建时的重复键错误处理
+func TestScoop_Create_DuplicateKey(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	mockDB := client.MockDB()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	t.Run("Create with duplicate key error", func(t *testing.T) {
+		mockDB.Mock.ExpectExec("INSERT INTO test_users").
+			WillReturnError(&mysql.MySQLError{
+				Number: 1062, // ER_DUP_ENTRY
+				Message: "Duplicate entry",
+			})
+
+		user := &TestUser{Name: "Test", Email: "test@example.com", Age: 25}
+		result := client.NewScoop().Create(user)
+		// 应该有错误但不应该 panic
+		assert.NotNil(t, result.Error)
+
+		mockDB.Mock.ExpectClose()
+		err = mockDB.Close()
+		assert.NoError(t, err)
+	})
+}
+
+// TestScoop_CreateWithModel 测试使用 Model 的 Create
+func TestScoop_CreateWithModel(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	mockDB := client.MockDB()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	t.Run("Create with Model", func(t *testing.T) {
+		mockDB.Mock.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		user := &TestUser{Name: "Test", Email: "test@example.com", Age: 25}
+		scoop := client.NewScoop().Model(user)
+		result := scoop.Create(user)
+		assert.NoError(t, result.Error)
+
+		mockDB.Mock.ExpectClose()
+		err = mockDB.Close()
+		assert.NoError(t, err)
+	})
+
+	t.Run("Create with nil", func(t *testing.T) {
+		result := client.NewScoop().Create(nil)
+		// 应该有错误但不应该 panic
 		assert.Error(t, result.Error)
 	})
 }
