@@ -179,3 +179,49 @@ func TestNew_WithMockConfig(t *testing.T) {
 	// 注意：通过 New 函数创建的 mock 客户端无法直接访问 mockDB
 	// 如果需要设置期望，应该使用 NewMock 函数
 }
+
+// TestClient_ExpectClose 测试 ExpectClose 方法
+func TestClient_ExpectClose(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+
+	// 使用 client.ExpectClose() 而不是 client.MockDB().Mock.ExpectClose()
+	expectedClose := client.ExpectClose()
+	assert.NotNil(t, expectedClose)
+
+	// 关闭 mock 连接以满足期望
+	client.MockDB().Close()
+
+	// 验证期望被满足
+	err = client.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+// TestClient_ExpectCloseWithNilMockDB 测试 mockDB 为 nil 时的情况
+func TestClient_ExpectCloseWithNilMockDB(t *testing.T) {
+	// 创建一个非 mock 的客户端
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: false,
+	}
+
+	client, err := db.New(config)
+	// 由于没有真实的数据库连接，这会失败
+	// 但我们可以测试 ExpectClose 在 nil mockDB 的情况
+	if err != nil {
+		// 如果创建失败，说明没有真实数据库，这是预期的
+		t.Skip("No real database available for testing")
+	}
+
+	if client != nil && client.MockDB() == nil {
+		// 测试 nil mockDB 情况
+		expectedClose := client.ExpectClose()
+		assert.Nil(t, expectedClose)
+	}
+}

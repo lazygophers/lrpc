@@ -231,6 +231,18 @@ func TestAutoMigrate_EdgeCases(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
+	t.Run("auto migrate with non-Tabler type", func(t *testing.T) {
+		// 测试不实现 Tabler 接口的类型
+		type NonTabler struct {
+			ID   int64
+			Name string
+		}
+
+		err := client.AutoMigrate(NonTabler{})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "does not implement Tabler interface")
+	})
+
 	t.Run("auto migrate with pointer type", func(t *testing.T) {
 		err := client.AutoMigrate(&TestUser{})
 		// Mock 模式下可能会失败，但不应该 panic
@@ -241,6 +253,20 @@ func TestAutoMigrate_EdgeCases(t *testing.T) {
 		// 多次迁移同一个模型
 		_ = client.AutoMigrate(TestUser{})
 		_ = client.AutoMigrate(TestUser{})
+	})
+
+	t.Run("auto migrate with value type", func(t *testing.T) {
+		// 测试值类型（非指针）
+		err := client.AutoMigrate(TestUser{})
+		// Mock 模式下可能会失败，但不应该 panic
+		_ = err
+	})
+
+	t.Run("auto migrate with nil", func(t *testing.T) {
+		// 测试传入 nil 的情况
+		err := client.AutoMigrate(nil)
+		// 应该返回错误
+		assert.Error(t, err)
 	})
 }
 

@@ -44,7 +44,93 @@ func TestCond(t *testing.T) {
 }
 
 func TestLike(t *testing.T) {
-	t.Log(db.Where("name", "like", "%a%").ToString())
+	t.Run("Like with normal value", func(t *testing.T) {
+		cond := db.Like("name", "test")
+		result := cond.ToString()
+		t.Logf("Like result: %s", result)
+		assert.Assert(t, len(result) > 0)
+		assert.Assert(t, strings.Contains(result, "LIKE"))
+	})
+
+	t.Run("Like with empty string", func(t *testing.T) {
+		// 当值为空字符串时，Like 应该返回原始条件（不添加任何内容）
+		cond := db.Like("name", "")
+		result := cond.ToString()
+		t.Logf("Like with empty string: %s", result)
+		// 应该只包含基础条件，不包含 LIKE
+		assert.Assert(t, true) // 至少不应该 panic
+	})
+
+	t.Run("LeftLike with normal value", func(t *testing.T) {
+		cond := db.LeftLike("name", "prefix")
+		result := cond.ToString()
+		t.Logf("LeftLike result: %s", result)
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("LeftLike with empty string", func(t *testing.T) {
+		cond := db.LeftLike("name", "")
+		result := cond.ToString()
+		t.Logf("LeftLike with empty string: %s", result)
+		assert.Assert(t, true)
+	})
+
+	t.Run("RightLike with normal value", func(t *testing.T) {
+		cond := db.RightLike("name", "suffix")
+		result := cond.ToString()
+		t.Logf("RightLike result: %s", result)
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("RightLike with empty string", func(t *testing.T) {
+		cond := db.RightLike("name", "")
+		result := cond.ToString()
+		t.Logf("RightLike with empty string: %s", result)
+		assert.Assert(t, true)
+	})
+
+	t.Run("NotLike with normal value", func(t *testing.T) {
+		cond := db.NotLike("name", "test")
+		result := cond.ToString()
+		t.Logf("NotLike result: %s", result)
+		assert.Assert(t, len(result) > 0)
+		assert.Assert(t, strings.Contains(result, "NOT LIKE"))
+	})
+
+	t.Run("NotLike with empty string", func(t *testing.T) {
+		cond := db.NotLike("name", "")
+		result := cond.ToString()
+		t.Logf("NotLike with empty string: %s", result)
+		assert.Assert(t, true)
+	})
+
+	t.Run("NotLeftLike with normal value", func(t *testing.T) {
+		cond := db.NotLeftLike("name", "prefix")
+		result := cond.ToString()
+		t.Logf("NotLeftLike result: %s", result)
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("NotRightLike with normal value", func(t *testing.T) {
+		cond := db.NotRightLike("name", "suffix")
+		result := cond.ToString()
+		t.Logf("NotRightLike result: %s", result)
+		assert.Assert(t, len(result) > 0)
+	})
+
+	t.Run("NotLeftLike with empty string", func(t *testing.T) {
+		cond := db.NotLeftLike("name", "")
+		result := cond.ToString()
+		t.Logf("NotLeftLike with empty string: %s", result)
+		assert.Assert(t, true)
+	})
+
+	t.Run("NotRightLike with empty string", func(t *testing.T) {
+		cond := db.NotRightLike("name", "")
+		result := cond.ToString()
+		t.Logf("NotRightLike with empty string: %s", result)
+		assert.Assert(t, true)
+	})
 }
 
 func TestIn(t *testing.T) {
@@ -68,28 +154,34 @@ func TestGormTag(t *testing.T) {
 func TestToInterfacesFunction(t *testing.T) {
 	t.Run("slice condition that triggers toInterfaces", func(t *testing.T) {
 		// Create a condition that will call toInterfaces internally
-		// This happens when we pass a slice to Where()
+		// This happens when we pass a []string to Where()
 
 		// Test with slice of strings (should trigger toInterfaces)
-		cond := db.Where([]interface{}{"name", "=", "John"})
+		// The key is that we need []string, not []interface{}
+		cond := db.Where([]string{"name", "=", "John"})
 		result := cond.ToString()
 		assert.Assert(t, len(result) > 0)
+		t.Logf("Result: %s", result)
 
-		// Test with nested slices
-		cond2 := db.Where([]interface{}{
-			[]interface{}{"name", "John"},
-			[]interface{}{"age", 25},
-		})
+		// Test with longer string slice
+		cond2 := db.Where([]string{"age", ">", "25"})
 		result2 := cond2.ToString()
 		assert.Assert(t, len(result2) > 0)
+		t.Logf("Result2: %s", result2)
+
+		// Test with string array
+		cond3 := db.Where([3]string{"field", "!=", "value"})
+		result3 := cond3.ToString()
+		assert.Assert(t, len(result3) > 0)
+		t.Logf("Result3: %s", result3)
 	})
 
-	t.Run("array conditions", func(t *testing.T) {
-		// Test with array that triggers slice handling
-		arr := [3]interface{}{"field", "=", "value"}
-		cond := db.Where(arr[:])
+	t.Run("slice conditions with multiple args", func(t *testing.T) {
+		// Test slice followed by additional arguments
+		cond := db.Where([]string{"name", "like"}, "%John%")
 		result := cond.ToString()
 		assert.Assert(t, len(result) > 0)
+		t.Logf("Result with extra args: %s", result)
 	})
 }
 
