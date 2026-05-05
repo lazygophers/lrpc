@@ -425,25 +425,29 @@ defer manager.StopAll()
 框架包含完整的测试套件：
 
 ```bash
-# 运行所有测试
+# 运行所有测试（单元测试）
 go test ./...
 
 # 运行特定包的测试
 go test ./middleware/auth/...
 
 # 查看覆盖率
-go test ./... -cover
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out
+
+# 运行集成测试（需要启动 Docker 服务）
+make test-setup
+make test-integration
+make test-teardown
 
 # 运行基准测试
 go test ./... -bench=. -benchmem
 ```
 
-测试覆盖率统计：
-
-- **总体代码**: 21,206 行
-- **测试代码**: 16,123 行
-- **测试文件**: 36 个
-- **平均覆盖率**: ~68.8%
+**测试说明**：
+- 单元测试使用 mock 模式，不需要外部依赖
+- 集成测试需要 Docker 服务（Redis, MySQL, ClickHouse），通过 `make test` 自动管理
+- db 包当前使用 mock 测试，覆盖率约 74%
 
 ## 📖 示例
 
