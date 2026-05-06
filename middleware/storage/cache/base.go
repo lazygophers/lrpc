@@ -14,6 +14,11 @@ type baseCache struct {
 	BaseCache
 }
 
+// Unwrap returns the underlying BaseCache implementation for testing purposes
+func (p *baseCache) Unwrap() BaseCache {
+	return p.BaseCache
+}
+
 func (p *baseCache) SetPb(key string, j proto.Message) error {
 	buffer, err := proto.Marshal(j)
 	if err != nil {
