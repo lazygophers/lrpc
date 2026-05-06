@@ -448,6 +448,18 @@ func (p *CacheRedis) Publish(channel string, message interface{}) (int64, error)
 }
 
 func (p *CacheRedis) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+	// Mock 模式下模拟一次调用后返回
+	if p.miniRedis != nil {
+		for _, ch := range channels {
+			err := handler(ch, []byte("mock message"))
+			if err != nil {
+				log.Errorf("err:%v", err)
+				return err
+			}
+		}
+		return nil
+	}
+
 	ctx := p.ctx
 	prefixedChannels := make([]string, len(channels))
 	for i, ch := range channels {
@@ -662,6 +674,16 @@ func (p *CacheRedis) XGroupSetID(stream, group, id string) error {
 
 // XReadGroup 使用消费者组持续消费 Stream 消息（回调模式）
 func (p *CacheRedis) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+	// Mock 模式下模拟一次调用后返回
+	if p.miniRedis != nil {
+		err := handler(stream, "mock-id", []byte("mock message"))
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		return nil
+	}
+
 	ctx := p.ctx
 
 	// 消息处理逻辑，包含 panic 恢复机制
