@@ -14,3 +14,7 @@ coverage-*.html
 .DS_Store
 .gitnexus
 *.db
+
+.trellis/
+trellis/
+trellis-*
