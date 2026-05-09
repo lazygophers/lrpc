@@ -287,3 +287,36 @@ check-docker:
 
 # 所有测试相关的目标都依赖Docker检查
 test test-with-coverage test-setup benchmark: check-docker
+
+# Spec 相关命令
+check-spec: ## 检查 spec 过期状态（30天未更新）
+	@echo "检查 spec 过期状态..."
+	@if [ -f ".trellis/scripts/check_spec_freshness.py" ]; then \
+		python3 .trellis/scripts/check_spec_freshness.py; \
+	else \
+		echo "⚠️  check_spec_freshness.py 不存在，跳过检查"; \
+	fi
+
+update-spec: ## 交互式更新 spec（基于代码变化）
+	@echo "更新 spec..."
+	@if [ -f ".trellis/scripts/update_spec.py" ]; then \
+		python3 .trellis/scripts/update_spec.py; \
+	else \
+		echo "⚠️  update_spec.py 不存在，请手动更新 spec"; \
+	fi
+
+spec-stats: ## 显示 spec 文档统计信息
+	@echo "Spec 文档统计:"
+	@echo ""
+	@echo "Backend Specs:"
+	@find .trellis/spec/backend -name "*.md" | wc -l | xargs echo "  文件数:"
+	@find .trellis/spec/backend -name "*.md" -exec wc -l {} + | tail -1 | awk '{print "  总行数: " $$1}'
+	@echo ""
+	@echo "Guides:"
+	@find .trellis/spec/guides -name "*.md" | wc -l | xargs echo "  文件数:"
+	@echo ""
+	@echo "最近更新的 spec:"
+	@find .trellis/spec/backend -name "*.md" -type f -exec stat -f "%Sm" -t "%Y-%m-%d %H:%M" {} \; 2>/dev/null | sort -r | head -5 || \
+		find .trellis/spec/backend -name "*.md" -type f -exec stat -c "%y" {} \; 2>/dev/null | sort -r | head -5
+
+.PHONY: check-spec update-spec spec-stats

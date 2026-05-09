@@ -82,27 +82,27 @@ type Channel[T any] interface {
 // RedisConfig Redis 配置
 type RedisConfig struct {
 	// Addr Redis 服务器地址（格式：host:port）
-	Addr string `json:"addr,omitempty" yaml:"addr,omitempty" toml:"addr,omitempty" default:"localhost:6379"`
+	Addr string `json:"addr,omitempty" yaml:"addr,omitempty" toml:"addr,omitempty" default:"localhost:6379" env:"QUEUE_ADDR"`
 	// Password Redis 密码
-	Password string `json:"password,omitempty" yaml:"password,omitempty" toml:"password,omitempty"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty" toml:"password,omitempty" env:"QUEUE_PASSWORD"`
 	// DB Redis 数据库编号
-	DB int `json:"db,omitempty" yaml:"db,omitempty" toml:"db,omitempty" default:"0"`
+	DB int `json:"db,omitempty" yaml:"db,omitempty" toml:"db,omitempty" default:"0" env:"QUEUE_DB"`
 	// KeyPrefix Redis 键名前缀
-	KeyPrefix string `json:"key_prefix,omitempty" yaml:"key_prefix,omitempty" toml:"key_prefix,omitempty" default:"lrpc:queue:"`
+	KeyPrefix string `json:"key_prefix,omitempty" yaml:"key_prefix,omitempty" toml:"key_prefix,omitempty" default:"lrpc:queue:" env:"QUEUE_KEY_PREFIX"`
 	// PoolSize 连接池大小
-	PoolSize int `json:"pool_size,omitempty" yaml:"pool_size,omitempty" toml:"pool_size,omitempty" default:"10"`
+	PoolSize int `json:"pool_size,omitempty" yaml:"pool_size,omitempty" toml:"pool_size,omitempty" default:"10" env:"QUEUE_POOL_SIZE"`
 	// MinIdleConns 最小空闲连接数
-	MinIdleConns int `json:"min_idle_conns,omitempty" yaml:"min_idle_conns,omitempty" toml:"min_idle_conns,omitempty" default:"5"`
+	MinIdleConns int `json:"min_idle_conns,omitempty" yaml:"min_idle_conns,omitempty" toml:"min_idle_conns,omitempty" default:"5" env:"QUEUE_MIN_IDLE_CONNS"`
 	// MaxRetries 最大重试次数
-	MaxRetries int `json:"max_retries,omitempty" yaml:"max_retries,omitempty" toml:"max_retries,omitempty" default:"3"`
+	MaxRetries int `json:"max_retries,omitempty" yaml:"max_retries,omitempty" toml:"max_retries,omitempty" default:"3" env:"QUEUE_MAX_RETRIES"`
 	// DialTimeout 连接超时
-	DialTimeout time.Duration `json:"dial_timeout,omitempty" yaml:"dial_timeout,omitempty" toml:"dial_timeout,omitempty" default:"5s"`
+	DialTimeout time.Duration `json:"dial_timeout,omitempty" yaml:"dial_timeout,omitempty" toml:"dial_timeout,omitempty" default:"5s" env:"QUEUE_DIAL_TIMEOUT"`
 	// ReadTimeout 读取超时
-	ReadTimeout time.Duration `json:"read_timeout,omitempty" yaml:"read_timeout,omitempty" toml:"read_timeout,omitempty" default:"3s"`
+	ReadTimeout time.Duration `json:"read_timeout,omitempty" yaml:"read_timeout,omitempty" toml:"read_timeout,omitempty" default:"3s" env:"QUEUE_READ_TIMEOUT"`
 	// WriteTimeout 写入超时
-	WriteTimeout time.Duration `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty" toml:"write_timeout,omitempty" default:"3s"`
+	WriteTimeout time.Duration `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty" toml:"write_timeout,omitempty" default:"3s" env:"QUEUE_WRITE_TIMEOUT"`
 	// PoolTimeout 连接池超时
-	PoolTimeout time.Duration `json:"pool_timeout,omitempty" yaml:"pool_timeout,omitempty" toml:"pool_timeout,omitempty" default:"4s"`
+	PoolTimeout time.Duration `json:"pool_timeout,omitempty" yaml:"pool_timeout,omitempty" toml:"pool_timeout,omitempty" default:"4s" env:"QUEUE_POOL_TIMEOUT"`
 }
 
 func (p *RedisConfig) apply() {

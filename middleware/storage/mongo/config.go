@@ -10,48 +10,48 @@ import (
 // Config represents MongoDB configuration
 type Config struct {
 	// MongoDB server address, default 127.0.0.1
-	Address string `yaml:"address,omitempty" json:"address,omitempty"`
+	Address string `yaml:"address,omitempty" json:"address,omitempty" env:"MONGO_ADDRESS"`
 
 	// MongoDB server port, default 27017
-	Port int `yaml:"port,omitempty" json:"port,omitempty"`
+	Port int `yaml:"port,omitempty" json:"port,omitempty" env:"MONGO_PORT"`
 
 	// Database name, default test
-	Database string `yaml:"database,omitempty" json:"database,omitempty"`
+	Database string `yaml:"database,omitempty" json:"database,omitempty" env:"MONGO_DATABASE"`
 
 	// MongoDB username for authentication
-	Username string `yaml:"username,omitempty" json:"username,omitempty"`
+	Username string `yaml:"username,omitempty" json:"username,omitempty" env:"MONGO_USERNAME"`
 
 	// MongoDB password for authentication
-	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty" env:"MONGO_PASSWORD"`
 
 	// Authentication database (default: admin)
-	AuthSource string `yaml:"auth_source,omitempty" json:"auth_source,omitempty"`
+	AuthSource string `yaml:"auth_source,omitempty" json:"auth_source,omitempty" env:"MONGO_AUTH_SOURCE"`
 
 	// Replica set name (optional)
-	ReplicaSet string `yaml:"replica_set,omitempty" json:"replica_set,omitempty"`
+	ReplicaSet string `yaml:"replica_set,omitempty" json:"replica_set,omitempty" env:"MONGO_REPLICA_SET"`
 
 	// Debug mode - enables verbose logging
-	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty"`
+	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty" env:"MONGO_DEBUG"`
 
 	// Connection timeout, default 10 seconds
-	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`
+	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty" env:"MONGO_CONNECT_TIMEOUT"`
 
 	// Context timeout for operations, default 30 seconds
-	ContextTimeout time.Duration `yaml:"context_timeout,omitempty" json:"context_timeout,omitempty"`
+	ContextTimeout time.Duration `yaml:"context_timeout,omitempty" json:"context_timeout,omitempty" env:"MONGO_CONTEXT_TIMEOUT"`
 
 	// Max connection pool size, default 100
-	MaxPoolSize uint64 `yaml:"max_pool_size,omitempty" json:"max_pool_size,omitempty"`
+	MaxPoolSize uint64 `yaml:"max_pool_size,omitempty" json:"max_pool_size,omitempty" env:"MONGO_MAX_POOL_SIZE"`
 
 	// Min connection pool size, default 10
-	MinPoolSize uint64 `yaml:"min_pool_size,omitempty" json:"min_pool_size,omitempty"`
+	MinPoolSize uint64 `yaml:"min_pool_size,omitempty" json:"min_pool_size,omitempty" env:"MONGO_MIN_POOL_SIZE"`
 
 	// Max connection idle time, default 5 minutes
-	MaxConnIdleTime time.Duration `yaml:"max_conn_idle_time,omitempty" json:"max_conn_idle_time,omitempty"`
+	MaxConnIdleTime time.Duration `yaml:"max_conn_idle_time,omitempty" json:"max_conn_idle_time,omitempty" env:"MONGO_MAX_CONN_IDLE_TIME"`
 
 	// Logger interface for custom logging (for SQL output)
 	Logger Logger `json:"-" yaml:"-"`
 
-	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty" env:"MONGO_MOCK"`
 }
 
 // apply applies default values to the configuration

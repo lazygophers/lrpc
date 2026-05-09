@@ -29,13 +29,13 @@ type Config struct {
 	// clickhouse: clickhouse|ch
 	// tidb: tidb (MySQL-compatible)
 	// gaussdb: gaussdb (PostgreSQL-compatible)
-	Type string `yaml:"type,omitempty" json:"type,omitempty"`
+	Type string `yaml:"type,omitempty" json:"type,omitempty" env:"DATABASE_TYPE"`
 
 	// Database debug, default false
-	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty"`
+	Debug bool `yaml:"debug,omitempty" json:"debug,omitempty" env:"DATABASE_DEBUG"`
 
 	// Mock mode, if true, use mock database for testing, default false
-	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty" env:"DATABASE_MOCK"`
 
 	// Database address
 	// sqlite: full filepath, default exec path
@@ -44,7 +44,7 @@ type Config struct {
 	// clickhouse: database address, default 127.0.0.1
 	// tidb: database address, default 127.0.0.1
 	// gaussdb: database address, default 127.0.0.1
-	Address string `yaml:"address,omitempty" json:"address,omitempty"`
+	Address string `yaml:"address,omitempty" json:"address,omitempty" env:"DATABASE_ADDRESS"`
 
 	// Database port
 	// sqlite: empty
@@ -53,7 +53,7 @@ type Config struct {
 	// clickhouse: database port, default 9000 (native) or 8123 (http)
 	// tidb: database port, default 4000
 	// gaussdb: database port, default 5432
-	Port int `yaml:"port,omitempty" json:"port,omitempty"`
+	Port int `yaml:"port,omitempty" json:"port,omitempty" env:"DATABASE_PORT"`
 
 	// Database name
 	// sqlite: database file name, default ice.db
@@ -62,14 +62,14 @@ type Config struct {
 	// clickhouse: database name, default default
 	// tidb: database name, default ice
 	// gaussdb: database name, default ice
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
+	Name string `yaml:"name,omitempty" json:"name,omitempty" env:"DATABASE_NAME"`
 
 	// Database username
 	// sqlite: empty
 	// mysql: database username
 	// postgres: database username
 	// sqlserver: database username
-	Username string `yaml:"username,omitempty" json:"username,omitempty"`
+	Username string `yaml:"username,omitempty" json:"username,omitempty" env:"DATABASE_USERNAME"`
 
 	// Database password
 	// sqlite: not supported (use sqlite-cgo for encryption)
@@ -77,32 +77,32 @@ type Config struct {
 	// mysql: database password
 	// postgres: database password
 	// sqlserver: database password
-	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty" env:"DATABASE_PASSWORD"`
 
-	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty"` // 最大空闲连接数，-1 表示不限制
-	MaxOpenConns int `yaml:"max_open_conns,omitempty" json:"max_open_conns,omitempty"` // 最大连接数，-1 表示不限制
+	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty" env:"DATABASE_MAX_IDLE_CONNS"` // 最大空闲连接数，-1 表示不限制
+	MaxOpenConns int `yaml:"max_open_conns,omitempty" json:"max_open_conns,omitempty" env:"DATABASE_MAX_OPEN_CONNS"` // 最大连接数，-1 表示不限制
 
 	// ConnMaxLifetime is the maximum connection lifetime.
 	// Default: 1 hour (avoid long-lived connection issues)
-	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime,omitempty" json:"conn_max_lifetime,omitempty"`
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime,omitempty" json:"conn_max_lifetime,omitempty" env:"DATABASE_CONN_MAX_LIFETIME"`
 
 	// ConnMaxIdleTime is the maximum idle time for connections.
 	// Default: 10 minutes (release idle connections promptly)
-	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty"`
+	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty" env:"DATABASE_CONN_MAX_IDLE_TIME"`
 
 	// ConnectTimeout is the MySQL/TiDB connection timeout.
 	// Default: 5 seconds
-	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty"`
+	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty" json:"connect_timeout,omitempty" env:"DATABASE_CONNECT_TIMEOUT"`
 
 	// ReadTimeout is the MySQL/TiDB read timeout.
 	// Default: 30 seconds
-	ReadTimeout time.Duration `yaml:"read_timeout,omitempty" json:"read_timeout,omitempty"`
+	ReadTimeout time.Duration `yaml:"read_timeout,omitempty" json:"read_timeout,omitempty" env:"DATABASE_READ_TIMEOUT"`
 
 	// WriteTimeout is the MySQL/TiDB write timeout.
 	// Default: 30 seconds
-	WriteTimeout time.Duration `yaml:"write_timeout,omitempty" json:"write_timeout,omitempty"`
+	WriteTimeout time.Duration `yaml:"write_timeout,omitempty" json:"write_timeout,omitempty" env:"DATABASE_WRITE_TIMEOUT"`
 
-	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty"`
+	Extras map[string]string `yaml:"extras,omitempty" json:"extras,omitempty" env:"DATABASE_EXTRAS"`
 
 	Logger Logger `json:"-" yaml:"-"`
 }

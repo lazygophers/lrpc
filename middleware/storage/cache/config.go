@@ -19,67 +19,67 @@ const (
 
 type Config struct {
 	// Cache type, support mem, redis, bbolt, default mem
-	Type string `yaml:"type,omitempty" json:"type,omitempty"`
+	Type string `yaml:"type,omitempty" json:"type,omitempty" env:"CACHE_TYPE"`
 
 	// Cache address
 	// mem: empty
 	// redis: redis address, default 127.0.0.1:6379
 	// bbolt: bbolt file path, default ./ice.cache
-	Address string `yaml:"address,omitempty" json:"address,omitempty"`
+	Address string `yaml:"address,omitempty" json:"address,omitempty" env:"CACHE_ADDRESS"`
 
 	// Cache password
 	// mem: empty
 	// redis: redis password
 	// bbolt: empty
-	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty" env:"CACHE_PASSWORD"`
 
 	// Cache db
 	// mem: empty
 	// redis: redis db, default 0
 	// bbolt: empty
-	Db int `yaml:"db,omitempty" json:"db,omitempty"`
+	Db int `yaml:"db,omitempty" json:"db,omitempty" env:"CACHE_DB"`
 
 	// Cache data dir
 	// mem: empty
 	// redis: empty
 	// bbolt: empty
 	// echo: DataDir, default .
-	DataDir string `yaml:"data_dir,omitempty" json:"data_dir,omitempty"`
+	DataDir string `yaml:"data_dir,omitempty" json:"data_dir,omitempty" env:"CACHE_DATA_DIR"`
 
-	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty"`
+	Mock bool `yaml:"mock,omitempty" json:"mock,omitempty" env:"CACHE_MOCK"`
 
 	// Redis connection pool configuration
 	// PoolSize is the maximum number of socket connections.
 	// Default: 1 (significantly reduces memory usage)
-	PoolSize int `yaml:"pool_size,omitempty" json:"pool_size,omitempty"`
+	PoolSize int `yaml:"pool_size,omitempty" json:"pool_size,omitempty" env:"CACHE_POOL_SIZE"`
 
 	// MinIdleConns is the minimum number of idle connections.
 	// Default: 5 (maintain warm connections for high performance)
-	MinIdleConns int `yaml:"min_idle_conns,omitempty" json:"min_idle_conns,omitempty"`
+	MinIdleConns int `yaml:"min_idle_conns,omitempty" json:"min_idle_conns,omitempty" env:"CACHE_MIN_IDLE_CONNS"`
 
 	// MaxIdleConns is the maximum number of idle connections.
 	// Default: 20 (balance between resource usage and performance)
-	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty"`
+	MaxIdleConns int `yaml:"max_idle_conns,omitempty" json:"max_idle_conns,omitempty" env:"CACHE_MAX_IDLE_CONNS"`
 
 	// ConnMaxLifetime is the maximum connection lifetime.
 	// Default: 1 hour (avoid long-lived connection issues)
-	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime,omitempty" json:"conn_max_lifetime,omitempty"`
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime,omitempty" json:"conn_max_lifetime,omitempty" env:"CACHE_CONN_MAX_LIFETIME"`
 
 	// ConnMaxIdleTime is the maximum idle time for connections.
 	// Default: 10 minutes (release idle connections promptly)
-	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty"`
+	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time,omitempty" json:"conn_max_idle_time,omitempty" env:"CACHE_CONN_MAX_IDLE_TIME"`
 
 	// MaxRetries is the maximum number of retries.
 	// Default: 3 (resilient to transient network failures)
-	MaxRetries int `yaml:"max_retries,omitempty" json:"max_retries,omitempty"`
+	MaxRetries int `yaml:"max_retries,omitempty" json:"max_retries,omitempty" env:"CACHE_MAX_RETRIES"`
 
 	// MinRetryBackoff is the minimum backoff between retries.
 	// Default: 8ms
-	MinRetryBackoff time.Duration `yaml:"min_retry_backoff,omitempty" json:"min_retry_backoff,omitempty"`
+	MinRetryBackoff time.Duration `yaml:"min_retry_backoff,omitempty" json:"min_retry_backoff,omitempty" env:"CACHE_MIN_RETRY_BACKOFF"`
 
 	// MaxRetryBackoff is the maximum backoff between retries.
 	// Default: 512ms
-	MaxRetryBackoff time.Duration `yaml:"max_retry_backoff,omitempty" json:"max_retry_backoff,omitempty"`
+	MaxRetryBackoff time.Duration `yaml:"max_retry_backoff,omitempty" json:"max_retry_backoff,omitempty" env:"CACHE_MAX_RETRY_BACKOFF"`
 }
 
 func (c *Config) apply() {
