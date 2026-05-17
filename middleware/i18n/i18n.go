@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/http"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -345,10 +346,10 @@ var (
 
 		"PluckString": candy.PluckString,
 		"PluckInt":    candy.PluckInt,
-		"PluckInt32":  candy.PluckInt32,
-		"PluckUint32": candy.PluckUint32,
-		"PluckInt64":  candy.PluckInt64,
-		"PluckUint64": candy.PluckUint64,
+		"PluckInt32":  pluckFieldReflect[int32],
+		"PluckUint32": pluckFieldReflect[uint32],
+		"PluckInt64":  pluckFieldReflect[int64],
+		"PluckUint64": pluckFieldReflect[uint64],
 
 		"StringSliceEmpty": func(ss []string) bool {
 			return len(ss) == 0
@@ -468,4 +469,33 @@ func Localize(key string, args ...interface{}) string {
 
 func LoadLocalizes(embedFs fs.FS) error {
 	return DefaultI18n.LoadLocalizes(embedFs)
+}
+
+func pluckFieldReflect[T any](list interface{}, fieldName string) []T {
+	v := reflect.ValueOf(list)
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		return nil
+	}
+
+	n := v.Len()
+	if n == 0 {
+		return nil
+	}
+
+	result := make([]T, 0, n)
+	for i := 0; i < n; i++ {
+		f := v.Index(i)
+		if f.Kind() == reflect.Ptr {
+			f = f.Elem()
+		}
+		field := f.FieldByName(fieldName)
+		if !field.IsValid() {
+			continue
+		}
+		val, ok := field.Interface().(T)
+		if ok {
+			result = append(result, val)
+		}
+	}
+	return result
 }

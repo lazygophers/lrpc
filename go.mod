@@ -1,6 +1,6 @@
 module github.com/lazygophers/lrpc
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/BurntSushi/toml v1.6.0
@@ -15,8 +15,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
 	github.com/kamva/mgm/v3 v3.5.0
-	github.com/lazygophers/log v0.0.0-20260401025533-a788d1124ac7
-	github.com/lazygophers/utils v0.0.0-20260322035829-8c32fbf96378
+	github.com/lazygophers/log v0.0.0-20260505025615-e729d19ba2c1
+	github.com/lazygophers/utils v0.0.0-20260512142338-4f609af8ec16
 	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/pelletier/go-toml/v2 v2.3.0
 	github.com/petermattis/goid v0.0.0-20260330135022-df67b199bc81
@@ -30,7 +30,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.8
 	go.mongodb.org/mongo-driver v1.17.9
 	go.uber.org/atomic v1.11.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/text v0.35.0
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
@@ -95,6 +95,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/lazygophers/log/constant v0.0.0-20260505024342-2c291363de69 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/dns v1.1.69 // indirect
