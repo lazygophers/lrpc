@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/routine"
+	"github.com/lazygophers/utils/xerror"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -27,11 +27,11 @@ type redisTopic[T any] struct {
 
 // redisChannel Redis Stream Channel 实现
 type redisChannel[T any] struct {
-	name    string
-	topic   *redisTopic[T]
-	config  *ChannelConfig
-	stream  string // 完整的 Redis Stream 键名
-	group   string // 消费者组名称
+	name   string
+	topic  *redisTopic[T]
+	config *ChannelConfig
+	stream string // 完整的 Redis Stream 键名
+	group  string // 消费者组名称
 
 	mu     sync.Mutex
 	closed bool
@@ -150,12 +150,12 @@ func (t *redisTopic[T]) GetOrAddChannel(name string, config *ChannelConfig) (Cha
 	group := fmt.Sprintf("%s:%s", t.name, name)
 
 	ch := &redisChannel[T]{
-		name:    name,
-		topic:   t,
-		config:  config,
-		stream:  stream,
-		group:   group,
-		closed:  false,
+		name:   name,
+		topic:  t,
+		config: config,
+		stream: stream,
+		group:  group,
+		closed: false,
 	}
 
 	// 创建消费者组（如果不存在）

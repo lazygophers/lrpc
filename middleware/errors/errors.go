@@ -5,7 +5,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 	"github.com/valyala/fasthttp"
 )
 
@@ -56,18 +56,18 @@ func handleXError(ctx *fasthttp.RequestCtx, err *xerror.Error) {
 	statusCode := fasthttp.StatusOK
 
 	// Map error codes to HTTP status codes
-	switch err.Code {
-	case int32(core.ErrCode_StatusBadRequest):
+	switch err.Code() {
+	case int(core.ErrCode_StatusBadRequest):
 		statusCode = fasthttp.StatusBadRequest
-	case int32(core.ErrCode_StatusUnauthorized):
+	case int(core.ErrCode_StatusUnauthorized):
 		statusCode = fasthttp.StatusUnauthorized
-	case int32(core.ErrCode_StatusForbidden):
+	case int(core.ErrCode_StatusForbidden):
 		statusCode = fasthttp.StatusForbidden
-	case int32(core.ErrCode_StatusNotFound):
+	case int(core.ErrCode_StatusNotFound):
 		statusCode = fasthttp.StatusNotFound
-	case int32(core.ErrCode_StatusConflict):
+	case int(core.ErrCode_StatusConflict):
 		statusCode = fasthttp.StatusConflict
-	case int32(core.ErrCode_StatusInternalServerError):
+	case int(core.ErrCode_StatusInternalServerError):
 		statusCode = fasthttp.StatusInternalServerError
 	default:
 		// For custom error codes, use 200 OK
@@ -77,5 +77,5 @@ func handleXError(ctx *fasthttp.RequestCtx, err *xerror.Error) {
 	ctx.SetStatusCode(statusCode)
 	ctx.SetContentType("application/json")
 	ctx.SetBodyString(fmt.Sprintf(`{"code":%d,"message":"%s","hint":"%s"}`,
-		err.Code, err.Msg, log.GetTrace()))
+		err.Code(), err.Msg(), log.GetTrace()))
 }

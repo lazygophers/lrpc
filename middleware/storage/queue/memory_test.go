@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 )
 
 type TestMsg struct {
@@ -95,8 +95,8 @@ func TestMemoryTopicPubClosed(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，但没有返回错误")
 	}
-	if !xerror.CheckCode(err, ErrTopicClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrTopicClosed)
+	if !(xerror.Code(err) == ErrTopicClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrTopicClosed)
 	}
 }
 
@@ -235,8 +235,8 @@ func TestMemoryTopicGetOrAddChannelClosed(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，但没有返回错误")
 	}
-	if !xerror.CheckCode(err, ErrTopicClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrTopicClosed)
+	if !(xerror.Code(err) == ErrTopicClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrTopicClosed)
 	}
 }
 
@@ -260,8 +260,8 @@ func TestMemoryTopicGetChannel(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，但没有返回错误")
 	}
-	if !xerror.CheckCode(err, ErrChannelNotFound) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelNotFound)
+	if !(xerror.Code(err) == ErrChannelNotFound) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelNotFound)
 	}
 }
 
@@ -437,8 +437,8 @@ func TestMemoryChannelNextClosed(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，但没有返回错误")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -542,8 +542,8 @@ func TestMemoryChannelTryNextTimeoutThenClosed(t *testing.T) {
 	if msg != nil {
 		t.Error("期望返回 nil 消息")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -562,8 +562,8 @@ func TestMemoryChannelTryNextImmediateTimeoutThenClosed(t *testing.T) {
 	if msg != nil {
 		t.Error("期望返回 nil 消息")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -620,8 +620,8 @@ func TestMemoryChannelTryNextEdgeCases(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，但没有返回错误")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -728,8 +728,8 @@ func TestMemoryChannelClose(t *testing.T) {
 	if err == nil {
 		t.Error("Close() 第二次关闭期望返回错误")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -893,8 +893,8 @@ func TestMemoryChannelDoubleClose(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，因为 channel 已经关闭")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -1110,8 +1110,8 @@ func TestMemoryChannelNextEmptyQueueEdge(t *testing.T) {
 		if err == nil {
 			t.Error("期望错误")
 		}
-		if !xerror.CheckCode(err, ErrChannelClosed) {
-			t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+		if !(xerror.Code(err) == ErrChannelClosed) {
+			t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 		}
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("测试超时")
@@ -1206,8 +1206,8 @@ func TestMemoryChannelAckOnClosedChannel(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，因为 channel 已关闭")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -1224,8 +1224,8 @@ func TestMemoryChannelNackOnClosedChannel(t *testing.T) {
 	if err == nil {
 		t.Error("期望错误，因为 channel 已关闭")
 	}
-	if !xerror.CheckCode(err, ErrChannelClosed) {
-		t.Errorf("错误码 = %v, want %v", xerror.GetCode(err), ErrChannelClosed)
+	if !(xerror.Code(err) == ErrChannelClosed) {
+		t.Errorf("错误码 = %v, want %v", xerror.Code(err), ErrChannelClosed)
 	}
 }
 
@@ -1556,4 +1556,3 @@ func TestMessageCloneWithExpiresAt(t *testing.T) {
 		t.Errorf("克隆后的 ExpiresAt = %d, 原消息 = %d", cloned.ExpiresAt, msg.ExpiresAt)
 	}
 }
-

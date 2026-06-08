@@ -11,9 +11,9 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/storage/etcd"
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/xerror"
 
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/runtime"
@@ -71,7 +71,7 @@ func (p *Config) Get(key string) ([]byte, error) {
 	item, err := p.getDisk(key)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, xerror.New(int32(core.ErrCode_ConfigNotFound))
+			return nil, xerror.New(int(core.ErrCode_ConfigNotFound))
 		}
 
 		log.Errorf("err:%v", err)

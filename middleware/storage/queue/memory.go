@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/routine"
+	"github.com/lazygophers/utils/xerror"
 )
 
 // memoryTopic 内存 Topic 实现

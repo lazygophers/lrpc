@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/lazygophers/log"
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 	"gorm.io/gorm"
 )
 
@@ -94,22 +94,22 @@ func (p *Scoop) getNotFoundError() error {
 	if p.notFoundError != nil {
 		return p.notFoundError
 	}
-	return xerror.New(xerror.ErrNoData, "record not found")
+	return xerror.New(xerror.CodeNoData, "record not found")
 }
 
 func (p *Scoop) getDuplicatedKeyError() error {
 	if p.duplicatedKeyError != nil {
 		return p.duplicatedKeyError
 	}
-	return xerror.New(xerror.ErrConflict, "duplicate key error")
+	return xerror.New(xerror.CodeConflict, "duplicate key error")
 }
 
 func (p *Scoop) IsNotFound(err error) bool {
-	return xerror.CheckCode(err, xerror.ErrNoData) || err == gorm.ErrRecordNotFound
+	return xerror.Code(err) == xerror.CodeNoData || err == gorm.ErrRecordNotFound
 }
 
 func (p *Scoop) IsDuplicatedKeyError(err error) bool {
-	return xerror.CheckCode(err, xerror.ErrConflict)
+	return xerror.Code(err) == xerror.CodeConflict
 }
 
 func (p *Scoop) AutoMigrate(dst ...interface{}) error {

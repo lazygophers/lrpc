@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 	"gorm.io/gorm"
 )
 
@@ -67,7 +67,7 @@ func (p *Model[M]) IsDuplicatedKeyError(err error) bool {
 
 	if p.duplicatedKeyError != nil {
 		if x, ok := err.(*xerror.Error); ok {
-			return xerror.CheckCode(err, x.Code)
+			return xerror.Code(err) == x.Code()
 		}
 
 		return errors.Is(err, p.duplicatedKeyError)

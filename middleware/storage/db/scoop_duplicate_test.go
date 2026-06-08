@@ -6,7 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lazygophers/lrpc/middleware/storage/db"
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestScoop_Create_DuplicateKeyError(t *testing.T) {
 
 	t.Run("Create with duplicate key error", func(t *testing.T) {
 		mockDB.Mock.ExpectExec("INSERT INTO test_users").
-			WillReturnError(xerror.New(xerror.ErrConflict, "duplicate key error"))
+			WillReturnError(xerror.New(xerror.CodeConflict, "duplicate key error"))
 
 		scoop := client.NewScoop().Table("test_users")
 		user := &TestUser{Name: "Test", Email: "test@example.com", Age: 25}
@@ -53,7 +53,7 @@ func TestScoop_IsDuplicatedKeyError(t *testing.T) {
 
 	t.Run("IsDuplicatedKeyError with ErrConflict", func(t *testing.T) {
 		scoop := client.NewScoop()
-		err := xerror.New(xerror.ErrConflict, "duplicate key")
+		err := xerror.New(xerror.CodeConflict, "duplicate key")
 		assert.True(t, scoop.IsDuplicatedKeyError(err))
 	})
 
@@ -83,7 +83,7 @@ func TestScoop_Update_DuplicateKeyError(t *testing.T) {
 
 	t.Run("Updates with duplicate key error", func(t *testing.T) {
 		mockDB.Mock.ExpectExec("UPDATE test_users.*").
-			WillReturnError(xerror.New(xerror.ErrConflict, "duplicate key error"))
+			WillReturnError(xerror.New(xerror.CodeConflict, "duplicate key error"))
 
 		scoop := client.NewScoop().Table("test_users")
 		result := scoop.Where("id", 1).Updates("name", "Updated")
@@ -112,7 +112,7 @@ func TestScoop_CreateInBatches_DuplicateKeyError(t *testing.T) {
 
 	t.Run("CreateInBatches with duplicate key error", func(t *testing.T) {
 		mockDB.Mock.ExpectExec("INSERT INTO test_users").
-			WillReturnError(xerror.New(xerror.ErrConflict, "duplicate key error"))
+			WillReturnError(xerror.New(xerror.CodeConflict, "duplicate key error"))
 
 		scoop := client.NewScoop().Table("test_users")
 		users := []*TestUser{

@@ -10,11 +10,11 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/storage/etcd"
-	"github.com/lazygophers/lrpc/middleware/xerror"
 	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/routine"
 	"github.com/lazygophers/utils/runtime"
+	"github.com/lazygophers/utils/xerror"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/fsnotify/fsnotify"
@@ -118,7 +118,7 @@ func (p *Discovery) GetServer(name string) (*core.ServiceDiscoveryService, error
 	if err == nil {
 		return service, nil
 	} else if os.IsNotExist(err) {
-		return nil, xerror.New(int32(core.ErrCode_ServerNodeNotFound))
+		return nil, xerror.New(int(core.ErrCode_ServerNodeNotFound))
 	}
 
 	return nil, err

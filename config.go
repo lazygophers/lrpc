@@ -7,7 +7,7 @@ import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
 	"github.com/lazygophers/lrpc/middleware/pool"
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 )
 
 type ListenData struct {
@@ -43,17 +43,19 @@ type Config struct {
 
 var defaultOnError = func(ctx *Ctx, err error) {
 	var x *xerror.Error
-	var ok bool
-	if ok = errors.As(err, &x); !ok {
-		x = &xerror.Error{
-			Code: -1,
-			Msg:  err.Error(),
-		}
+	var code int32
+	var msg string
+	if errors.As(err, &x) {
+		code = int32(x.Code())
+		msg = x.Msg()
+	} else {
+		code = -1
+		msg = err.Error()
 	}
 
 	err = ctx.SendJson(&core.BaseResponse{
-		Code:    x.Code,
-		Message: x.Msg,
+		Code:    code,
+		Message: msg,
 		Hint:    log.GetTrace(),
 	})
 	if err != nil {

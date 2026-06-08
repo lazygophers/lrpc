@@ -3,7 +3,7 @@ package lrpc
 import (
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/lrpc/middleware/core"
-	"github.com/lazygophers/lrpc/middleware/xerror"
+	"github.com/lazygophers/utils/xerror"
 	"github.com/valyala/fasthttp"
 	"google.golang.org/protobuf/proto"
 )
@@ -65,14 +65,14 @@ func Call(ctx *Ctx, c *core.ServiceDiscoveryClient, req proto.Message, rsp proto
 	if err != nil {
 		if response.StatusCode() != fasthttp.StatusOK {
 			log.Errorf("status %d", response.StatusCode())
-			return xerror.New(int32(response.StatusCode()))
+			return xerror.New(response.StatusCode())
 		}
 		log.Errorf("err:%v", err)
 		return err
 	}
 
 	if baseResp.Code != 0 {
-		return xerror.NewErrorWithMsg(baseResp.Code, baseResp.Message)
+		return xerror.NewWithMsg(int(baseResp.Code), baseResp.Message)
 	}
 
 	if rsp != nil {
