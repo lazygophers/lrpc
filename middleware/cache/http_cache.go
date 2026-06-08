@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/lazygophers/log"
@@ -73,8 +74,7 @@ func BuildCacheControl(config CacheConfig) string {
 	var directives []string
 
 	if config.NoStore {
-		directives = append(directives, "no-store")
-		return joinDirectives(directives)
+		return "no-store"
 	}
 
 	if config.NoCache {
@@ -115,19 +115,7 @@ func BuildCacheControl(config CacheConfig) string {
 		directives = append(directives, fmt.Sprintf("stale-if-error=%d", config.StaleIfError))
 	}
 
-	return joinDirectives(directives)
-}
-
-func joinDirectives(directives []string) string {
-	if len(directives) == 0 {
-		return ""
-	}
-
-	result := directives[0]
-	for i := 1; i < len(directives); i++ {
-		result += ", " + directives[i]
-	}
-	return result
+	return strings.Join(directives, ", ")
 }
 
 // GenerateETag generates an ETag for the response body
@@ -155,23 +143,7 @@ func CheckETag(ctx *fasthttp.RequestCtx, etag string) bool {
 	}
 
 	// Check for multiple ETags (comma-separated)
-	// Note: This is a simplified check, proper implementation should handle quoted strings
-	// For now, we'll just check if our etag is contained in the header
-	return contains(ifNoneMatch, etag)
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)+1] == substr+"," || s[len(s)-len(substr)-1:] == ","+substr || containsMiddle(s, substr)))
-}
-
-func containsMiddle(s, substr string) bool {
-	target := "," + substr + ","
-	for i := 0; i <= len(s)-len(target); i++ {
-		if s[i:i+len(target)] == target {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(ifNoneMatch, etag)
 }
 
 // CheckModifiedSince checks if resource was modified since the given time
@@ -209,11 +181,7 @@ func SetCacheHeaders(ctx *fasthttp.RequestCtx, config CacheConfig) {
 
 	// Set Vary header
 	if len(config.Vary) > 0 {
-		vary := config.Vary[0]
-		for i := 1; i < len(config.Vary); i++ {
-			vary += ", " + config.Vary[i]
-		}
-		ctx.Response.Header.Set("Vary", vary)
+		ctx.Response.Header.Set("Vary", strings.Join(config.Vary, ", "))
 	}
 
 	// Set ETag if not NoStore and response body exists
@@ -322,11 +290,11 @@ func ParseCacheControl(cacheControl string) map[string]string {
 	directives := splitDirectives(cacheControl)
 	for _, directive := range directives {
 		var key, value string
-		if idx := findChar(directive, '='); idx >= 0 {
-			key = trimSpace(directive[:idx])
-			value = trimSpace(directive[idx+1:])
+		if idx := strings.IndexByte(directive, '='); idx >= 0 {
+			key = strings.TrimSpace(directive[:idx])
+			value = strings.TrimSpace(directive[idx+1:])
 		} else {
-			key = trimSpace(directive)
+			key = strings.TrimSpace(directive)
 			value = "true"
 		}
 		result[key] = value
@@ -336,54 +304,15 @@ func ParseCacheControl(cacheControl string) map[string]string {
 }
 
 func splitDirectives(s string) []string {
-	var result []string
-	var current string
-	inQuotes := false
-
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c == '"' {
-			inQuotes = !inQuotes
-			current += string(c)
-		} else if c == ',' && !inQuotes {
-			if current != "" {
-				result = append(result, current)
-				current = ""
-			}
-		} else {
-			current += string(c)
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
 		}
 	}
-
-	if current != "" {
-		result = append(result, current)
-	}
-
 	return result
-}
-
-func findChar(s string, c byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			return i
-		}
-	}
-	return -1
-}
-
-func trimSpace(s string) string {
-	start := 0
-	end := len(s)
-
-	for start < end && (s[start] == ' ' || s[start] == '\t') {
-		start++
-	}
-
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t') {
-		end--
-	}
-
-	return s[start:end]
 }
 
 // GetCacheControlMaxAge extracts max-age from Cache-Control header
