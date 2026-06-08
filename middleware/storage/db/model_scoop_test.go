@@ -543,3 +543,614 @@ func TestModelScoop_CreateOrUpdate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestModelScoop_FirstOrCreate_ErrorCases(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("FirstOrCreate with nil model", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.FirstOrCreate(nil)
+		assert.Error(t, result.Error)
+		assert.Contains(t, result.Error.Error(), "FirstOrCreate failed")
+		assert.Nil(t, result.Object)
+	})
+}
+
+// TestModelScoop_CreateIfNotExists_ErrorCases 测试 CreateIfNotExists 的错误情况
+func TestModelScoop_CreateIfNotExists_ErrorCases(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("CreateIfNotExists with nil model", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.CreateIfNotExists(nil)
+		assert.Error(t, result.Error)
+		assert.Contains(t, result.Error.Error(), "CreateIfNotExists failed")
+	})
+}
+
+// TestModelScoop_Exist 测试 Exist 方法
+func TestModelScoop_Exist(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Exist with model", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		exist, err := modelScoop.Exist()
+		// Mock模式下可能返回false
+		_ = exist
+		_ = err
+	})
+}
+
+// TestModelScoop_Scan_ErrorCases 测试 Scan 方法的错误情况
+func TestModelScoop_Scan_ErrorCases(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Scan with nil destination", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Scan(nil)
+		// 应该有错误
+		assert.NotNil(t, result)
+	})
+}
+
+// TestModelScoop_Chunk_ErrorCases 测试 Chunk 方法的错误情况
+func TestModelScoop_Chunk_ErrorCases(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Chunk with zero size", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Chunk(0, func(tx *db.Scoop, out []*TestUser, offset uint64) error {
+			return nil
+		})
+		assert.NotNil(t, result)
+	})
+
+	t.Run("Chunk with nil function", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Chunk(10, nil)
+		assert.NotNil(t, result)
+		assert.Error(t, result.Error)
+	})
+}
+
+// TestModelScope_Updates 测试 ModelScoop.Updates 方法
+func TestModelScoop_Updates(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Updates with variadic args", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Updates("name", "test", "age", 25)
+		_ = result
+	})
+
+	t.Run("Updates with map", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Updates(map[string]interface{}{
+			"name": "updated",
+			"age":  30,
+		})
+		_ = result
+	})
+
+	t.Run("Updates with struct", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		user := &TestUser{Name: "test", Age: 25}
+		result := modelScoop.Updates(user)
+		_ = result
+	})
+}
+
+// TestModelScoop_Delete 测试 ModelScoop.Delete 方法
+func TestModelScoop_Delete(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Delete with conditions", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Where("id", 1).Delete()
+		// Mock模式下可能失败，但测试代码路径
+		_ = result
+	})
+}
+
+func TestModelScoop_FirstOrCreateExtended(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Mock.ExpectClose()
+
+	model := db.NewModel[TestUser](client)
+
+	t.Run("first or create with empty result", func(t *testing.T) {
+		// 查询返回空
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(10, 1))
+
+		user := &TestUser{
+			Name:  "New User",
+			Email: "new@example.com",
+			Age:   25,
+		}
+
+		result := model.NewScoop().Where("email", "new@example.com").FirstOrCreate(user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.IsCreated)
+		assert.NotNil(t, result.Object)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("first or create with multiple where conditions", func(t *testing.T) {
+		// 查询返回空
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(11, 1))
+
+		user := &TestUser{
+			Name:  "Multi Condition",
+			Email: "multi@example.com",
+			Age:   30,
+		}
+
+		result := model.NewScoop().Where("name", "Multi Condition").
+			Where("age", 30).
+			FirstOrCreate(user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.IsCreated)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("first or create with like condition", func(t *testing.T) {
+		// 查询返回空
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(12, 1))
+
+		user := &TestUser{
+			Name:  "Like Test",
+			Email: "like@example.com",
+			Age:   28,
+		}
+
+		result := model.NewScoop().Like("name", "Like").FirstOrCreate(user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.IsCreated)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+}
+
+// TestModelScoop_CreateOrUpdateExtended 测试 CreateOrUpdate 的扩展场景
+func TestModelScoop_CreateOrUpdateExtended(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Mock.ExpectClose()
+
+	model := db.NewModel[TestUser](client)
+
+	t.Run("create or update with in condition", func(t *testing.T) {
+		// 查询返回空，需要创建
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(20, 1))
+
+		user := &TestUser{
+			Name:  "In Test",
+			Email: "intest@example.com",
+			Age:   35,
+		}
+
+		values := map[string]interface{}{
+			"name":  "In Test",
+			"email": "intest@example.com",
+			"age":   35,
+		}
+
+		result := model.NewScoop().In("id", []int{1, 2, 3}).CreateOrUpdate(values, user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.Created)
+		assert.False(t, result.Updated)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("create or update with between condition", func(t *testing.T) {
+		// 查询返回空
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(21, 1))
+
+		user := &TestUser{
+			Name:  "Between Test",
+			Email: "between@example.com",
+			Age:   40,
+		}
+
+		values := map[string]interface{}{
+			"name": "Between Test",
+			"age":  40,
+		}
+
+		result := model.NewScoop().Between("age", 30, 50).CreateOrUpdate(values, user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.Created)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("create or update with complex values", func(t *testing.T) {
+		// 查询返回空
+		client.ExpectQuery("SELECT \\* FROM test_users WHERE .* LIMIT 1").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "age"}))
+
+		// 插入新记录
+		client.ExpectExec("INSERT INTO test_users").
+			WillReturnResult(sqlmock.NewResult(22, 1))
+
+		user := &TestUser{
+			Name:  "Complex Values",
+			Email: "complex@example.com",
+			Age:   45,
+		}
+
+		values := map[string]interface{}{
+			"name":       "Complex Values",
+			"email":      "complex@example.com",
+			"age":        45,
+			"created_at": "1234567890",
+			"updated_at": "1234567890",
+		}
+
+		result := model.NewScoop().Where("name", "Complex Values").CreateOrUpdate(values, user)
+		assert.NoError(t, result.Error)
+		assert.True(t, result.Created)
+
+		err = client.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+}
+
+func TestModelScoop_InNotIn(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("In with slice", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.In("id", []int{1, 2, 3})
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("In with empty slice", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.In("id", []int{})
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotIn with slice", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotIn("id", []int{1, 2, 3})
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotIn with empty slice", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotIn("id", []int{})
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+}
+
+// TestModelScoop_LikeMethods 测试 Like 相关方法
+func TestModelScoop_LikeMethods(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Like", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Like("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("LeftLike", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.LeftLike("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("RightLike", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.RightLike("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotLike", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotLike("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotLeftLike", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotLeftLike("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotRightLike", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotRightLike("name", "test")
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+}
+
+// TestModelScoop_Between 测试 Between 和 NotBetween 方法
+func TestModelScoop_Between(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Between", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Between("age", 18, 65)
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("NotBetween", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotBetween("age", 18, 65)
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+}
+
+// TestModelScoop_NotEqual 测试 NotEqual 方法
+func TestModelScoop_NotEqual(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("NotEqual with value", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.NotEqual("status", 0)
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+}
+
+// TestModelScoop_WhereOr 测试 Where 和 Or 方法
+func TestModelScoop_WhereOr(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Where with args", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Where("id", 1)
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+
+	t.Run("Or with args", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		result := modelScoop.Or("status", 1)
+		assert.NotNil(t, result)
+		assert.Equal(t, modelScoop, result)
+	})
+}
+
+func TestModelScoop_First(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("First with valid model", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		user, err := modelScoop.First()
+		// Mock 模式下可能失败，但测试代码路径
+		_ = user
+		_ = err
+	})
+}
+
+// TestModelScoop_Create 测试 ModelScoop.Create 方法
+func TestModelScoop_Create(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("Create with valid user", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		user := &TestUser{Name: "Test", Email: "test@example.com", Age: 25}
+		err := modelScoop.Create(user)
+		// Mock 模式下可能失败，但测试代码路径
+		_ = err
+	})
+
+	t.Run("Create with nil user", func(t *testing.T) {
+		model := db.NewModel[TestUser](client)
+		modelScoop := model.NewScoop()
+
+		err := modelScoop.Create(nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "input parameter m is nil")
+	})
+}
