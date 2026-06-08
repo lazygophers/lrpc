@@ -93,17 +93,7 @@ func (c *Config) apply() {
 			c.Address, _ = os.Executable()
 			c.Address = filepath.Join(c.Address, app.Name+".cache")
 		}
-	case SugarDB:
-		if c.DataDir == "" {
-			c.DataDir, _ = os.Executable()
-			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
-		}
-	case Bitcask:
-		if c.DataDir == "" {
-			c.DataDir, _ = os.Executable()
-			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")
-		}
-	case LevelDB:
+	case SugarDB, Bitcask, LevelDB:
 		if c.DataDir == "" {
 			c.DataDir, _ = os.Executable()
 			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")

@@ -1,14 +1,14 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/lazygophers/log"
-	"gorm.io/gorm/utils"
+	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/json"
 )
 
 func (p *CacheMem) XAdd(stream string, values map[string]interface{}) (string, error) {
@@ -391,7 +391,7 @@ func (p *CacheMem) XReadGroup(handler func(stream string, id string, body []byte
 				var body []byte
 				if len(msg.Values) == 1 {
 					for _, v := range msg.Values {
-						body = []byte(utils.ToString(v))
+						body = []byte(candy.ToString(v))
 						break
 					}
 				} else {

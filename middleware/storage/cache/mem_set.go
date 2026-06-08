@@ -1,9 +1,10 @@
 package cache
 
 import (
-	"encoding/json"
 	"math/rand"
 	"time"
+
+	"github.com/lazygophers/utils/json"
 )
 
 func (p *CacheMem) SAdd(key string, members ...string) (int64, error) {

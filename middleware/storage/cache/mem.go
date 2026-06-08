@@ -7,7 +7,7 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/atexit"
-	"gorm.io/gorm/utils"
+	"github.com/lazygophers/utils/candy"
 )
 
 // PubSubSubscription 订阅信息
@@ -188,7 +188,7 @@ func (p *CacheMem) SetEx(key string, value any, timeout time.Duration) error {
 	defer p.Unlock()
 
 	p.data[key] = &Item{
-		Data:     utils.ToString(value),
+		Data:     candy.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
 
@@ -231,7 +231,7 @@ func (p *CacheMem) SetNx(key string, value interface{}) (bool, error) {
 	}
 
 	p.data[key] = &Item{
-		Data: utils.ToString(value),
+		Data: candy.ToString(value),
 	}
 
 	return true, nil
@@ -249,7 +249,7 @@ func (p *CacheMem) SetNxWithTimeout(key string, value interface{}, timeout time.
 	}
 
 	p.data[key] = &Item{
-		Data:     utils.ToString(value),
+		Data:     candy.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
 
@@ -281,7 +281,7 @@ func (p *CacheMem) Set(key string, val any) error {
 	defer p.Unlock()
 
 	p.data[key] = &Item{
-		Data: utils.ToString(val),
+		Data: candy.ToString(val),
 	}
 
 	return nil

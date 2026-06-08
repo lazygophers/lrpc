@@ -538,83 +538,53 @@ func (p *CacheRedis) XLen(stream string) (int64, error) {
 func (p *CacheRedis) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
 	ctx := p.ctx
 
-	var result []map[string]interface{}
+	var msgs []redis.XMessage
+	var err error
 
 	if len(count) > 0 && count[0] > 0 {
-		// 使用 COUNT 限制
-		msgs, err := p.cli.XRangeN(ctx, p.prefix+stream, start, stop, count[0]).Result()
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return nil, err
-		}
-
-		for _, msg := range msgs {
-			entry := make(map[string]interface{})
-			entry["id"] = msg.ID
-			for k, v := range msg.Values {
-				entry[k] = v
-			}
-			result = append(result, entry)
-		}
+		msgs, err = p.cli.XRangeN(ctx, p.prefix+stream, start, stop, count[0]).Result()
 	} else {
-		msgs, err := p.cli.XRange(ctx, p.prefix+stream, start, stop).Result()
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return nil, err
-		}
-
-		for _, msg := range msgs {
-			entry := make(map[string]interface{})
-			entry["id"] = msg.ID
-			for k, v := range msg.Values {
-				entry[k] = v
-			}
-			result = append(result, entry)
-		}
+		msgs, err = p.cli.XRange(ctx, p.prefix+stream, start, stop).Result()
+	}
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
 	}
 
-	return result, nil
+	return xMessagesToMaps(msgs), nil
 }
 
 // XRevRange 返回 Stream 中的反向消息范围
 func (p *CacheRedis) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
 	ctx := p.ctx
 
-	var result []map[string]interface{}
+	var msgs []redis.XMessage
+	var err error
 
 	if len(count) > 0 && count[0] > 0 {
-		msgs, err := p.cli.XRevRangeN(ctx, p.prefix+stream, start, stop, count[0]).Result()
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return nil, err
-		}
-
-		for _, msg := range msgs {
-			entry := make(map[string]interface{})
-			entry["id"] = msg.ID
-			for k, v := range msg.Values {
-				entry[k] = v
-			}
-			result = append(result, entry)
-		}
+		msgs, err = p.cli.XRevRangeN(ctx, p.prefix+stream, start, stop, count[0]).Result()
 	} else {
-		msgs, err := p.cli.XRevRange(ctx, p.prefix+stream, start, stop).Result()
-		if err != nil {
-			log.Errorf("err:%v", err)
-			return nil, err
-		}
-
-		for _, msg := range msgs {
-			entry := make(map[string]interface{})
-			entry["id"] = msg.ID
-			for k, v := range msg.Values {
-				entry[k] = v
-			}
-			result = append(result, entry)
-		}
+		msgs, err = p.cli.XRevRange(ctx, p.prefix+stream, start, stop).Result()
+	}
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
 	}
 
-	return result, nil
+	return xMessagesToMaps(msgs), nil
+}
+
+func xMessagesToMaps(msgs []redis.XMessage) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(msgs))
+	for i, msg := range msgs {
+		entry := make(map[string]interface{}, len(msg.Values)+1)
+		entry["id"] = msg.ID
+		for k, v := range msg.Values {
+			entry[k] = v
+		}
+		result[i] = entry
+	}
+	return result
 }
 
 // XDel 删除 Stream 中的消息

@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/lazygophers/log"
-	"gorm.io/gorm/utils"
+	"github.com/lazygophers/utils/candy"
 )
 
 // Publish 发布消息到指定频道
@@ -23,7 +23,7 @@ func (p *CacheMem) Publish(channel string, message interface{}) (int64, error) {
 	case string:
 		msgBytes = []byte(v)
 	default:
-		msgBytes = []byte(utils.ToString(message))
+		msgBytes = []byte(candy.ToString(message))
 	}
 
 	// 异步发送给所有订阅者

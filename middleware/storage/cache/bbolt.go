@@ -13,7 +13,6 @@ import (
 	"github.com/lazygophers/utils/candy"
 	"github.com/lazygophers/utils/json"
 	"go.etcd.io/bbolt"
-	"gorm.io/gorm/utils"
 )
 
 type CacheBbolt struct {
@@ -674,7 +673,7 @@ func (p *CacheBbolt) clear() {
 
 func (p *CacheBbolt) SetEx(key string, value any, timeout time.Duration) error {
 	item := &Item{
-		Data:     utils.ToString(value),
+		Data:     candy.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
 
@@ -718,7 +717,7 @@ func (p *CacheBbolt) Get(key string) (string, error) {
 
 func (p *CacheBbolt) Set(key string, value any) error {
 	item := &Item{
-		Data: utils.ToString(value),
+		Data: candy.ToString(value),
 	}
 
 	return p.conn.Update(func(tx *bbolt.Tx) error {
@@ -732,7 +731,7 @@ func (p *CacheBbolt) Set(key string, value any) error {
 
 func (p *CacheBbolt) SetNx(key string, value interface{}) (bool, error) {
 	item := &Item{
-		Data: utils.ToString(value),
+		Data: candy.ToString(value),
 	}
 
 	var ok bool
@@ -753,7 +752,7 @@ func (p *CacheBbolt) SetNx(key string, value interface{}) (bool, error) {
 
 func (p *CacheBbolt) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	item := &Item{
-		Data:     utils.ToString(value),
+		Data:     candy.ToString(value),
 		ExpireAt: time.Now().Add(timeout),
 	}
 

@@ -1,11 +1,11 @@
 package cache
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
-	"gorm.io/gorm/utils"
+	"github.com/lazygophers/utils/candy"
+	"github.com/lazygophers/utils/json"
 )
 
 func (p *CacheMem) HIncr(key string, subKey string) (int64, error) {
@@ -125,7 +125,7 @@ func (p *CacheMem) HSet(key string, field string, value interface{}) (bool, erro
 	}
 
 	_, existed := hashMap[field]
-	hashMap[field] = utils.ToString(value)
+	hashMap[field] = candy.ToString(value)
 
 	data, _ := json.Marshal(hashMap)
 	item.Data = string(data)
