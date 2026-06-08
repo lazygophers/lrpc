@@ -11,17 +11,19 @@ import (
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils"
+	"github.com/lazygophers/utils/app"
 	"github.com/lazygophers/utils/candy"
+	_ "modernc.org/sqlite"
 )
 
-type Database struct {
+type CacheDatabase struct {
 	prefix    string
 	tableName string
 
 	db *sql.DB
 }
 
-func (p *Database) Clean() error {
+func (p *CacheDatabase) Clean() error {
 	_, err := p.db.Exec(fmt.Sprintf("delete from %s where e > 0 and e < ?", p.tableName), time.Now().Unix())
 	if err != nil {
 		return p.coverError(err)
@@ -29,7 +31,7 @@ func (p *Database) Clean() error {
 	return nil
 }
 
-func (p *Database) coverError(err error) error {
+func (p *CacheDatabase) coverError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -41,7 +43,7 @@ func (p *Database) coverError(err error) error {
 	return err
 }
 
-func (p *Database) Get(key string) (string, error) {
+func (p *CacheDatabase) Get(key string) (string, error) {
 	var value string
 	err := p.db.QueryRow(fmt.Sprintf("select v from %s where k = ? and (e = 0 or e > ?)", p.tableName), key, time.Now().Unix()).Scan(&value)
 	if err != nil {
@@ -51,7 +53,7 @@ func (p *Database) Get(key string) (string, error) {
 	return value, nil
 }
 
-func (p *Database) Set(key string, value any) error {
+func (p *CacheDatabase) Set(key string, value any) error {
 	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), 0)
 	if err != nil {
 		return p.coverError(err)
@@ -60,7 +62,7 @@ func (p *Database) Set(key string, value any) error {
 	return nil
 }
 
-func (p *Database) SetEx(key string, value any, timeout time.Duration) error {
+func (p *CacheDatabase) SetEx(key string, value any, timeout time.Duration) error {
 	_, err := p.db.Exec(fmt.Sprintf("insert or replace into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), time.Now().Add(timeout).Unix())
 	if err != nil {
 		return p.coverError(err)
@@ -68,7 +70,7 @@ func (p *Database) SetEx(key string, value any, timeout time.Duration) error {
 	return nil
 }
 
-func (p *Database) SetNx(key string, value interface{}) (bool, error) {
+func (p *CacheDatabase) SetNx(key string, value interface{}) (bool, error) {
 	_, err := p.db.Exec(fmt.Sprintf("insert into %s (k, v, e) values (?,?,?)", p.tableName), key, candy.ToString(value), 0)
 	if err != nil {
 		if strings.Contains(err.Error(), "(1555)") && strings.Contains(err.Error(), "UNIQUE") {
@@ -84,7 +86,7 @@ func (p *Database) SetNx(key string, value interface{}) (bool, error) {
 	return true, nil
 }
 
-func (p *Database) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
+func (p *CacheDatabase) SetNxWithTimeout(key string, value interface{}, timeout time.Duration) (bool, error) {
 	ok, err := p.SetNx(key, value)
 	if err != nil {
 		return ok, err
@@ -101,7 +103,7 @@ func (p *Database) SetNxWithTimeout(key string, value interface{}, timeout time.
 	return ok, nil
 }
 
-func (p *Database) Ttl(key string) (time.Duration, error) {
+func (p *CacheDatabase) Ttl(key string) (time.Duration, error) {
 	var value int64
 	err := p.db.QueryRow(fmt.Sprintf("select e from %s where k = ? and (e = 0 or e > ?)", p.tableName), key, time.Now().Unix()).Scan(&value)
 	if err != nil {
@@ -111,7 +113,7 @@ func (p *Database) Ttl(key string) (time.Duration, error) {
 	return time.Unix(value, 0).Sub(time.Now()), nil
 }
 
-func (p *Database) Expire(key string, timeout time.Duration) (bool, error) {
+func (p *CacheDatabase) Expire(key string, timeout time.Duration) (bool, error) {
 	res, err := p.db.Exec(fmt.Sprintf("update %s set e = ? where k = ?", p.tableName), time.Now().Add(timeout).Unix(), key)
 	if err != nil {
 		return false, err
@@ -119,112 +121,112 @@ func (p *Database) Expire(key string, timeout time.Duration) (bool, error) {
 	return utils.Ignore(res.RowsAffected()) > 0, nil
 }
 
-func (p *Database) Incr(key string) (int64, error) {
+func (p *CacheDatabase) Incr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) Decr(key string) (int64, error) {
+func (p *CacheDatabase) Decr(key string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) IncrBy(key string, value int64) (int64, error) {
+func (p *CacheDatabase) IncrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) DecrBy(key string, value int64) (int64, error) {
+func (p *CacheDatabase) DecrBy(key string, value int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) Exists(keys ...string) (bool, error) {
+func (p *CacheDatabase) Exists(keys ...string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HSet(key string, field string, value interface{}) (bool, error) {
+func (p *CacheDatabase) HSet(key string, field string, value interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HGet(key, field string) (string, error) {
+func (p *CacheDatabase) HGet(key, field string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HDel(key string, fields ...string) (int64, error) {
+func (p *CacheDatabase) HDel(key string, fields ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HKeys(key string) ([]string, error) {
+func (p *CacheDatabase) HKeys(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HGetAll(key string) (map[string]string, error) {
+func (p *CacheDatabase) HGetAll(key string) (map[string]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HExists(key string, field string) (bool, error) {
+func (p *CacheDatabase) HExists(key string, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HIncr(key string, subKey string) (int64, error) {
+func (p *CacheDatabase) HIncr(key string, subKey string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HIncrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheDatabase) HIncrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HDecr(key string, field string) (int64, error) {
+func (p *CacheDatabase) HDecr(key string, field string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) HDecrBy(key string, field string, increment int64) (int64, error) {
+func (p *CacheDatabase) HDecrBy(key string, field string, increment int64) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SAdd(key string, members ...string) (int64, error) {
+func (p *CacheDatabase) SAdd(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SMembers(key string) ([]string, error) {
+func (p *CacheDatabase) SMembers(key string) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SRem(key string, members ...string) (int64, error) {
+func (p *CacheDatabase) SRem(key string, members ...string) (int64, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SRandMember(key string, count ...int64) ([]string, error) {
+func (p *CacheDatabase) SRandMember(key string, count ...int64) ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SPop(key string) (string, error) {
+func (p *CacheDatabase) SPop(key string) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) SisMember(key, field string) (bool, error) {
+func (p *CacheDatabase) SisMember(key, field string) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p *Database) Del(key ...string) error {
+func (p *CacheDatabase) Del(key ...string) error {
 	if len(key) == 0 {
 		return nil
 	}
@@ -236,19 +238,19 @@ func (p *Database) Del(key ...string) error {
 	return nil
 }
 
-func (p *Database) Close() error {
+func (p *CacheDatabase) Close() error {
 	return p.db.Close()
 }
 
-func (p *Database) Client() any {
+func (p *CacheDatabase) Client() any {
 	return p.db
 }
 
-func (p *Database) SetPrefix(prefix string) {
+func (p *CacheDatabase) SetPrefix(prefix string) {
 	p.prefix = prefix
 }
 
-func (p *Database) Ping() error {
+func (p *CacheDatabase) Ping() error {
 	err := p.db.Ping()
 	if err != nil {
 		log.Errorf("err:%v", err)
@@ -257,64 +259,64 @@ func (p *Database) Ping() error {
 	return nil
 }
 
-func (p *Database) Publish(channel string, message interface{}) (int64, error) {
+func (p *CacheDatabase) Publish(channel string, message interface{}) (int64, error) {
 	return 0, errors.New("database cache does not support pub/sub")
 }
 
-func (p *Database) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
+func (p *CacheDatabase) Subscribe(handler func(channel string, message []byte) error, channels ...string) error {
 	return errors.New("database cache does not support pub/sub")
 }
 
-func (p *Database) XAdd(stream string, values map[string]interface{}) (string, error) {
+func (p *CacheDatabase) XAdd(stream string, values map[string]interface{}) (string, error) {
 	return "", errors.New("database cache does not support stream")
 }
 
-func (p *Database) XLen(stream string) (int64, error) {
+func (p *CacheDatabase) XLen(stream string) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+func (p *CacheDatabase) XRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
 	return nil, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
+func (p *CacheDatabase) XRevRange(stream string, start, stop string, count ...int64) ([]map[string]interface{}, error) {
 	return nil, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XDel(stream string, ids ...string) (int64, error) {
+func (p *CacheDatabase) XDel(stream string, ids ...string) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XTrim(stream string, maxLen int64) (int64, error) {
+func (p *CacheDatabase) XTrim(stream string, maxLen int64) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XGroupCreate(stream, group, start string) error {
+func (p *CacheDatabase) XGroupCreate(stream, group, start string) error {
 	return errors.New("database cache does not support stream")
 }
 
-func (p *Database) XGroupDestroy(stream, group string) error {
+func (p *CacheDatabase) XGroupDestroy(stream, group string) error {
 	return errors.New("database cache does not support stream")
 }
 
-func (p *Database) XGroupSetID(stream, group, id string) error {
+func (p *CacheDatabase) XGroupSetID(stream, group, id string) error {
 	return errors.New("database cache does not support stream")
 }
 
-func (p *Database) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
+func (p *CacheDatabase) XReadGroup(handler func(stream string, id string, body []byte) error, group, consumer, stream string) error {
 	return errors.New("database cache does not support stream")
 }
 
-func (p *Database) XAck(stream, group string, ids ...string) (int64, error) {
+func (p *CacheDatabase) XAck(stream, group string, ids ...string) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
-func (p *Database) XPending(stream, group string) (int64, error) {
+func (p *CacheDatabase) XPending(stream, group string) (int64, error) {
 	return 0, errors.New("database cache does not support stream")
 }
 
 func NewDatabase(db *sql.DB, tableName string) (Cache, error) {
-	p := &Database{
+	p := &CacheDatabase{
 		db:        db,
 		tableName: tableName,
 	}
@@ -326,4 +328,21 @@ func NewDatabase(db *sql.DB, tableName string) (Cache, error) {
 	}
 
 	return newBaseCache(p), nil
+}
+
+func newDatabaseFromConfig(c *Config) (Cache, error) {
+	tableName := app.Name + "_cache"
+	db, err := sql.Open("sqlite", c.Address)
+	if err != nil {
+		log.Errorf("err:%v", err)
+		return nil, err
+	}
+
+	return NewDatabase(db, tableName)
+}
+
+func init() {
+	RegisterBuilder(Database, func(c *Config) (Cache, error) {
+		return newDatabaseFromConfig(c)
+	})
 }

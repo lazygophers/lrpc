@@ -9,11 +9,12 @@ import (
 )
 
 const (
-	Mem     string = "mem"
-	Redis   string = "redis"
-	Bbolt   string = "bbolt"
-	SugarDB string = "sugardb"
-	LevelDB string = "leveldb"
+	Mem      string = "mem"
+	Redis    string = "redis"
+	Bbolt    string = "bbolt"
+	SugarDB  string = "sugardb"
+	LevelDB  string = "leveldb"
+	Database string = "database"
 )
 
 type Config struct {
@@ -91,6 +92,11 @@ func (c *Config) apply() {
 		if c.Address == "" {
 			c.Address, _ = os.Executable()
 			c.Address = filepath.Join(c.Address, app.Name+".cache")
+		}
+	case Database:
+		if c.Address == "" {
+			c.Address, _ = os.Executable()
+			c.Address = filepath.Join(c.Address, app.Name+".db")
 		}
 	case SugarDB, LevelDB:
 		if c.DataDir == "" {
