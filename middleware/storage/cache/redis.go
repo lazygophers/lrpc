@@ -1119,3 +1119,9 @@ func NewRedisWithMiniRedis(client *redis.Client, prefix string, mr *miniredis.Mi
 
 	return newBaseCache(p), nil
 }
+
+func init() {
+	RegisterBuilder(Redis, func(c *Config) (Cache, error) {
+		return NewRedisWithConfig(c)
+	})
+}

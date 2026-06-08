@@ -902,3 +902,12 @@ func NewBbolt(addr string, options *bbolt.Options) (Cache, error) {
 
 	return newBaseCache(p), nil
 }
+
+func init() {
+	RegisterBuilder(Bbolt, func(c *Config) (Cache, error) {
+		return NewBbolt(c.Address, &bbolt.Options{
+			Timeout:      time.Second * 5,
+			FreelistType: bbolt.FreelistArrayType,
+		})
+	})
+}

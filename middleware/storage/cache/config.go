@@ -13,7 +13,6 @@ const (
 	Redis   string = "redis"
 	Bbolt   string = "bbolt"
 	SugarDB string = "sugardb"
-	Bitcask string = "bitcask"
 	LevelDB string = "leveldb"
 )
 
@@ -93,7 +92,7 @@ func (c *Config) apply() {
 			c.Address, _ = os.Executable()
 			c.Address = filepath.Join(c.Address, app.Name+".cache")
 		}
-	case SugarDB, Bitcask, LevelDB:
+	case SugarDB, LevelDB:
 		if c.DataDir == "" {
 			c.DataDir, _ = os.Executable()
 			c.DataDir = filepath.Join(c.DataDir, app.Name+".cache")

@@ -1,3 +1,5 @@
+//go:build leveldb
+
 package cache
 
 import (
@@ -682,4 +684,10 @@ func NewLevelDB(c *Config) (Cache, error) {
 	})
 
 	return newBaseCache(p), nil
+}
+
+func init() {
+	RegisterBuilder(LevelDB, func(c *Config) (Cache, error) {
+		return NewLevelDB(c)
+	})
 }

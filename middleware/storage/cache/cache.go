@@ -2,11 +2,11 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lazygophers/log"
 	"github.com/lazygophers/utils/json"
-	"go.etcd.io/bbolt"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -148,6 +148,14 @@ type Cache interface {
 	LimitUpdateOnCheck(key string, limit int64, timeout time.Duration) (bool, error)
 }
 
+// cacheBuilders stores registered cache backend constructors
+var cacheBuilders = map[string]func(*Config) (Cache, error){}
+
+// RegisterBuilder registers a cache backend constructor for the given type
+func RegisterBuilder(cacheType string, builder func(*Config) (Cache, error)) {
+	cacheBuilders[cacheType] = builder
+}
+
 func New(c *Config) (Cache, error) {
 	c.apply()
 
@@ -156,28 +164,11 @@ func New(c *Config) (Cache, error) {
 		return NewMem(), nil
 	}
 
-	switch c.Type {
-	case Bbolt:
-		return NewBbolt(c.Address, &bbolt.Options{
-			Timeout:      time.Second * 5,
-			FreelistType: bbolt.FreelistArrayType,
-		})
-
-	case Redis:
-		return NewRedisWithConfig(c)
-
-	case Mem:
-		return NewMem(), nil
-
-	case SugarDB:
-		return NewSugarDB(c)
-
-	case LevelDB:
-		return NewLevelDB(c)
-
-	default:
-		return nil, errors.New("cache type not support")
+	builder, ok := cacheBuilders[c.Type]
+	if !ok {
+		return nil, fmt.Errorf("cache type %q not supported", c.Type)
 	}
+	return builder(c)
 }
 
 type Item struct {

@@ -1,3 +1,5 @@
+//go:build sugardb
+
 package cache
 
 import (

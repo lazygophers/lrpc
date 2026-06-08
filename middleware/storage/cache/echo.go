@@ -1,3 +1,5 @@
+//go:build sugardb
+
 package cache
 
 import (
@@ -446,4 +448,10 @@ func NewSugarDB(c *Config) (Cache, error) {
 	})
 
 	return newBaseCache(p), nil
+}
+
+func init() {
+	RegisterBuilder(SugarDB, func(c *Config) (Cache, error) {
+		return NewSugarDB(c)
+	})
 }

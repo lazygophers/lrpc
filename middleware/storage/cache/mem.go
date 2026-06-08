@@ -343,3 +343,9 @@ func NewMem() Cache {
 
 	return newBaseCache(p)
 }
+
+func init() {
+	RegisterBuilder(Mem, func(c *Config) (Cache, error) {
+		return NewMem(), nil
+	})
+}

@@ -1,3 +1,5 @@
+//go:build leveldb
+
 package cache
 
 import (
