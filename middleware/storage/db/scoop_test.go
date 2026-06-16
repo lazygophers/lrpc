@@ -6,6 +6,7 @@ import (
 "github.com/lazygophers/lrpc/middleware/storage/db"
 "github.com/lazygophers/utils/xerror"
 "github.com/stretchr/testify/assert"
+"gorm.io/gorm"
 "testing"
 )
 
@@ -1001,5 +1002,50 @@ func TestScoop_Where_SubConditions(t *testing.T) {
 		result := scoop.Where("age", ">", 18).Where("age", "<", 65)
 		assert.NotNil(t, result)
 		assert.Equal(t, scoop, result)
+	})
+}
+
+// TestScoop_IsNotFound 测试 Scoop.IsNotFound 判断。
+// 重点验证 SetNotFound 设置非 CodeNoData 的自定义错误码时，
+// 经 Model.NewScoop 传递后 Scoop.IsNotFound 能正确识别（见 issue #48）。
+func TestScoop_IsNotFound(t *testing.T) {
+	config := &db.Config{
+		Type: db.MySQL,
+		Mock: true,
+	}
+
+	client, err := db.New(config)
+	assert.NoError(t, err)
+	defer client.MockDB().Close()
+
+	t.Run("default CodeNoData error", func(t *testing.T) {
+		scoop := client.NewScoop()
+		err := xerror.New(xerror.CodeNoData, "record not found")
+		assert.True(t, scoop.IsNotFound(err))
+	})
+
+	t.Run("gorm.ErrRecordNotFound", func(t *testing.T) {
+		scoop := client.NewScoop()
+		assert.True(t, scoop.IsNotFound(gorm.ErrRecordNotFound))
+	})
+
+	t.Run("custom not found error propagated via NewScoop", func(t *testing.T) {
+		// 使用非 CodeNoData 的自定义错误码，复现 issue #48
+		customErr := xerror.New(10097, "token usage not found")
+		scoop := db.NewModel[TestUser](client).
+			SetNotFound(customErr).
+			NewScoop()
+
+		assert.True(t, scoop.IsNotFound(customErr))
+	})
+
+	t.Run("other error", func(t *testing.T) {
+		scoop := client.NewScoop()
+		assert.False(t, scoop.IsNotFound(errors.New("some other error")))
+	})
+
+	t.Run("nil error", func(t *testing.T) {
+		scoop := client.NewScoop()
+		assert.False(t, scoop.IsNotFound(nil))
 	})
 }

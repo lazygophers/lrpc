@@ -105,7 +105,10 @@ func (p *Scoop) getDuplicatedKeyError() error {
 }
 
 func (p *Scoop) IsNotFound(err error) bool {
-	return xerror.Code(err) == xerror.CodeNoData || err == gorm.ErrRecordNotFound
+	if err == nil {
+		return false
+	}
+	return xerror.Code(err) == xerror.CodeNoData || err == gorm.ErrRecordNotFound || err == p.notFoundError
 }
 
 func (p *Scoop) IsDuplicatedKeyError(err error) bool {
